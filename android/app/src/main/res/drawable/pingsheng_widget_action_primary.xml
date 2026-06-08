@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 小组件主快捷按钮背景：用于最高频的待办新增动作。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="13dp" />
+    <solid android:color="#5E7CF7" />
+</shape>

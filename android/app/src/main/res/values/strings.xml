@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">平生</string>
+    <string name="pingsheng_widget_name">平生今日</string>
+    <string name="pingsheng_widget_description">今日待办、饮食、锻炼和健康摘要</string>
+</resources>
