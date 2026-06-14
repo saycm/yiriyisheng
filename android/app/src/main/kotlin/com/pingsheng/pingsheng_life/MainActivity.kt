@@ -15,6 +15,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
@@ -27,7 +28,7 @@ import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.time.Instant
@@ -42,7 +43,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class MainActivity : FlutterActivity(), SensorEventListener {
+class MainActivity : FlutterFragmentActivity(), SensorEventListener {
     private val mainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var widgetChannel: MethodChannel? = null
     private var healthPermissionLauncher: ActivityResultLauncher<Set<String>>? = null
@@ -56,7 +57,7 @@ class MainActivity : FlutterActivity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         healthPermissionLauncher =
             registerForActivityResult(PermissionController.createRequestPermissionResultContract()) {
-                grantedPermissions ->
+                grantedPermissions: Set<String> ->
                 pendingHealthPermissionResult?.success(
                     mapOf(
                         "granted" to HEALTH_PERMISSIONS.all { permission ->
@@ -100,6 +101,35 @@ class MainActivity : FlutterActivity(), SensorEventListener {
                         openHealthConnectSettings()
                         result.success(null)
                     }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AUTH_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                val prefs = getSharedPreferences(AUTH_PREFS_NAME, MODE_PRIVATE)
+                when (call.method) {
+                    "loadAuthSession" -> result.success(
+                        prefs.getString(KEY_AUTH_SESSION_JSON, null)
+                    )
+                    "saveAuthSession" -> {
+                        prefs.edit()
+                            .putString(KEY_AUTH_SESSION_JSON, call.arguments as? String ?: "")
+                            .apply()
+                        result.success(null)
+                    }
+                    "clearAuthSession" -> {
+                        prefs.edit().remove(KEY_AUTH_SESSION_JSON).apply()
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UPDATE_LAUNCHER_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "openDownloadUrl" -> openDownloadUrl(call.argument<String>("url"), result)
                     else -> result.notImplemented()
                 }
             }
@@ -225,7 +255,7 @@ class MainActivity : FlutterActivity(), SensorEventListener {
     private suspend fun readHealthSnapshot(): Map<String, Any?> {
         val sdkStatus = HealthConnectClient.getSdkStatus(
             this,
-            HealthConnectClient.DEFAULT_PROVIDER_PACKAGE_NAME
+            HEALTH_CONNECT_PROVIDER_PACKAGE
         )
         if (sdkStatus == HealthConnectClient.SDK_UNAVAILABLE) {
             return healthStatusMap("unavailable", "当前设备没有可用的 Health Connect。")
@@ -285,7 +315,6 @@ class MainActivity : FlutterActivity(), SensorEventListener {
                     ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL,
                     BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL,
                     HeartRateRecord.BPM_AVG,
-                    RespiratoryRateRecord.RATE_AVG,
                     SleepSessionRecord.SLEEP_DURATION_TOTAL
                 ),
                 timeRangeFilter = TimeRangeFilter.between(start, end)
@@ -297,8 +326,8 @@ class MainActivity : FlutterActivity(), SensorEventListener {
             "steps" to aggregate[StepsRecord.COUNT_TOTAL],
             "activeCaloriesKcal" to aggregate[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories,
             "basalCaloriesKcal" to aggregate[BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL]?.inKilocalories,
-            "heartRateBpm" to aggregate[HeartRateRecord.BPM_AVG]?.roundToInt(),
-            "respiratoryRate" to aggregate[RespiratoryRateRecord.RATE_AVG],
+            "heartRateBpm" to aggregate[HeartRateRecord.BPM_AVG]?.toInt(),
+            "respiratoryRate" to null,
             "sleepMinutes" to aggregate[SleepSessionRecord.SLEEP_DURATION_TOTAL]?.toMinutes()
         )
     }
@@ -310,7 +339,7 @@ class MainActivity : FlutterActivity(), SensorEventListener {
         }
         val sdkStatus = HealthConnectClient.getSdkStatus(
             this,
-            HealthConnectClient.DEFAULT_PROVIDER_PACKAGE_NAME
+            HEALTH_CONNECT_PROVIDER_PACKAGE
         )
         if (sdkStatus != HealthConnectClient.SDK_AVAILABLE) {
             result.success(mapOf("granted" to false, "grantedCount" to 0))
@@ -347,7 +376,7 @@ class MainActivity : FlutterActivity(), SensorEventListener {
 
     private fun openHealthConnectSettings() {
         val intent = Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS).apply {
-            setPackage(HealthConnectClient.DEFAULT_PROVIDER_PACKAGE_NAME)
+            setPackage(HEALTH_CONNECT_PROVIDER_PACKAGE)
         }
         try {
             startActivity(intent)
@@ -358,6 +387,25 @@ class MainActivity : FlutterActivity(), SensorEventListener {
                     Uri.parse("package:$packageName")
                 )
             )
+        }
+    }
+
+    private fun openDownloadUrl(url: String?, result: MethodChannel.Result) {
+        val target = url?.trim().orEmpty()
+        if (target.isEmpty()) {
+            result.error("missing_url", "下载地址为空", null)
+            return
+        }
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(target)).apply {
+                addCategory(Intent.CATEGORY_BROWSABLE)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+            result.success(null)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, "没有可用的浏览器", Toast.LENGTH_SHORT).show()
+            result.error("browser_missing", "没有可用的浏览器", null)
         }
     }
 
@@ -436,7 +484,12 @@ class MainActivity : FlutterActivity(), SensorEventListener {
         const val EXTRA_WIDGET_ACTION = "widget_action"
         private const val WIDGET_CHANNEL = "pingsheng_life/widget_summary"
         private const val HEALTH_CHANNEL = "pingsheng_life/system_health"
+        private const val AUTH_CHANNEL = "pingsheng_life/auth_session"
+        private const val UPDATE_LAUNCHER_CHANNEL = "pingsheng_life/update_launcher"
+        private const val AUTH_PREFS_NAME = "pingsheng_auth"
+        private const val KEY_AUTH_SESSION_JSON = "auth_session_json"
         private const val SENSOR_PERMISSION_REQUEST = 42
+        private const val HEALTH_CONNECT_PROVIDER_PACKAGE = "com.google.android.apps.healthdata"
 
         private val HEALTH_PERMISSIONS = setOf(
             HealthPermission.getReadPermission(StepsRecord::class),
