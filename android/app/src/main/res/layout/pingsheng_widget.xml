@@ -35,7 +35,7 @@
             android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="待办选项 · 快捷记录"
+            android:text="待办 · 饮食 · 记账 · 训练"
             android:textColor="#5E7CF7"
             android:textSize="11sp"
             android:textStyle="bold" />
@@ -212,12 +212,13 @@
         <TextView
             android:id="@+id/widget_workout"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
             android:ellipsize="end"
             android:maxLines="1"
             android:text="锻炼 0/19 组"
             android:textColor="#8B92A6"
-            android:textSize="1sp"
-            android:visibility="gone" />
+            android:textSize="10sp"
+            android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

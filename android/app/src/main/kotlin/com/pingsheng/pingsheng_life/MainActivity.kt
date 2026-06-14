@@ -6,6 +6,7 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -28,6 +29,8 @@ import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -107,19 +110,22 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AUTH_CHANNEL)
             .setMethodCallHandler { call, result ->
-                val prefs = getSharedPreferences(AUTH_PREFS_NAME, MODE_PRIVATE)
                 when (call.method) {
-                    "loadAuthSession" -> result.success(
-                        prefs.getString(KEY_AUTH_SESSION_JSON, null)
-                    )
+                    "loadAuthSession" -> result.success(loadAuthSession())
                     "saveAuthSession" -> {
-                        prefs.edit()
-                            .putString(KEY_AUTH_SESSION_JSON, call.arguments as? String ?: "")
-                            .apply()
-                        result.success(null)
+                        try {
+                            saveAuthSession(call.arguments as? String ?: "")
+                            result.success(null)
+                        } catch (error: Exception) {
+                            result.error(
+                                "secure_store_unavailable",
+                                error.message ?: "登录态安全存储不可用",
+                                null
+                            )
+                        }
                     }
                     "clearAuthSession" -> {
-                        prefs.edit().remove(KEY_AUTH_SESSION_JSON).apply()
+                        clearAuthSession()
                         result.success(null)
                     }
                     else -> result.notImplemented()
@@ -409,6 +415,65 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         }
     }
 
+    private fun loadAuthSession(): String? {
+        val secureValue = try {
+            secureAuthPrefs().getString(KEY_AUTH_SESSION_JSON, null)
+        } catch (_: Exception) {
+            null
+        }
+        if (!secureValue.isNullOrEmpty()) {
+            return secureValue
+        }
+
+        val legacyPrefs = getSharedPreferences(AUTH_PREFS_NAME, MODE_PRIVATE)
+        val legacyValue = legacyPrefs.getString(KEY_AUTH_SESSION_JSON, null)
+        if (!legacyValue.isNullOrEmpty()) {
+            try {
+                saveAuthSession(legacyValue)
+                legacyPrefs.edit().remove(KEY_AUTH_SESSION_JSON).apply()
+            } catch (_: Exception) {
+                return legacyValue
+            }
+        }
+        return legacyValue
+    }
+
+    private fun saveAuthSession(sessionJson: String) {
+        secureAuthPrefs()
+            .edit()
+            .putString(KEY_AUTH_SESSION_JSON, sessionJson)
+            .apply()
+        getSharedPreferences(AUTH_PREFS_NAME, MODE_PRIVATE)
+            .edit()
+            .remove(KEY_AUTH_SESSION_JSON)
+            .apply()
+    }
+
+    private fun clearAuthSession() {
+        try {
+            secureAuthPrefs().edit().remove(KEY_AUTH_SESSION_JSON).apply()
+        } catch (_: Exception) {
+            // 安全存储不可用时仍清理旧明文缓存。
+        }
+        getSharedPreferences(AUTH_PREFS_NAME, MODE_PRIVATE)
+            .edit()
+            .remove(KEY_AUTH_SESSION_JSON)
+            .apply()
+    }
+
+    private fun secureAuthPrefs(): SharedPreferences {
+        val masterKey = MasterKey.Builder(this)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        return EncryptedSharedPreferences.create(
+            this,
+            AUTH_SECURE_PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+
     private fun startSensorListeners() {
         val manager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return
         sensorManager = manager
@@ -487,6 +552,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         private const val AUTH_CHANNEL = "pingsheng_life/auth_session"
         private const val UPDATE_LAUNCHER_CHANNEL = "pingsheng_life/update_launcher"
         private const val AUTH_PREFS_NAME = "pingsheng_auth"
+        private const val AUTH_SECURE_PREFS_NAME = "pingsheng_auth_secure"
         private const val KEY_AUTH_SESSION_JSON = "auth_session_json"
         private const val SENSOR_PERMISSION_REQUEST = 42
         private const val HEALTH_CONNECT_PROVIDER_PACKAGE = "com.google.android.apps.healthdata"

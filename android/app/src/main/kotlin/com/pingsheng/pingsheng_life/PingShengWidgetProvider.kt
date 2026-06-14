@@ -85,6 +85,11 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val foodCalories = prefs.getInt(KEY_FOOD_CALORIES, 0)
             val pendingTodos = prefs.getInt(KEY_PENDING_TODOS, 4)
+            val financeRecords = safeJsonArray(
+                prefs.getString(KEY_FINANCE_RECORDS_JSON, null),
+                defaultFinanceRecordsJson()
+            )
+            val todayExpense = todayExpense(financeRecords)
             val workoutGroups = prefs.getInt(KEY_WORKOUT_GROUPS, 0)
             val healthText = prefs.getString(KEY_HEALTH_TEXT, "健康待授权").orEmpty()
             val foodText = if (foodCalories > 0) {
@@ -93,6 +98,11 @@ class PingShengWidgetProvider : AppWidgetProvider() {
                 "饮食待记录"
             }
             val workoutText = "锻炼 ${workoutGroups}/${TOTAL_WORKOUT_GROUPS} 组"
+            val financeText = if (todayExpense > 0.0) {
+                "今日支出 ¥${formatMoney(todayExpense)}"
+            } else {
+                "今日未记账"
+            }
 
             val views = RemoteViews(context.packageName, R.layout.pingsheng_widget)
 
@@ -100,7 +110,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.widget_title, "平生今日")
             views.setTextViewText(R.id.widget_subtitle, "桌面快速记录")
             views.setTextViewText(R.id.widget_plan, "待办 ${pendingTodos} 项")
-            views.setTextViewText(R.id.widget_finance, "净资产 ¥1,555")
+            views.setTextViewText(R.id.widget_finance, financeText)
             views.setTextViewText(R.id.widget_health, "${healthText} · ${workoutGroups}组")
             views.setTextViewText(R.id.widget_food, foodText)
             views.setTextViewText(R.id.widget_workout, workoutText)
@@ -265,6 +275,25 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             prefs.edit()
                 .putString(KEY_FINANCE_RECORDS_JSON, records.toString())
                 .apply()
+        }
+
+        private fun todayExpense(records: JSONArray): Double {
+            var total = 0.0
+            for (index in 0 until records.length()) {
+                val record = records.optJSONObject(index) ?: continue
+                if (record.optString("type") == "支出") {
+                    total += record.optDouble("amount", 0.0)
+                }
+            }
+            return total
+        }
+
+        private fun formatMoney(amount: Double): String {
+            return if (amount % 1.0 == 0.0) {
+                amount.toInt().toString()
+            } else {
+                String.format("%.2f", amount)
+            }
         }
 
         private fun defaultTodosJson(): String {

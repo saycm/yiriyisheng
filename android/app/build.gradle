@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.pingsheng.pingsheng_life"
     compileSdk = 36
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -45,5 +45,6 @@ flutter {
 
 dependencies {
     implementation "androidx.health.connect:connect-client:1.1.0"
+    implementation "androidx.security:security-crypto:1.1.0-alpha06"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
 }

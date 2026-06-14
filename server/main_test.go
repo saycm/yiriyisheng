@@ -12,19 +12,35 @@ import (
 )
 
 type testApp struct {
-	server      *httptest.Server
-	dataFile    string
-	downloadDir string
+	server       *httptest.Server
+	dataFile     string
+	databaseFile string
+	downloadDir  string
 }
 
 func newTestApp(t *testing.T) *testApp {
+	return newTestAppWithLegacyDB(t, nil)
+}
+
+func newTestAppWithLegacyDB(t *testing.T, legacyDB *dbFile) *testApp {
 	t.Helper()
 	tempDir := t.TempDir()
 	app := &testApp{
-		dataFile:    filepath.Join(tempDir, "db.json"),
-		downloadDir: filepath.Join(tempDir, "downloads"),
+		dataFile:     filepath.Join(tempDir, "db.json"),
+		databaseFile: filepath.Join(tempDir, "pingsheng-life.db"),
+		downloadDir:  filepath.Join(tempDir, "downloads"),
+	}
+	if legacyDB != nil {
+		raw, err := json.MarshalIndent(legacyDB, "", "  ")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(app.dataFile, append(raw, '\n'), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 	t.Setenv("DATA_FILE", app.dataFile)
+	t.Setenv("DATABASE_FILE", app.databaseFile)
 	t.Setenv("DOWNLOAD_DIR", app.downloadDir)
 	t.Setenv("TOKEN_SECRET", "test-token-secret")
 	t.Setenv("ADMIN_TOKEN", "test-admin-token")
@@ -157,6 +173,60 @@ func TestPhoneRegistrationAcceptsChunkedJSON(t *testing.T) {
 	user := payload["user"].(map[string]any)
 	if user["phone"] != "13800138000" {
 		t.Fatalf("phone was not normalized: %#v", user["phone"])
+	}
+}
+
+func TestMigratesLegacyJSONToSQLite(t *testing.T) {
+	email := "legacy@example.com"
+	passwordHash, err := hashPassword("secret123")
+	if err != nil {
+		t.Fatal(err)
+	}
+	app := newTestAppWithLegacyDB(t, &dbFile{
+		Users: []user{
+			{
+				ID:           "legacy-user",
+				Email:        &email,
+				DisplayName:  "Legacy",
+				PasswordHash: passwordHash,
+				CreatedAt:    "2026-01-02T03:04:05Z",
+				UpdatedAt:    "2026-01-02T03:04:05Z",
+			},
+		},
+		RefreshTokens: []refreshToken{},
+		UpdatePolicy: updatePolicy{
+			Platform:                "android",
+			LatestVersionCode:       9,
+			LatestVersionName:       "1.0.9",
+			MinSupportedVersionCode: 8,
+			DownloadURL:             "http://example.com/downloads/legacy.apk",
+			ReleaseNotes:            []string{"legacy import"},
+			Message:                 "legacy policy",
+			UpdatedAt:               "2026-01-03T03:04:05Z",
+		},
+	})
+
+	status, payload := app.jsonRequest(t, http.MethodPost, "/v1/auth/login/email", map[string]any{
+		"email":    "legacy@example.com",
+		"password": "secret123",
+	}, nil)
+	if status != http.StatusOK {
+		t.Fatalf("legacy login status = %d, payload = %#v", status, payload)
+	}
+	user := payload["user"].(map[string]any)
+	if user["id"] != "legacy-user" {
+		t.Fatalf("legacy user was not imported: %#v", user)
+	}
+	if _, err := os.Stat(app.databaseFile); err != nil {
+		t.Fatalf("sqlite database was not created: %v", err)
+	}
+
+	status, payload = app.jsonRequest(t, http.MethodGet, "/v1/app/update?platform=android&versionCode=8&versionName=1.0.8", nil, nil)
+	if status != http.StatusOK {
+		t.Fatalf("check update status = %d, payload = %#v", status, payload)
+	}
+	if payload["latestVersionCode"] != float64(9) || payload["downloadUrl"] != "http://example.com/downloads/legacy.apk" {
+		t.Fatalf("legacy update policy was not imported: %#v", payload)
 	}
 }
 

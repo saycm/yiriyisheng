@@ -6,6 +6,7 @@ import (
 	"crypto/pbkdf2"
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -25,10 +26,13 @@ import (
 	"sync"
 	"time"
 	"unicode"
+
+	_ "modernc.org/sqlite"
 )
 
 const (
 	defaultDataFile            = "data/db.json"
+	defaultDatabaseFile        = "data/pingsheng-life.db"
 	defaultDownloadDir         = "downloads"
 	defaultTokenSecret         = "change-this-dev-token-secret"
 	defaultAdminToken          = "change-this-admin-token"
@@ -517,23 +521,373 @@ func addCORSHeaders(w http.ResponseWriter) {
 }
 
 func readDB() (dbFile, error) {
-	path := dataFile()
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		db := defaultDB()
-		if err := writeDB(db); err != nil {
-			return dbFile{}, err
-		}
-	} else if err != nil {
-		return dbFile{}, err
-	}
-	raw, err := os.ReadFile(path)
+	db, err := openDataDB()
 	if err != nil {
 		return dbFile{}, err
 	}
+	defer db.Close()
+	return readSQLiteDB(db)
+}
+
+func writeDB(db dbFile) error {
+	sqlDB, err := openDataDB()
+	if err != nil {
+		return err
+	}
+	defer sqlDB.Close()
+
+	tx, err := sqlDB.Begin()
+	if err != nil {
+		return err
+	}
+	if err := replaceDBInTx(tx, db); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	if err := setMetaTx(tx, "legacy_json_migrated", "1"); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func openDataDB() (*sql.DB, error) {
+	path := databaseFile()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return nil, err
+	}
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(1)
+	if err := initSQLite(db); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	return db, nil
+}
+
+func initSQLite(db *sql.DB) error {
+	statements := []string{
+		`PRAGMA foreign_keys = ON`,
+		`PRAGMA busy_timeout = 5000`,
+		`CREATE TABLE IF NOT EXISTS users (
+			id TEXT PRIMARY KEY,
+			email TEXT UNIQUE,
+			phone TEXT UNIQUE,
+			display_name TEXT NOT NULL,
+			password_hash TEXT NOT NULL,
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS refresh_tokens (
+			id TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL,
+			token_hash TEXT NOT NULL UNIQUE,
+			created_at TEXT NOT NULL,
+			expires_at TEXT NOT NULL,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON refresh_tokens(expires_at)`,
+		`CREATE TABLE IF NOT EXISTS update_policy (
+			id INTEGER PRIMARY KEY CHECK (id = 1),
+			platform TEXT NOT NULL,
+			latest_version_code INTEGER NOT NULL,
+			latest_version_name TEXT NOT NULL,
+			min_supported_version_code INTEGER NOT NULL,
+			download_url TEXT NOT NULL,
+			release_notes_json TEXT NOT NULL,
+			message TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS app_meta (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL
+		)`,
+	}
+	for _, statement := range statements {
+		if _, err := db.Exec(statement); err != nil {
+			return err
+		}
+	}
+	if err := migrateLegacyJSON(db); err != nil {
+		return err
+	}
+	return ensureUpdatePolicy(db)
+}
+
+func migrateLegacyJSON(db *sql.DB) error {
+	value, ok, err := metaValue(db, "legacy_json_migrated")
+	if err != nil {
+		return err
+	}
+	if ok && value == "1" {
+		return nil
+	}
+
+	hasData, err := sqliteHasData(db)
+	if err != nil {
+		return err
+	}
+	if hasData {
+		return setMeta(db, "legacy_json_migrated", "1")
+	}
+
+	legacyDB, ok, err := readLegacyDBFile(dataFile())
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return setMeta(db, "legacy_json_migrated", "1")
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	if err := replaceDBInTx(tx, legacyDB); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	if err := setMetaTx(tx, "legacy_json_migrated", "1"); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func readLegacyDBFile(path string) (dbFile, bool, error) {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return dbFile{}, false, nil
+	} else if err != nil {
+		return dbFile{}, false, err
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return dbFile{}, false, err
+	}
 	var db dbFile
 	if err := json.Unmarshal(raw, &db); err != nil {
+		return dbFile{}, false, err
+	}
+	return normalizeDBFile(db), true, nil
+}
+
+func readSQLiteDB(db *sql.DB) (dbFile, error) {
+	result := dbFile{
+		Users:         []user{},
+		RefreshTokens: []refreshToken{},
+	}
+
+	userRows, err := db.Query(`SELECT id, email, phone, display_name, password_hash, created_at, updated_at FROM users ORDER BY created_at, id`)
+	if err != nil {
 		return dbFile{}, err
 	}
+	defer userRows.Close()
+	for userRows.Next() {
+		var item user
+		var email sql.NullString
+		var phone sql.NullString
+		if err := userRows.Scan(
+			&item.ID,
+			&email,
+			&phone,
+			&item.DisplayName,
+			&item.PasswordHash,
+			&item.CreatedAt,
+			&item.UpdatedAt,
+		); err != nil {
+			return dbFile{}, err
+		}
+		if email.Valid {
+			value := email.String
+			item.Email = &value
+		}
+		if phone.Valid {
+			value := phone.String
+			item.Phone = &value
+		}
+		result.Users = append(result.Users, item)
+	}
+	if err := userRows.Err(); err != nil {
+		return dbFile{}, err
+	}
+
+	tokenRows, err := db.Query(`SELECT id, user_id, token_hash, created_at, expires_at FROM refresh_tokens ORDER BY created_at, id`)
+	if err != nil {
+		return dbFile{}, err
+	}
+	defer tokenRows.Close()
+	for tokenRows.Next() {
+		var token refreshToken
+		if err := tokenRows.Scan(&token.ID, &token.UserID, &token.TokenHash, &token.CreatedAt, &token.ExpiresAt); err != nil {
+			return dbFile{}, err
+		}
+		result.RefreshTokens = append(result.RefreshTokens, token)
+	}
+	if err := tokenRows.Err(); err != nil {
+		return dbFile{}, err
+	}
+
+	policy, err := readUpdatePolicy(db)
+	if err != nil {
+		return dbFile{}, err
+	}
+	result.UpdatePolicy = policy
+	return normalizeDBFile(result), nil
+}
+
+func readUpdatePolicy(db *sql.DB) (updatePolicy, error) {
+	var policy updatePolicy
+	var notesJSON string
+	err := db.QueryRow(`SELECT platform, latest_version_code, latest_version_name, min_supported_version_code, download_url, release_notes_json, message, updated_at FROM update_policy WHERE id = 1`).Scan(
+		&policy.Platform,
+		&policy.LatestVersionCode,
+		&policy.LatestVersionName,
+		&policy.MinSupportedVersionCode,
+		&policy.DownloadURL,
+		&notesJSON,
+		&policy.Message,
+		&policy.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return defaultDB().UpdatePolicy, nil
+	}
+	if err != nil {
+		return updatePolicy{}, err
+	}
+	if err := json.Unmarshal([]byte(notesJSON), &policy.ReleaseNotes); err != nil {
+		return updatePolicy{}, err
+	}
+	return policy, nil
+}
+
+func replaceDBInTx(tx *sql.Tx, db dbFile) error {
+	db = normalizeDBFile(db)
+	statements := []string{
+		`DELETE FROM refresh_tokens`,
+		`DELETE FROM users`,
+		`DELETE FROM update_policy`,
+	}
+	for _, statement := range statements {
+		if _, err := tx.Exec(statement); err != nil {
+			return err
+		}
+	}
+
+	for _, item := range db.Users {
+		if _, err := tx.Exec(
+			`INSERT INTO users (id, email, phone, display_name, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			item.ID,
+			nullableString(item.Email),
+			nullableString(item.Phone),
+			item.DisplayName,
+			item.PasswordHash,
+			item.CreatedAt,
+			item.UpdatedAt,
+		); err != nil {
+			return err
+		}
+	}
+	for _, token := range db.RefreshTokens {
+		if _, err := tx.Exec(
+			`INSERT INTO refresh_tokens (id, user_id, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?)`,
+			token.ID,
+			token.UserID,
+			token.TokenHash,
+			token.CreatedAt,
+			token.ExpiresAt,
+		); err != nil {
+			return err
+		}
+	}
+
+	notesJSON, err := json.Marshal(db.UpdatePolicy.ReleaseNotes)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(
+		`INSERT INTO update_policy (id, platform, latest_version_code, latest_version_name, min_supported_version_code, download_url, release_notes_json, message, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		db.UpdatePolicy.Platform,
+		db.UpdatePolicy.LatestVersionCode,
+		db.UpdatePolicy.LatestVersionName,
+		db.UpdatePolicy.MinSupportedVersionCode,
+		db.UpdatePolicy.DownloadURL,
+		string(notesJSON),
+		db.UpdatePolicy.Message,
+		db.UpdatePolicy.UpdatedAt,
+	)
+	return err
+}
+
+func ensureUpdatePolicy(db *sql.DB) error {
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM update_policy WHERE id = 1`).Scan(&count); err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	policy := defaultDB().UpdatePolicy
+	notesJSON, err := json.Marshal(policy.ReleaseNotes)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	if _, err := tx.Exec(
+		`INSERT INTO update_policy (id, platform, latest_version_code, latest_version_name, min_supported_version_code, download_url, release_notes_json, message, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		policy.Platform,
+		policy.LatestVersionCode,
+		policy.LatestVersionName,
+		policy.MinSupportedVersionCode,
+		policy.DownloadURL,
+		string(notesJSON),
+		policy.Message,
+		policy.UpdatedAt,
+	); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func sqliteHasData(db *sql.DB) (bool, error) {
+	var count int
+	if err := db.QueryRow(`SELECT (SELECT COUNT(*) FROM users) + (SELECT COUNT(*) FROM update_policy)`).Scan(&count); err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func metaValue(db *sql.DB, key string) (string, bool, error) {
+	var value string
+	err := db.QueryRow(`SELECT value FROM app_meta WHERE key = ?`, key).Scan(&value)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return value, true, nil
+}
+
+func setMeta(db *sql.DB, key string, value string) error {
+	_, err := db.Exec(`INSERT INTO app_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key, value)
+	return err
+}
+
+func setMetaTx(tx *sql.Tx, key string, value string) error {
+	_, err := tx.Exec(`INSERT INTO app_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key, value)
+	return err
+}
+
+func normalizeDBFile(db dbFile) dbFile {
 	fallback := defaultDB()
 	if db.Users == nil {
 		db.Users = []user{}
@@ -542,25 +896,14 @@ func readDB() (dbFile, error) {
 		db.RefreshTokens = []refreshToken{}
 	}
 	db.UpdatePolicy = sanitizeUpdatePolicy(policyToMap(db.UpdatePolicy), fallback.UpdatePolicy, true)
-	return db, nil
+	return db
 }
 
-func writeDB(db dbFile) error {
-	path := dataFile()
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
+func nullableString(value *string) any {
+	if value == nil {
+		return nil
 	}
-	raw, err := json.MarshalIndent(db, "", "  ")
-	if err != nil {
-		return err
-	}
-	raw = append(raw, '\n')
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, raw, 0o644); err != nil {
-		return err
-	}
-	_ = os.Remove(path)
-	return os.Rename(tmp, path)
+	return *value
 }
 
 func defaultDB() dbFile {
@@ -888,6 +1231,10 @@ func nowISO() string {
 
 func dataFile() string {
 	return envString("DATA_FILE", defaultDataFile)
+}
+
+func databaseFile() string {
+	return envString("DATABASE_FILE", defaultDatabaseFile)
 }
 
 func downloadDir() string {
