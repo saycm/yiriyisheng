@@ -382,11 +382,6 @@ class _FoodModulePageState extends State<FoodModulePage> {
                   onOpenModules: widget.onOpenModules,
                   onOpenCategories: _openCategorySheet,
                 ),
-                _ModuleLinkStrip(
-                  selected: LifeModule.food,
-                  onSwitchModule: widget.onSwitchModule,
-                ),
-                const SizedBox(height: 10),
                 _FoodSearchBar(
                   category: _category,
                   controller: _foodSearchController,
@@ -400,7 +395,12 @@ class _FoodModulePageState extends State<FoodModulePage> {
                 Expanded(
                   child: ListView(
                     key: const ValueKey('food_main_list'),
-                    padding: const EdgeInsets.fromLTRB(18, 6, 18, 112),
+                    padding: const EdgeInsets.fromLTRB(
+                      18,
+                      6,
+                      18,
+                      112 + _moduleSwitchBarReservedHeight,
+                    ),
                     children: [
                       _ModuleLinkedSummaryCard(
                         title: '饮食联动',
@@ -529,16 +529,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     if (foods.isEmpty) {
       return;
     }
-    setState(() {
-      _activeMeal = meal;
-      _selectedFoods.addAll(foods);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('已加入 ${foods.length} 项，确认后记录到$meal'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    _recordFoodItems(foods, meal);
   }
 
   FoodItem? _findFoodByName(String name) {
@@ -554,28 +545,32 @@ class _FoodModulePageState extends State<FoodModulePage> {
     if (_selectedFoods.isEmpty) {
       return;
     }
-    final calories = _totalCalories;
+    _recordFoodItems(List.of(_selectedFoods), _activeMeal);
+    setState(_selectedFoods.clear);
+  }
+
+  void _recordFoodItems(List<FoodItem> foods, String meal) {
+    final calories = foods.fold(0, (total, food) => total + food.calorie);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content:
-            Text('已记录 $_activeMeal ${_selectedFoods.length} 项，$calories 千卡'),
+        content: Text('已记录 $meal ${foods.length} 项，$calories 千卡'),
         behavior: SnackBarBehavior.floating,
       ),
     );
     widget.onRecordCalories(calories);
     setState(() {
+      _activeMeal = meal;
       _foodLogs.addAll(
-        _selectedFoods.map(
+        foods.map(
           (food) => FoodLogEntry(
             food: food,
-            meal: _activeMeal,
+            meal: meal,
             servings: 1,
             note: '',
             recordedAt: DateTime.now(),
           ),
         ),
       );
-      _selectedFoods.clear();
     });
   }
 
@@ -1976,26 +1971,32 @@ class _FoodSelectedBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+      padding: const EdgeInsets.fromLTRB(
+        18,
+        0,
+        18,
+        10 + _moduleSwitchBarReservedHeight,
+      ),
       child: Container(
-        height: 58,
-        padding: const EdgeInsets.fromLTRB(12, 7, 8, 7),
+        key: const ValueKey('food_selected_bar_container'),
+        height: 48,
+        padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF9FA8C7).withValues(alpha: 0.24),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
+              color: const Color(0xFF9FA8C7).withValues(alpha: 0.18),
+              blurRadius: 14,
+              offset: const Offset(0, 7),
             ),
           ],
         ),
         child: Row(
           children: [
             const Icon(Icons.shopping_cart_rounded,
-                color: AppColors.primary, size: 20),
-            const SizedBox(width: 8),
+                color: AppColors.primary, size: 18),
+            const SizedBox(width: 7),
             Expanded(
               child: Text(
                 '已选 $count 项 · $calories 千卡',
@@ -2003,25 +2004,31 @@ class _FoodSelectedBar extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: AppColors.ink,
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w900,
                 ),
               ),
             ),
             SizedBox(
-              height: 44,
+              width: 88,
+              height: 36,
               child: FilledButton(
                 key: const ValueKey('food_record_selected_button'),
                 onPressed: onRecord,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
+                  minimumSize: Size.zero,
+                  padding: EdgeInsets.zero,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 child: const Text(
                   '记录',
-                  style: TextStyle(fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ),

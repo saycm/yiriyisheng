@@ -48,6 +48,8 @@ app.*.map.json
 /server/data/db.json
 /server/data/*.db
 /server/data/*.db-*
+/server/logs/
 /server/downloads/*.apk
 /server/pingsheng-life-server
 /server/pingsheng-life-server.exe
+/test/failures/

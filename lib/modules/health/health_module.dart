@@ -157,17 +157,17 @@ class _HealthModulePageState extends State<HealthModulePage> {
           children: [
             ListView(
               key: const ValueKey('health_main_list'),
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 190),
+              padding: const EdgeInsets.fromLTRB(
+                18,
+                10,
+                18,
+                190 + _moduleSwitchBarReservedHeight,
+              ),
               children: [
                 _HealthHeader(
                   title: selectedDay.title,
                   onOpenModules: widget.onOpenModules,
                   onOpenSummary: _openSummarySheet,
-                ),
-                const SizedBox(height: 14),
-                _ModuleLinkStrip(
-                  selected: LifeModule.health,
-                  onSwitchModule: widget.onSwitchModule,
                 ),
                 const SizedBox(height: 16),
                 _HealthDateStrip(
@@ -232,9 +232,11 @@ class _HealthModulePageState extends State<HealthModulePage> {
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 18),
+                padding:
+                    const EdgeInsets.only(bottom: _moduleStackedBottomNavInset),
                 child: _WorkoutBottomNav(
                   selectedIndex: 0,
+                  keyPrefix: 'health_bottom_nav',
                   onChanged: (index) {
                     if (index == 1) {
                       widget.onSwitchModule(LifeModule.workout);
@@ -672,17 +674,7 @@ class _HealthSystemStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = loading
-        ? '正在读取系统健康数据'
-        : switch (snapshot.status) {
-            SystemHealthStatus.ok => '系统健康数据已连接',
-            SystemHealthStatus.permissionRequired => '需要 Health Connect 授权',
-            SystemHealthStatus.updateRequired => '需要更新 Health Connect',
-            SystemHealthStatus.error => '系统健康读取失败',
-            SystemHealthStatus.loading => '正在读取系统健康数据',
-            SystemHealthStatus.unavailable => '系统健康数据未连接',
-          };
-    final color = snapshot.isReady ? AppColors.success : AppColors.primary;
+    final state = _HealthConnectionState.fromSnapshot(snapshot, loading);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -700,14 +692,12 @@ class _HealthSystemStatusCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.13),
+                  color: state.color.withValues(alpha: 0.13),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  snapshot.isReady
-                      ? Icons.verified_rounded
-                      : Icons.health_and_safety_rounded,
-                  color: color,
+                  state.icon,
+                  color: state.color,
                 ),
               ),
               const SizedBox(width: 12),
@@ -716,7 +706,7 @@ class _HealthSystemStatusCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      state.title,
                       style: const TextStyle(
                         color: AppColors.ink,
                         fontSize: 15,
@@ -744,7 +734,7 @@ class _HealthSystemStatusCard extends StatelessWidget {
             children: [
               _HealthStatusPill(
                 label: 'Health Connect',
-                value: snapshot.isReady ? '已授权' : '未授权',
+                value: state.badge,
               ),
               _HealthStatusPill(
                 label: '传感器',
@@ -771,15 +761,11 @@ class _HealthSystemStatusCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: FilledButton.icon(
-                  onPressed:
-                      snapshot.isReady ? onOpenSettings : onRequestPermission,
-                  icon: Icon(
-                    snapshot.isReady
-                        ? Icons.settings_rounded
-                        : Icons.lock_open_rounded,
-                    size: 18,
-                  ),
-                  label: Text(snapshot.isReady ? '设置' : '授权'),
+                  onPressed: state.opensSettings
+                      ? onOpenSettings
+                      : onRequestPermission,
+                  icon: Icon(state.actionIcon, size: 18),
+                  label: Text(state.actionLabel),
                 ),
               ),
             ],
@@ -793,6 +779,107 @@ class _HealthSystemStatusCard extends StatelessWidget {
     final local = value.toLocal();
     final minute = local.minute.toString().padLeft(2, '0');
     return '${local.hour}:$minute';
+  }
+}
+
+class _HealthConnectionState {
+  const _HealthConnectionState({
+    required this.title,
+    required this.badge,
+    required this.actionLabel,
+    required this.icon,
+    required this.actionIcon,
+    required this.color,
+    required this.opensSettings,
+  });
+
+  final String title;
+  final String badge;
+  final String actionLabel;
+  final IconData icon;
+  final IconData actionIcon;
+  final Color color;
+  final bool opensSettings;
+
+  factory _HealthConnectionState.fromSnapshot(
+    HealthSystemSnapshot snapshot,
+    bool loading,
+  ) {
+    if (loading || snapshot.status == SystemHealthStatus.loading) {
+      return const _HealthConnectionState(
+        title: '正在读取系统健康数据',
+        badge: '读取中',
+        actionLabel: '刷新',
+        icon: Icons.sync_rounded,
+        actionIcon: Icons.refresh_rounded,
+        color: AppColors.primary,
+        opensSettings: false,
+      );
+    }
+    if (snapshot.status == SystemHealthStatus.ok) {
+      if (!snapshot.hasAnyData) {
+        return const _HealthConnectionState(
+          title: 'Health Connect 已连接，暂无数据',
+          badge: '数据为空',
+          actionLabel: '打开设置',
+          icon: Icons.dataset_outlined,
+          actionIcon: Icons.settings_rounded,
+          color: AppColors.primary,
+          opensSettings: true,
+        );
+      }
+      return const _HealthConnectionState(
+        title: '系统健康数据已连接',
+        badge: '已连接',
+        actionLabel: '打开设置',
+        icon: Icons.verified_rounded,
+        actionIcon: Icons.settings_rounded,
+        color: AppColors.success,
+        opensSettings: true,
+      );
+    }
+    if (snapshot.status == SystemHealthStatus.permissionRequired) {
+      return const _HealthConnectionState(
+        title: 'Health Connect 未授权',
+        badge: '未授权',
+        actionLabel: '去授权',
+        icon: Icons.lock_outline_rounded,
+        actionIcon: Icons.lock_open_rounded,
+        color: AppColors.primary,
+        opensSettings: false,
+      );
+    }
+    if (snapshot.status == SystemHealthStatus.updateRequired) {
+      return const _HealthConnectionState(
+        title: '需要更新 Health Connect',
+        badge: '需更新',
+        actionLabel: '去更新',
+        icon: Icons.system_update_alt_rounded,
+        actionIcon: Icons.open_in_new_rounded,
+        color: AppColors.primary,
+        opensSettings: true,
+      );
+    }
+    if (snapshot.status == SystemHealthStatus.error) {
+      return const _HealthConnectionState(
+        title: '系统健康读取失败',
+        badge: '读取失败',
+        actionLabel: '重试',
+        icon: Icons.error_outline_rounded,
+        actionIcon: Icons.refresh_rounded,
+        color: AppColors.financeRed,
+        opensSettings: false,
+      );
+    }
+    return const _HealthConnectionState(
+      title: '需要安装 Health Connect',
+      badge: '未安装',
+      actionLabel: '去安装',
+      icon: Icons.download_rounded,
+      actionIcon: Icons.open_in_new_rounded,
+      color: AppColors.primary,
+      opensSettings: true,
+    );
   }
 }
 
@@ -813,21 +900,27 @@ class _HealthStatusPill extends StatelessWidget {
         color: AppColors.background,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(
-            color: AppColors.muted,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-          ),
-          children: [
-            TextSpan(text: '$label '),
-            TextSpan(
-              text: value,
-              style: const TextStyle(color: AppColors.ink),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.ink,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }

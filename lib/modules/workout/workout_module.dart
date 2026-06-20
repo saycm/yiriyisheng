@@ -180,7 +180,6 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         onStartGroup: _finishNextGroup,
         onFeedbackChanged: (feedback) =>
             setState(() => _lastFeedback = feedback),
-        onSwitchModule: widget.onSwitchModule,
       );
     }
 
@@ -192,11 +191,6 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
             Column(
               children: [
                 _WorkoutHeader(onOpenModules: widget.onOpenModules),
-                _ModuleLinkStrip(
-                  selected: LifeModule.workout,
-                  onSwitchModule: widget.onSwitchModule,
-                ),
-                const SizedBox(height: 12),
                 _WorkoutTopTabs(
                   selected: _selectedTopTab,
                   onChanged: (index) => setState(() => _selectedTopTab = index),
@@ -207,10 +201,12 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 18),
+                padding:
+                    const EdgeInsets.only(bottom: _moduleStackedBottomNavInset),
                 child: _WorkoutBottomNav(
                   selectedIndex: _selectedBottomTab,
                   onChanged: _handleBottomNav,
+                  keyPrefix: 'workout_bottom_nav',
                 ),
               ),
             ),
@@ -242,7 +238,8 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
 
     return ListView(
       key: const ValueKey('workout_main_list'),
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 128),
+      padding: const EdgeInsets.fromLTRB(
+          18, 18, 18, 128 + _moduleSwitchBarReservedHeight),
       children: [
         _WorkoutSummaryCard(
           finishedActions: _finishedActionCount,
@@ -526,14 +523,16 @@ class _WorkoutSummaryCard extends StatelessWidget {
                 onPressed: onStart,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
+                  minimumSize: const Size(0, 36),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 17),
                 label: const Text(
                   '开始动作',
-                  style: TextStyle(fontWeight: FontWeight.w900),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
                 ),
               ),
             ],
@@ -558,7 +557,7 @@ class _WorkoutBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.13),
         borderRadius: BorderRadius.circular(8),
@@ -566,13 +565,13 @@ class _WorkoutBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 15),
-          const SizedBox(width: 5),
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
               color: color,
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -846,7 +845,8 @@ class _WorkoutPlanView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 128),
+      padding: const EdgeInsets.fromLTRB(
+          18, 18, 18, 128 + _moduleSwitchBarReservedHeight),
       children: const [
         _WorkoutTemplateRail(),
         SizedBox(height: 12),
@@ -1046,7 +1046,8 @@ class _WorkoutDataView extends StatelessWidget {
     final calories = 520 + finishedGroups * 18;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 128),
+      padding: const EdgeInsets.fromLTRB(
+          18, 18, 18, 128 + _moduleSwitchBarReservedHeight),
       children: [
         GridView.count(
           crossAxisCount: 2,
@@ -1162,8 +1163,15 @@ class _WorkoutHistoryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 128),
+      padding: const EdgeInsets.fromLTRB(
+          18, 18, 18, 128 + _moduleSwitchBarReservedHeight),
       children: const [
+        _WorkoutCalendarCard(),
+        SizedBox(height: 12),
+        _WorkoutActionTrendCard(),
+        SizedBox(height: 12),
+        _WorkoutProgressTrendCard(),
+        SizedBox(height: 12),
         _WorkoutHistoryTile(
           title: '胸背',
           subtitle: '5 个动作 · 19 组 · 18:05',
@@ -1183,6 +1191,326 @@ class _WorkoutHistoryView extends StatelessWidget {
           color: Color(0xFFFF9559),
         ),
       ],
+    );
+  }
+}
+
+class _WorkoutCalendarCard extends StatelessWidget {
+  const _WorkoutCalendarCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final days = [
+      ('一', '12', true, AppColors.success),
+      ('二', '13', false, AppColors.muted),
+      ('三', '14', true, AppColors.primary),
+      ('四', '15', false, AppColors.muted),
+      ('五', '16', true, const Color(0xFFFF9559)),
+      ('六', '17', true, AppColors.primary),
+      ('日', '18', false, AppColors.muted),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '训练日历',
+            style: TextStyle(
+              color: AppColors.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            key: const ValueKey('workout_calendar_strip'),
+            children: days
+                .map(
+                  (day) => Expanded(
+                    child: _WorkoutCalendarDay(
+                      week: day.$1,
+                      date: day.$2,
+                      trained: day.$3,
+                      color: day.$4,
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkoutCalendarDay extends StatelessWidget {
+  const _WorkoutCalendarDay({
+    required this.week,
+    required this.date,
+    required this.trained,
+    required this.color,
+  });
+
+  final String week;
+  final String date;
+  final bool trained;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          week,
+          style: const TextStyle(
+            color: AppColors.muted,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color:
+                trained ? color.withValues(alpha: 0.14) : AppColors.background,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: trained ? color.withValues(alpha: 0.35) : AppColors.line,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              date,
+              style: TextStyle(
+                color: trained ? color : AppColors.muted,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WorkoutActionTrendCard extends StatelessWidget {
+  const _WorkoutActionTrendCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text(
+            '动作历史曲线',
+            style: TextStyle(
+              color: AppColors.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          SizedBox(height: 12),
+          _WorkoutTrendRow(
+            title: '蝴蝶机夹胸',
+            subtitle: '最近 4 次',
+            values: [24, 28, 30, 35],
+            color: AppColors.primary,
+          ),
+          SizedBox(height: 10),
+          _WorkoutTrendRow(
+            title: '宽握高位下拉',
+            subtitle: '最近 4 次',
+            values: [26, 28, 30, 32],
+            color: AppColors.success,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkoutTrendRow extends StatelessWidget {
+  const _WorkoutTrendRow({
+    required this.title,
+    required this.subtitle,
+    required this.values,
+    required this.color,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<double> values;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxValue = values.reduce(math.max);
+
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          width: 116,
+          height: 36,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: values
+                .map(
+                  (value) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: FractionallySizedBox(
+                        heightFactor: value / maxValue,
+                        alignment: Alignment.bottomCenter,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WorkoutProgressTrendCard extends StatelessWidget {
+  const _WorkoutProgressTrendCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: const [
+        Expanded(
+          child: _WorkoutProgressTrendTile(
+            title: '重量进步',
+            value: '30kg → 35kg',
+            subtitle: '蝴蝶机夹胸',
+            icon: Icons.monitor_weight_rounded,
+            color: AppColors.primary,
+          ),
+        ),
+        SizedBox(width: 10),
+        Expanded(
+          child: _WorkoutProgressTrendTile(
+            title: '次数进步',
+            value: '8次 → 12次',
+            subtitle: '宽握高位下拉',
+            icon: Icons.repeat_rounded,
+            color: AppColors.success,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WorkoutProgressTrendTile extends StatelessWidget {
+  const _WorkoutProgressTrendTile({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+  });
+
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.ink,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1400,7 +1728,6 @@ class _WorkoutActionDetailPage extends StatelessWidget {
     required this.onBack,
     required this.onStartGroup,
     required this.onFeedbackChanged,
-    required this.onSwitchModule,
   });
 
   final WorkoutAction action;
@@ -1410,7 +1737,6 @@ class _WorkoutActionDetailPage extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onStartGroup;
   final ValueChanged<String> onFeedbackChanged;
-  final ValueChanged<LifeModule> onSwitchModule;
 
   @override
   Widget build(BuildContext context) {
@@ -1419,7 +1745,8 @@ class _WorkoutActionDetailPage extends StatelessWidget {
       body: SafeArea(
         child: ListView(
           key: const ValueKey('workout_action_detail_list'),
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 112),
+          padding: const EdgeInsets.fromLTRB(
+              18, 10, 18, 112 + _moduleSwitchBarReservedHeight),
           children: [
             Row(
               children: [
@@ -1619,20 +1946,6 @@ class _WorkoutActionDetailPage extends StatelessWidget {
               );
             }),
           ],
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 18),
-        child: _WorkoutBottomNav(
-          selectedIndex: 1,
-          onChanged: (index) {
-            if (index == 0) {
-              onSwitchModule(LifeModule.health);
-            }
-            if (index == 2) {
-              onSwitchModule(LifeModule.food);
-            }
-          },
         ),
       ),
     );
@@ -1893,10 +2206,12 @@ class _WorkoutBottomNav extends StatelessWidget {
   const _WorkoutBottomNav({
     required this.selectedIndex,
     required this.onChanged,
+    required this.keyPrefix,
   });
 
   final int selectedIndex;
   final ValueChanged<int> onChanged;
+  final String keyPrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -1908,6 +2223,8 @@ class _WorkoutBottomNav extends StatelessWidget {
         (Icons.restaurant_rounded, '饮食'),
       ],
       onChanged: onChanged,
+      softCompact: true,
+      keyPrefix: keyPrefix,
     );
   }
 }

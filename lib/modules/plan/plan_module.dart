@@ -5,8 +5,11 @@ class PlanModulePage extends StatefulWidget {
     super.key,
     required this.onOpenModules,
     required this.onSwitchModule,
+    required this.onOpenQuickRecord,
     required this.foodCalories,
     required this.workoutGroups,
+    required this.todayExpense,
+    required this.healthStatusText,
     required this.todos,
     required this.events,
     required this.onToggleTodo,
@@ -23,8 +26,11 @@ class PlanModulePage extends StatefulWidget {
 
   final VoidCallback onOpenModules;
   final ValueChanged<LifeModule> onSwitchModule;
+  final VoidCallback onOpenQuickRecord;
   final int foodCalories;
   final int workoutGroups;
+  final double todayExpense;
+  final String healthStatusText;
   final List<TodoItem> todos;
   final List<LifeEvent> events;
   final ValueChanged<TodoItem> onToggleTodo;
@@ -138,18 +144,14 @@ class _PlanModulePageState extends State<PlanModulePage> {
                   onOpenModules: widget.onOpenModules,
                   onOpenMore: _openMoreSheet,
                 ),
-                _ModuleLinkStrip(
-                  selected: LifeModule.plan,
-                  onSwitchModule: widget.onSwitchModule,
-                ),
-                const SizedBox(height: 12),
                 Expanded(child: _buildTabContent()),
               ],
             ),
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 18),
+                padding:
+                    const EdgeInsets.only(bottom: _planStackedBottomNavInset),
                 child: _PlanBottomNav(
                   selectedIndex: _selectedTab,
                   onChanged: (index) => setState(() => _selectedTab = index),
@@ -160,7 +162,9 @@ class _PlanModulePageState extends State<PlanModulePage> {
         ),
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 76),
+        padding: const EdgeInsets.only(
+          bottom: 76 + _moduleSwitchBarReservedHeight,
+        ),
         child: FloatingActionButton(
           onPressed: _showAddTodoSheet,
           tooltip: 'Add',
@@ -184,6 +188,7 @@ class _PlanModulePageState extends State<PlanModulePage> {
         onPostpone: widget.onPostponeTodo,
         onArchive: widget.onArchiveTodo,
         onDelete: widget.onDeleteTodo,
+        onQuickCapture: _addInboxTodo,
       );
     }
     if (_selectedTab == 2) {
@@ -212,6 +217,14 @@ class _PlanModulePageState extends State<PlanModulePage> {
       emptySubtitle: '可以把无日期任务从待办箱安排到今天，或新增一个今日任务。',
       todos: _filteredTodayTodos,
       activeFilter: _categoryFilter,
+      header: _TodayOverviewCard(
+        pendingTodos: _todayTodos.length,
+        todayExpense: widget.todayExpense,
+        foodCalories: widget.foodCalories,
+        workoutGroups: widget.workoutGroups,
+        healthStatusText: widget.healthStatusText,
+        onQuickRecord: widget.onOpenQuickRecord,
+      ),
       onToggle: _toggleTodo,
       onPostpone: widget.onPostponeTodo,
       onArchive: widget.onArchiveTodo,
@@ -221,6 +234,23 @@ class _PlanModulePageState extends State<PlanModulePage> {
 
   void _toggleTodo(TodoItem todo) {
     widget.onToggleTodo(todo);
+  }
+
+  void _addInboxTodo(String title) {
+    widget.onAddTodo(
+      TodoItem(
+        title: title,
+        category: '生活',
+        color: _todoColorForCategory('生活'),
+        priority: TodoPriority.shouldDo,
+      ),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('已放入待办箱'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _openMoreSheet() {
@@ -665,7 +695,7 @@ String _pendingLinkedHint(TodoItem todo) {
   return '完成后会提醒你补充$modules记录。';
 }
 
-class _PlanHeader extends StatelessWidget {
+class _PlanHeader extends StatefulWidget {
   const _PlanHeader({
     required this.selectedDate,
     required this.todos,
@@ -681,17 +711,73 @@ class _PlanHeader extends StatelessWidget {
   final VoidCallback onOpenMore;
 
   @override
+  State<_PlanHeader> createState() => _PlanHeaderState();
+}
+
+class _PlanHeaderState extends State<_PlanHeader> {
+  static const double _datePillExtent = 52;
+  final ScrollController _dateScrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollSelectedDateIntoView(animated: false);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlanHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!DateUtils.isSameDay(oldWidget.selectedDate, widget.selectedDate)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollSelectedDateIntoView();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _dateScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollSelectedDateIntoView({bool animated = true}) {
+    if (!_dateScrollController.hasClients) {
+      return;
+    }
+    final target =
+        math.max(0.0, (widget.selectedDate.day - 3) * _datePillExtent);
+    final offset = target.clamp(
+      0.0,
+      _dateScrollController.position.maxScrollExtent,
+    );
+    if (animated) {
+      _dateScrollController.animateTo(
+        offset,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      _dateScrollController.jumpTo(offset);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final today = DateUtils.dateOnly(DateTime.now());
-    final weekStart = selectedDate.subtract(
-      Duration(days: selectedDate.weekday % 7),
+    final monthStart =
+        DateTime(widget.selectedDate.year, widget.selectedDate.month);
+    final monthDays = DateUtils.getDaysInMonth(
+      widget.selectedDate.year,
+      widget.selectedDate.month,
     );
     final days = List.generate(
-      7,
-      (index) => DateUtils.dateOnly(weekStart.add(Duration(days: index))),
+      monthDays,
+      (index) => DateUtils.dateOnly(monthStart.add(Duration(days: index))),
     );
     final monthText =
-        '${selectedDate.year}年${selectedDate.month.toString().padLeft(2, '0')}月';
+        '${widget.selectedDate.year}年${widget.selectedDate.month.toString().padLeft(2, '0')}月';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
@@ -702,7 +788,7 @@ class _PlanHeader extends StatelessWidget {
               _IconBubble(
                 icon: Icons.view_sidebar_rounded,
                 color: const Color(0xFF91A3FF),
-                onTap: onOpenModules,
+                onTap: widget.onOpenModules,
               ),
               Expanded(
                 child: Center(
@@ -719,27 +805,38 @@ class _PlanHeader extends StatelessWidget {
               _IconBubble(
                 icon: Icons.more_horiz_rounded,
                 color: AppColors.primary,
-                onTap: onOpenMore,
+                onTap: widget.onOpenMore,
               ),
             ],
           ),
           const SizedBox(height: 22),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: days.map((day) {
-              final selected = DateUtils.isSameDay(selectedDate, day);
-              final count = todos
-                  .where((todo) => todo.isActive && todo.isDueOn(day))
-                  .length;
-              return _DatePill(
-                week: _weekdayLabel(day),
-                day: day.day,
-                selected: selected,
-                isToday: DateUtils.isSameDay(today, day),
-                count: count,
-                onTap: () => onDateChanged(day),
-              );
-            }).toList(),
+          SizedBox(
+            height: 60,
+            child: SingleChildScrollView(
+              key: const ValueKey('plan_header_date_scroller'),
+              controller: _dateScrollController,
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final day in days) ...[
+                    _DatePill(
+                      key: ValueKey(
+                        'plan_header_date_${day.year}_${day.month}_${day.day}',
+                      ),
+                      week: _weekdayLabel(day),
+                      day: day.day,
+                      selected: DateUtils.isSameDay(widget.selectedDate, day),
+                      isToday: DateUtils.isSameDay(today, day),
+                      count: widget.todos
+                          .where((todo) => todo.isActive && todo.isDueOn(day))
+                          .length,
+                      onTap: () => widget.onDateChanged(day),
+                    ),
+                    if (day != days.last) const SizedBox(width: 8),
+                  ],
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 14),
           Container(
@@ -759,6 +856,7 @@ class _PlanHeader extends StatelessWidget {
 
 class _DatePill extends StatelessWidget {
   const _DatePill({
+    super.key,
     required this.week,
     required this.day,
     required this.selected,
@@ -782,7 +880,7 @@ class _DatePill extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         width: 44,
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 3),
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
@@ -833,6 +931,7 @@ class _TodoList extends StatelessWidget {
     required this.emptySubtitle,
     required this.todos,
     required this.activeFilter,
+    this.header,
     required this.onToggle,
     required this.onPostpone,
     required this.onArchive,
@@ -844,6 +943,7 @@ class _TodoList extends StatelessWidget {
   final String emptySubtitle;
   final List<TodoItem> todos;
   final String activeFilter;
+  final Widget? header;
   final ValueChanged<TodoItem> onToggle;
   final ValueChanged<TodoItem> onPostpone;
   final ValueChanged<TodoItem> onArchive;
@@ -854,8 +954,13 @@ class _TodoList extends StatelessWidget {
     final filtered = activeFilter != '全部';
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 130),
+      padding: const EdgeInsets.fromLTRB(
+          18, 0, 18, 130 + _moduleSwitchBarReservedHeight),
       children: [
+        if (header != null) ...[
+          header!,
+          const SizedBox(height: 16),
+        ],
         Text(
           filtered
               ? '$title  ${todos.length} · $activeFilter'
@@ -883,6 +988,171 @@ class _TodoList extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _TodayOverviewCard extends StatelessWidget {
+  const _TodayOverviewCard({
+    required this.pendingTodos,
+    required this.todayExpense,
+    required this.foodCalories,
+    required this.workoutGroups,
+    required this.healthStatusText,
+    required this.onQuickRecord,
+  });
+
+  final int pendingTodos;
+  final double todayExpense;
+  final int foodCalories;
+  final int workoutGroups;
+  final String healthStatusText;
+  final VoidCallback onQuickRecord;
+
+  @override
+  Widget build(BuildContext context) {
+    final metrics = [
+      (
+        label: '待办',
+        value: '$pendingTodos',
+        icon: Icons.checklist_rounded,
+        color: AppColors.primary,
+      ),
+      (
+        label: '支出',
+        value: _formatMoney(todayExpense),
+        icon: Icons.receipt_long_rounded,
+        color: AppColors.financeRed,
+      ),
+      (
+        label: '热量',
+        value: '$foodCalories',
+        icon: Icons.restaurant_rounded,
+        color: AppColors.success,
+      ),
+      (
+        label: '训练',
+        value: '$workoutGroups 组',
+        icon: Icons.fitness_center_rounded,
+        color: const Color(0xFF9278F7),
+      ),
+      (
+        label: '健康',
+        value: healthStatusText,
+        icon: Icons.favorite_rounded,
+        color: const Color(0xFFFF6F9D),
+      ),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      key: const ValueKey('today_overview_card'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '今日总览',
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Tooltip(
+                message: '快速记录',
+                child: IconButton(
+                  key: const ValueKey('home_quick_record_button'),
+                  onPressed: onQuickRecord,
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    fixedSize: const Size(40, 40),
+                  ),
+                  icon: const Icon(Icons.add_rounded),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: metrics
+                .map(
+                  (metric) => _TodayOverviewMetric(
+                    label: metric.label,
+                    value: metric.value,
+                    icon: metric.icon,
+                    color: metric.color,
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TodayOverviewMetric extends StatelessWidget {
+  const _TodayOverviewMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 96,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 19),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1255,6 +1525,7 @@ class _InboxView extends StatelessWidget {
     required this.onPostpone,
     required this.onArchive,
     required this.onDelete,
+    required this.onQuickCapture,
   });
 
   final List<TodoItem> inboxTodos;
@@ -1264,12 +1535,18 @@ class _InboxView extends StatelessWidget {
   final ValueChanged<TodoItem> onPostpone;
   final ValueChanged<TodoItem> onArchive;
   final ValueChanged<TodoItem> onDelete;
+  final ValueChanged<String> onQuickCapture;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 130),
+      padding: const EdgeInsets.fromLTRB(
+          18, 0, 18, 130 + _moduleSwitchBarReservedHeight),
       children: [
+        _InboxQuickCaptureCard(
+          onTap: () => _openQuickCaptureSheet(context),
+        ),
+        const SizedBox(height: 16),
         Text(
           '待办箱  ${inboxTodos.length}',
           style: const TextStyle(
@@ -1307,6 +1584,141 @@ class _InboxView extends StatelessWidget {
           emptyText: '暂时不处理但不想删除的任务可以归档。',
         ),
       ],
+    );
+  }
+
+  void _openQuickCaptureSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _InboxQuickCaptureSheet(
+          onSave: (title) {
+            onQuickCapture(title);
+            Navigator.of(sheetContext).pop();
+          },
+        );
+      },
+    );
+  }
+}
+
+class _InboxQuickCaptureSheet extends StatefulWidget {
+  const _InboxQuickCaptureSheet({required this.onSave});
+
+  final ValueChanged<String> onSave;
+
+  @override
+  State<_InboxQuickCaptureSheet> createState() =>
+      _InboxQuickCaptureSheetState();
+}
+
+class _InboxQuickCaptureSheetState extends State<_InboxQuickCaptureSheet> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoSheetFrame(
+      title: '收件箱快速录入',
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          children: [
+            TextField(
+              key: const ValueKey('plan_inbox_quick_capture_field'),
+              controller: _controller,
+              autofocus: true,
+              decoration: _planInputDecoration('先写一句话'),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _save(),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: FilledButton.icon(
+                key: const ValueKey('plan_inbox_quick_capture_save'),
+                onPressed: _save,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: const Icon(Icons.add_task_rounded),
+                label: const Text(
+                  '放入待办箱',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _save() {
+    final title = _controller.text.trim();
+    if (title.isEmpty) {
+      return;
+    }
+    widget.onSave(title);
+  }
+}
+
+class _InboxQuickCaptureCard extends StatelessWidget {
+  const _InboxQuickCaptureCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        key: const ValueKey('plan_inbox_quick_capture'),
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.line),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.inbox_rounded, color: AppColors.primary, size: 22),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '收件箱快速录入',
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.add_rounded,
+                color: AppColors.primary,
+                size: 22,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1447,7 +1859,8 @@ class _WeekPlanView extends StatelessWidget {
       ..sort((a, b) => a.priority.index.compareTo(b.priority.index));
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 130),
+      padding: const EdgeInsets.fromLTRB(
+          18, 0, 18, 130 + _moduleSwitchBarReservedHeight),
       children: [
         const Text(
           '周计划',
@@ -1640,7 +2053,8 @@ class _PlanStatsView extends StatelessWidget {
     ];
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 130),
+      padding: const EdgeInsets.fromLTRB(
+          18, 0, 18, 130 + _moduleSwitchBarReservedHeight),
       children: [
         _WeeklyProgressCard(
           percent: percent,

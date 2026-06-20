@@ -4,7 +4,7 @@ class _AppDataStore {
   const _AppDataStore();
 
   static const _databaseName = 'pingsheng_life.db';
-  static const _databaseVersion = 2;
+  static const _databaseVersion = 3;
   static Future<void> _pendingSave = Future<void>.value();
 
   Future<LifeSummarySnapshot?> load() async {
@@ -46,6 +46,17 @@ class _AppDataStore {
         workoutGroupsByAction: workoutGroups,
         todos: todos.map(_todoFromRow).toList(),
         financeRecords: financeRecords.map(_financeRecordFromRow).toList(),
+        aiFinanceEndpoint: await _readStringMeta(
+          db,
+          'aiFinanceEndpoint',
+          _defaultGlmChatEndpoint,
+        ),
+        aiFinanceModel: await _readStringMeta(
+          db,
+          'aiFinanceModel',
+          _defaultGlmTextModel,
+        ),
+        aiFinanceApiKey: await _readStringMeta(db, 'aiFinanceApiKey', ''),
       );
     } catch (_) {
       return null;
@@ -57,6 +68,9 @@ class _AppDataStore {
     required Map<String, int> workoutGroupsByAction,
     required List<TodoItem> todos,
     required List<FinanceRecord> financeRecords,
+    required String aiFinanceEndpoint,
+    required String aiFinanceModel,
+    required String aiFinanceApiKey,
   }) async {
     if (!_isSupportedPlatform) {
       return;
@@ -67,6 +81,9 @@ class _AppDataStore {
         workoutGroupsByAction: workoutGroupsByAction,
         todos: todos,
         financeRecords: financeRecords,
+        aiFinanceEndpoint: aiFinanceEndpoint,
+        aiFinanceModel: aiFinanceModel,
+        aiFinanceApiKey: aiFinanceApiKey,
       ),
     );
     await _pendingSave;
@@ -77,6 +94,9 @@ class _AppDataStore {
     required Map<String, int> workoutGroupsByAction,
     required List<TodoItem> todos,
     required List<FinanceRecord> financeRecords,
+    required String aiFinanceEndpoint,
+    required String aiFinanceModel,
+    required String aiFinanceApiKey,
   }) async {
     try {
       final db = await _open();
@@ -90,6 +110,18 @@ class _AppDataStore {
         await txn.insert('app_meta', {
           'key': 'foodCalories',
           'value': foodCalories.toString(),
+        });
+        await txn.insert('app_meta', {
+          'key': 'aiFinanceEndpoint',
+          'value': aiFinanceEndpoint,
+        });
+        await txn.insert('app_meta', {
+          'key': 'aiFinanceModel',
+          'value': aiFinanceModel,
+        });
+        await txn.insert('app_meta', {
+          'key': 'aiFinanceApiKey',
+          'value': aiFinanceApiKey,
         });
 
         for (var index = 0; index < todos.length; index++) {
@@ -122,6 +154,7 @@ class _AppDataStore {
             'subtitle': record.subtitle,
             'amount': record.amount,
             'type': record.type,
+            'date': record.date?.toIso8601String(),
           });
         }
 
@@ -175,7 +208,8 @@ class _AppDataStore {
             title TEXT NOT NULL,
             subtitle TEXT NOT NULL,
             amount REAL NOT NULL,
-            type TEXT NOT NULL
+            type TEXT NOT NULL,
+            date TEXT
           )
         ''');
         await db.execute('''
@@ -197,6 +231,9 @@ class _AppDataStore {
           await _addColumnIfMissing(db, 'todos', 'postponedCount INTEGER');
           await _addColumnIfMissing(db, 'todos', 'createdAt TEXT');
           await _addColumnIfMissing(db, 'todos', 'completedAt TEXT');
+        }
+        if (oldVersion < 3) {
+          await _addColumnIfMissing(db, 'finance_records', 'date TEXT');
         }
       },
     );
@@ -229,6 +266,24 @@ class _AppDataStore {
       return 0;
     }
     return int.tryParse(rows.first['value'] as String? ?? '') ?? 0;
+  }
+
+  Future<String> _readStringMeta(
+    Database db,
+    String key,
+    String fallback,
+  ) async {
+    final rows = await db.query(
+      'app_meta',
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: [key],
+      limit: 1,
+    );
+    if (rows.isEmpty) {
+      return fallback;
+    }
+    return rows.first['value'] as String? ?? fallback;
   }
 
   TodoItem _todoFromRow(Map<String, Object?> row) {
@@ -276,6 +331,7 @@ class _AppDataStore {
       subtitle: row['subtitle'] as String? ?? '手动记录',
       amount: (row['amount'] as num?)?.toDouble() ?? 0,
       type: row['type'] as String? ?? '支出',
+      date: DateTime.tryParse(row['date'] as String? ?? ''),
     );
   }
 }

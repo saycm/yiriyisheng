@@ -1,5 +1,9 @@
 part of '../../main.dart';
 
+const String _defaultGlmChatEndpoint =
+    'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+const String _defaultGlmTextModel = 'glm-4-flash';
+
 class FinanceModulePage extends StatefulWidget {
   const FinanceModulePage({
     super.key,
@@ -10,6 +14,10 @@ class FinanceModulePage extends StatefulWidget {
     required this.records,
     required this.onAddRecord,
     required this.onEditRecord,
+    required this.aiEndpoint,
+    required this.aiModel,
+    required this.aiApiKey,
+    required this.onAiConfigChanged,
     required this.quickAction,
     required this.quickActionToken,
     required this.onQuickActionHandled,
@@ -23,6 +31,14 @@ class FinanceModulePage extends StatefulWidget {
   final ValueChanged<FinanceRecord> onAddRecord;
   final void Function(FinanceRecord oldRecord, FinanceRecord newRecord)
       onEditRecord;
+  final String aiEndpoint;
+  final String aiModel;
+  final String aiApiKey;
+  final void Function({
+    required String endpoint,
+    required String model,
+    required String apiKey,
+  }) onAiConfigChanged;
   final WidgetQuickAction? quickAction;
   final int quickActionToken;
   final VoidCallback onQuickActionHandled;
@@ -36,9 +52,6 @@ class _FinanceModulePageState extends State<FinanceModulePage> {
   bool _showExpense = true;
   String _trendRange = '7天';
   int _handledQuickActionToken = 0;
-  String _aiEndpoint = 'https://api.openai.com/v1/chat/completions';
-  String _aiModel = 'gpt-4o-mini';
-  String _aiApiKey = '';
 
   @override
   void initState() {
@@ -87,18 +100,14 @@ class _FinanceModulePageState extends State<FinanceModulePage> {
                   onAddRecord: _openRecordSheet,
                   onAiRecord: _openAiRecordSheet,
                 ),
-                _ModuleLinkStrip(
-                  selected: LifeModule.finance,
-                  onSwitchModule: widget.onSwitchModule,
-                ),
-                const SizedBox(height: 12),
                 Expanded(child: _buildContent()),
               ],
             ),
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 18),
+                padding:
+                    const EdgeInsets.only(bottom: _moduleStackedBottomNavInset),
                 child: _FinanceBottomNav(
                   selectedIndex: _selectedTab,
                   onChanged: (index) => setState(() => _selectedTab = index),
@@ -167,18 +176,10 @@ class _FinanceModulePageState extends State<FinanceModulePage> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return _AiFinanceRecordSheet(
-          endpoint: _aiEndpoint,
-          model: _aiModel,
-          apiKey: _aiApiKey,
-          onConfigChanged: ({
-            required endpoint,
-            required model,
-            required apiKey,
-          }) {
-            _aiEndpoint = endpoint;
-            _aiModel = model;
-            _aiApiKey = apiKey;
-          },
+          endpoint: widget.aiEndpoint,
+          model: widget.aiModel,
+          apiKey: widget.aiApiKey,
+          onConfigChanged: widget.onAiConfigChanged,
           onSaveAll: (records) {
             Navigator.of(context).pop();
             setState(() => _selectedTab = 1);
@@ -276,7 +277,8 @@ class _FinanceOverviewView extends StatelessWidget {
     final income = _financeTotal(records, '收入');
     final expense = _financeTotal(records, '支出');
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 128),
+      padding: const EdgeInsets.fromLTRB(
+          18, 0, 18, 128 + _moduleSwitchBarReservedHeight),
       children: [
         _NetAssetCard(
           income: income,
@@ -301,6 +303,8 @@ class _FinanceOverviewView extends StatelessWidget {
             ('锻炼', '$workoutGroups 组'),
           ],
         ),
+        const SizedBox(height: 14),
+        _FinanceBudgetInsightCard(records: records),
         const SizedBox(height: 14),
         Row(
           children: [
@@ -458,6 +462,8 @@ class _NetAssetCard extends StatelessWidget {
                       onPressed: onOpenAssets,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
+                        minimumSize: const Size(0, 38),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
                         side: BorderSide(
                           color: AppColors.primary.withValues(alpha: 0.35),
                         ),
@@ -469,7 +475,10 @@ class _NetAssetCard extends StatelessWidget {
                       label: const Text(
                         '查看资产详情',
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
@@ -479,6 +488,8 @@ class _NetAssetCard extends StatelessWidget {
                       onPressed: onAddRecord,
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primary,
+                        minimumSize: const Size(0, 38),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -487,7 +498,10 @@ class _NetAssetCard extends StatelessWidget {
                       label: const Text(
                         '记一笔',
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
@@ -654,6 +668,326 @@ class _BudgetMiniStat extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FinanceBudgetInsightCard extends StatelessWidget {
+  const _FinanceBudgetInsightCard({required this.records});
+
+  final List<FinanceRecord> records;
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = _categoryBudgets(records);
+    final fixedCosts = _fixedCostRecords(records);
+    final alerts = _budgetAlerts(categories);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '分类预算',
+            style: TextStyle(
+              color: AppColors.ink,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (categories.isEmpty)
+            const Text(
+              '还没有支出记录',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            ...categories.map((budget) => _CategoryBudgetRow(budget: budget)),
+          const SizedBox(height: 16),
+          const _FinanceSectionTitle(
+            icon: Icons.repeat_rounded,
+            title: '固定支出',
+          ),
+          const SizedBox(height: 10),
+          if (fixedCosts.isEmpty)
+            const Text(
+              '暂未识别固定支出',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            ...fixedCosts.map((record) => _FixedCostRow(record: record)),
+          const SizedBox(height: 16),
+          const _FinanceSectionTitle(
+            icon: Icons.warning_amber_rounded,
+            title: '异常提醒',
+          ),
+          const SizedBox(height: 10),
+          if (alerts.isEmpty)
+            const Text(
+              '预算使用正常',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            ...alerts.map((alert) => _BudgetAlertRow(alert: alert)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryBudgetRow extends StatelessWidget {
+  const _CategoryBudgetRow({required this.budget});
+
+  final _CategoryBudget budget;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = budget.used / budget.limit;
+    final color = progress >= 0.8 ? AppColors.financeRed : AppColors.primary;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.11),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              _financeIconForTitle(budget.title),
+              color: color,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        budget.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${(progress * 100).round()}%',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '已用 ${_formatMoney(budget.used)} / ${_formatMoney(budget.limit)}',
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: LinearProgressIndicator(
+                    minHeight: 6,
+                    value: progress.clamp(0.0, 1.0),
+                    backgroundColor: AppColors.background,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FixedCostRow extends StatelessWidget {
+  const _FixedCostRow({required this.record});
+
+  final FinanceRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(record.icon, color: AppColors.primary, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  record.subtitle.isEmpty ? record.title : record.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '每月预计 ${_formatMoney(record.amount)}',
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BudgetAlertRow extends StatelessWidget {
+  const _BudgetAlertRow({required this.alert});
+
+  final _BudgetAlert alert;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.financeRed.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.financeRed.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: AppColors.financeRed,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  alert.title,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  alert.detail,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FinanceSectionTitle extends StatelessWidget {
+  const _FinanceSectionTitle({
+    required this.icon,
+    required this.title,
+  });
+
+  final IconData icon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.primary, size: 18),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            color: AppColors.ink,
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CategoryBudget {
+  const _CategoryBudget({
+    required this.title,
+    required this.used,
+    required this.limit,
+  });
+
+  final String title;
+  final double used;
+  final double limit;
+}
+
+class _BudgetAlert {
+  const _BudgetAlert({
+    required this.title,
+    required this.detail,
+  });
+
+  final String title;
+  final String detail;
 }
 
 class _FinanceCategoryCard extends StatelessWidget {
@@ -1324,90 +1658,63 @@ class _TrendPainter extends CustomPainter {
   }
 }
 
-class FinanceRecord {
-  const FinanceRecord({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.amount,
-    required this.type,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final double amount;
-  final String type;
-
-  Color get color => type == '收入' ? AppColors.success : AppColors.financeRed;
-
-  String get displayAmount {
-    final prefix = type == '收入' ? '+' : '-';
-    return '$prefix${_formatMoney(amount)}';
-  }
-
-  Map<String, Object?> toJson() {
-    return {
-      'title': title,
-      'subtitle': subtitle,
-      'amount': amount,
-      'type': type,
-    };
-  }
-
-  static FinanceRecord fromJson(Map<String, dynamic> json) {
-    final title = json['title'] as String? ?? '手动记录';
-    return FinanceRecord(
-      icon: _financeIconForTitle(title),
-      title: title,
-      subtitle: json['subtitle'] as String? ?? '手动记录',
-      amount: (json['amount'] as num?)?.toDouble() ?? 0,
-      type: json['type'] as String? ?? '支出',
-    );
-  }
-}
-
-IconData _financeIconForTitle(String title) {
-  return switch (title) {
-    '三餐' => Icons.restaurant_rounded,
-    '咖啡' => Icons.local_cafe_rounded,
-    '交通' => Icons.directions_bus_rounded,
-    '购物' => Icons.shopping_bag_rounded,
-    '数码分期' => Icons.phone_iphone_rounded,
-    '工资' => Icons.account_balance_wallet_rounded,
-    '理财收益' => Icons.savings_rounded,
-    '奖金' => Icons.emoji_events_rounded,
-    '报销' => Icons.assignment_return_rounded,
-    '红包' => Icons.redeem_rounded,
-    '转账' => Icons.swap_horiz_rounded,
-    '娱乐' => Icons.movie_rounded,
-    '居家' => Icons.home_rounded,
-    '医疗' => Icons.medical_services_rounded,
-    '教育' => Icons.school_rounded,
-    _ => Icons.receipt_long_rounded,
-  };
-}
-
 double _financeTotal(List<FinanceRecord> records, String type) {
   return records
       .where((record) => record.type == type)
       .fold<double>(0, (total, record) => total + record.amount);
 }
 
-String _formatMoney(double value) {
-  final fixed = value.abs().toStringAsFixed(2);
-  final parts = fixed.split('.');
-  final digits = parts.first;
-  final buffer = StringBuffer();
-  for (var index = 0; index < digits.length; index++) {
-    final remaining = digits.length - index;
-    buffer.write(digits[index]);
-    if (remaining > 1 && remaining % 3 == 1) {
-      buffer.write(',');
-    }
+List<_CategoryBudget> _categoryBudgets(List<FinanceRecord> records) {
+  const limits = {
+    '三餐': 1000.0,
+    '外卖快餐': 1000.0,
+    '咖啡': 300.0,
+    '交通': 500.0,
+    '购物': 1200.0,
+    '数码分期': 600.0,
+    '娱乐': 500.0,
+    '居家': 800.0,
+    '医疗': 800.0,
+    '教育': 600.0,
+  };
+  final usedByTitle = <String, double>{};
+  for (final record in records.where((record) => record.type == '支出')) {
+    usedByTitle.update(record.title, (value) => value + record.amount,
+        ifAbsent: () => record.amount);
   }
-  final sign = value < 0 ? '-' : '';
-  return '$sign¥${buffer.toString()}.${parts.last}';
+  final budgets = usedByTitle.entries.map((entry) {
+    return _CategoryBudget(
+      title: entry.key,
+      used: entry.value,
+      limit: limits[entry.key] ?? 500.0,
+    );
+  }).toList()
+    ..sort((a, b) => (b.used / b.limit).compareTo(a.used / a.limit));
+  return budgets.take(4).toList();
+}
+
+List<FinanceRecord> _fixedCostRecords(List<FinanceRecord> records) {
+  const keywords = ['分期', '还款', '房租', '会员', '保险', '订阅'];
+  return records.where((record) {
+    if (record.type != '支出') {
+      return false;
+    }
+    final text = '${record.title}${record.subtitle}';
+    return keywords.any(text.contains);
+  }).toList();
+}
+
+List<_BudgetAlert> _budgetAlerts(List<_CategoryBudget> budgets) {
+  return budgets.where((budget) => budget.used / budget.limit >= 0.8).map(
+    (budget) {
+      final percent = (budget.used / budget.limit * 100).round();
+      return _BudgetAlert(
+        title: '${budget.title}接近分类预算',
+        detail:
+            '已使用 $percent%，剩余 ${_formatMoney(math.max(0, budget.limit - budget.used))}',
+      );
+    },
+  ).toList();
 }
 
 enum AiFinanceBillType { income, expense, transfer }
@@ -1759,14 +2066,22 @@ class AiFinanceException implements Exception {
   String toString() => message;
 }
 
+typedef AiFinanceTransport = Future<String> Function({
+  required Uri uri,
+  required String apiKey,
+  required Map<String, Object?> payload,
+});
+
 class AiFinanceClient {
   AiFinanceClient({
     this.parser = const AiFinanceJsonParser(),
     this.promptBuilder = const AiFinancePromptBuilder(),
-  });
+    AiFinanceTransport? transport,
+  }) : _transport = transport ?? _defaultTransport;
 
   final AiFinanceJsonParser parser;
   final AiFinancePromptBuilder promptBuilder;
+  final AiFinanceTransport _transport;
 
   Future<List<AiFinanceBillInfo>> parseText({
     required String text,
@@ -1783,35 +2098,25 @@ class AiFinanceClient {
     }
 
     final uri = _resolveEndpoint(endpoint);
-    final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 20);
     try {
-      final request = await client.postUrl(uri);
-      request.headers.contentType = ContentType.json;
-      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $apiKey');
-      request.add(
-        utf8.encode(
-          jsonEncode({
-            'model': model.trim().isEmpty ? 'gpt-4o-mini' : model.trim(),
-            'temperature': 0.1,
-            'messages': [
-              {
-                'role': 'system',
-                'content': '你是严谨的记账信息提取器，只输出 JSON 数组。',
-              },
-              {
-                'role': 'user',
-                'content': promptBuilder.build(text: trimmedText),
-              },
-            ],
-          }),
-        ),
+      final body = await _transport(
+        uri: uri,
+        apiKey: apiKey,
+        payload: {
+          'model': model.trim().isEmpty ? _defaultGlmTextModel : model.trim(),
+          'temperature': 0.1,
+          'messages': [
+            {
+              'role': 'system',
+              'content': '你是严谨的记账信息提取器，只输出 JSON 数组。',
+            },
+            {
+              'role': 'user',
+              'content': promptBuilder.build(text: trimmedText),
+            },
+          ],
+        },
       );
-      final response = await request.close();
-      final body = await utf8.decoder.bind(response).join();
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw AiFinanceException('AI 接口请求失败：${response.statusCode} $body');
-      }
       final content = _extractChatContent(body);
       final bills = parser.parse(content);
       if (bills.isEmpty) {
@@ -1822,15 +2127,35 @@ class AiFinanceClient {
       rethrow;
     } catch (error) {
       throw AiFinanceException('AI 记账失败：$error');
+    }
+  }
+
+  static Future<String> _defaultTransport({
+    required Uri uri,
+    required String apiKey,
+    required Map<String, Object?> payload,
+  }) async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 20);
+    try {
+      final request = await client.postUrl(uri);
+      request.headers.contentType = ContentType.json;
+      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $apiKey');
+      request.add(utf8.encode(jsonEncode(payload)));
+      final response = await request.close();
+      final body = await utf8.decoder.bind(response).join();
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw AiFinanceException('AI 接口请求失败：${response.statusCode} $body');
+      }
+      return body;
     } finally {
       client.close(force: true);
     }
   }
 
   Uri _resolveEndpoint(String endpoint) {
-    final raw = endpoint.trim().isEmpty
-        ? 'https://api.openai.com/v1/chat/completions'
-        : endpoint.trim();
+    final raw =
+        endpoint.trim().isEmpty ? _defaultGlmChatEndpoint : endpoint.trim();
     final uri = Uri.parse(raw);
     if (uri.path.isEmpty || uri.path == '/') {
       return uri.replace(path: '/v1/chat/completions');
@@ -1966,7 +2291,8 @@ class _FinanceRecordsViewState extends State<_FinanceRecordsView> {
         : widget.records.where((record) => record.type == _filter).toList();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 128),
+      padding: const EdgeInsets.fromLTRB(
+          18, 0, 18, 128 + _moduleSwitchBarReservedHeight),
       children: [
         _FinanceMonthSummary(records: widget.records),
         const SizedBox(height: 14),
@@ -2036,7 +2362,8 @@ class _FinanceAssetsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 128),
+      padding: const EdgeInsets.fromLTRB(
+          18, 0, 18, 128 + _moduleSwitchBarReservedHeight),
       children: const [
         _AssetTotalCard(),
         SizedBox(height: 14),
@@ -2311,7 +2638,7 @@ class _AiFinanceRecordSheetState extends State<_AiFinanceRecordSheet> {
             children: [
               const Expanded(
                 child: Text(
-                  'AI 记账',
+                  '智谱 GLM 记账',
                   style: TextStyle(
                     color: AppColors.ink,
                     fontSize: 20,
@@ -2342,7 +2669,7 @@ class _AiFinanceRecordSheetState extends State<_AiFinanceRecordSheet> {
                 _FinanceTextField(
                   keyValue: 'ai_finance_endpoint',
                   controller: _endpointController,
-                  label: 'API 地址',
+                  label: '智谱 API 地址',
                   keyboardType: TextInputType.url,
                 ),
                 const SizedBox(height: 10),
@@ -2352,7 +2679,7 @@ class _AiFinanceRecordSheetState extends State<_AiFinanceRecordSheet> {
                       child: _FinanceTextField(
                         keyValue: 'ai_finance_model',
                         controller: _modelController,
-                        label: '模型',
+                        label: 'GLM 模型',
                         keyboardType: TextInputType.text,
                       ),
                     ),
@@ -2621,21 +2948,42 @@ class _FinanceRecordSheet extends StatefulWidget {
   State<_FinanceRecordSheet> createState() => _FinanceRecordSheetState();
 }
 
-class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _subtitleController;
-  late final TextEditingController _amountController;
-  late String _type;
-  late (IconData, String) _category;
+class _FinanceCategorySpec {
+  const _FinanceCategorySpec(this.icon, this.title);
 
-  static const _categories = [
-    (Icons.restaurant_rounded, '三餐'),
-    (Icons.local_cafe_rounded, '咖啡'),
-    (Icons.directions_bus_rounded, '交通'),
-    (Icons.shopping_bag_rounded, '购物'),
-    (Icons.phone_iphone_rounded, '数码分期'),
-    (Icons.account_balance_wallet_rounded, '工资'),
-    (Icons.savings_rounded, '理财收益'),
+  final IconData icon;
+  final String title;
+}
+
+class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
+  late final TextEditingController _subtitleController;
+  late String _type;
+  late _FinanceCategorySpec _category;
+  late String _amountText;
+  late DateTime _date;
+  double _accumulator = 0;
+  String? _operator;
+
+  static const _expenseCategories = [
+    _FinanceCategorySpec(Icons.restaurant_rounded, '三餐'),
+    _FinanceCategorySpec(Icons.delivery_dining_rounded, '外卖快餐'),
+    _FinanceCategorySpec(Icons.local_cafe_rounded, '咖啡'),
+    _FinanceCategorySpec(Icons.directions_bus_rounded, '交通'),
+    _FinanceCategorySpec(Icons.shopping_bag_rounded, '购物'),
+    _FinanceCategorySpec(Icons.phone_iphone_rounded, '数码分期'),
+    _FinanceCategorySpec(Icons.movie_rounded, '娱乐'),
+    _FinanceCategorySpec(Icons.home_rounded, '居家'),
+    _FinanceCategorySpec(Icons.medical_services_rounded, '医疗'),
+    _FinanceCategorySpec(Icons.school_rounded, '教育'),
+  ];
+
+  static const _incomeCategories = [
+    _FinanceCategorySpec(Icons.account_balance_wallet_rounded, '工资'),
+    _FinanceCategorySpec(Icons.emoji_events_rounded, '奖金'),
+    _FinanceCategorySpec(Icons.savings_rounded, '理财收益'),
+    _FinanceCategorySpec(Icons.assignment_return_rounded, '报销'),
+    _FinanceCategorySpec(Icons.redeem_rounded, '红包'),
+    _FinanceCategorySpec(Icons.work_history_rounded, '兼职'),
   ];
 
   @override
@@ -2643,141 +2991,78 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
     super.initState();
     final record = widget.record;
     _type = record?.type ?? '支出';
-    _category = _categories.firstWhere(
-      (category) => category.$2 == record?.title,
-      orElse: () => _categories.first,
-    );
-    _titleController =
-        TextEditingController(text: record?.title ?? _category.$2);
-    _subtitleController =
-        TextEditingController(text: record?.subtitle ?? '手动记录');
-    _amountController =
-        TextEditingController(text: record?.amount.toStringAsFixed(2) ?? '18');
+    _category = _categoryForRecord(record);
+    _subtitleController = TextEditingController(
+        text: record?.subtitle == '手动记录' ? '' : record?.subtitle ?? '');
+    _amountText = record == null ? '0' : _formatAmountInput(record.amount);
+    _date = record?.date ?? DateUtils.dateOnly(DateTime.now());
   }
 
   @override
   void dispose() {
-    _titleController.dispose();
     _subtitleController.dispose();
-    _amountController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        10,
-        20,
-        MediaQuery.of(context).viewInsets.bottom + 20,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.96,
       ),
+      padding: EdgeInsets.fromLTRB(18, 8, 18, bottomInset + 10),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      child: SingleChildScrollView(
+      child: SafeArea(
+        top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const _SheetHandle(),
-            const SizedBox(height: 18),
-            Text(
-              widget.record == null ? '记一笔' : '编辑记录',
-              style: const TextStyle(
-                color: AppColors.ink,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Row(
               children: [
-                _RangeChip(
-                  label: '支出',
-                  selected: _type == '支出',
-                  onTap: () => setState(() => _type = '支出'),
+                Expanded(
+                  child: Text(
+                    widget.record == null ? '记一笔' : '编辑记录',
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 8),
-                _RangeChip(
-                  label: '收入',
-                  selected: _type == '收入',
-                  onTap: () => setState(() => _type = '收入'),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('取消'),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _categories.map((category) {
-                final selected = _category.$2 == category.$2;
-                return ChoiceChip(
-                  label: Text(category.$2),
-                  avatar: Icon(
-                    category.$1,
-                    size: 16,
-                    color: selected ? AppColors.primary : AppColors.muted,
-                  ),
-                  selected: selected,
-                  selectedColor: AppColors.primarySoft,
-                  backgroundColor: AppColors.background,
-                  showCheckmark: false,
-                  labelStyle: TextStyle(
-                    color: selected ? AppColors.primary : AppColors.ink,
-                    fontWeight: FontWeight.w800,
-                  ),
-                  side: BorderSide(
-                    color: selected ? AppColors.primary : Colors.transparent,
-                  ),
-                  onSelected: (_) {
-                    setState(() {
-                      _category = category;
-                      _titleController.text = category.$2;
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 14),
-            _FinanceTextField(
-              keyValue: 'finance_record_title',
-              controller: _titleController,
-              label: '分类名称',
-              keyboardType: TextInputType.text,
-            ),
-            const SizedBox(height: 10),
-            _FinanceTextField(
-              keyValue: 'finance_record_subtitle',
-              controller: _subtitleController,
-              label: '备注',
-              keyboardType: TextInputType.text,
-            ),
-            const SizedBox(height: 10),
-            _FinanceTextField(
-              keyValue: 'finance_record_amount',
-              controller: _amountController,
-              label: '金额',
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-            ),
-            const SizedBox(height: 18),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: FilledButton(
-                key: const ValueKey('save_finance_record'),
-                onPressed: _save,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text(
-                  '保存',
-                  style: TextStyle(fontWeight: FontWeight.w900),
+            const SizedBox(height: 8),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTypeTabs(),
+                    const SizedBox(height: 8),
+                    _buildCategoryStrip(),
+                    const SizedBox(height: 8),
+                    _buildAmountDisplay(),
+                    const SizedBox(height: 8),
+                    _FinanceTextField(
+                      keyValue: 'finance_record_subtitle',
+                      controller: _subtitleController,
+                      label: '备注',
+                      keyboardType: TextInputType.text,
+                    ),
+                    const SizedBox(height: 6),
+                    _buildAmountKeyboard(),
+                  ],
                 ),
               ),
             ),
@@ -2787,21 +3072,525 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
     );
   }
 
+  Widget _buildTypeTabs() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _FinanceTypeButton(
+              buttonKey: const ValueKey('finance_category_expense'),
+              label: '支出',
+              selected: _type == '支出',
+              onTap: () => _setType('支出'),
+            ),
+          ),
+          Expanded(
+            child: _FinanceTypeButton(
+              buttonKey: const ValueKey('finance_category_income'),
+              label: '收入',
+              selected: _type == '收入',
+              onTap: () => _setType('收入'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryStrip() {
+    return SizedBox(
+      height: 72,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _visibleCategories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final category = _visibleCategories[index];
+          final selected = category.title == _category.title;
+          return _FinanceCategoryButton(
+            buttonKey: ValueKey('finance_category_${category.title}'),
+            category: category,
+            selected: selected,
+            onTap: () => setState(() => _category = category),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAmountDisplay() {
+    final total = _currentTotal();
+    return Container(
+      key: const ValueKey('finance_record_amount'),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Row(
+        children: [
+          Icon(_category.icon, color: AppColors.primary, size: 24),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_category.title} · $_type',
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '金额',
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _formatMoney(total),
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            key: const ValueKey('finance_amount_clear'),
+            tooltip: '清空金额',
+            onPressed: _clearAmount,
+            icon: const Icon(Icons.close_rounded),
+            color: AppColors.muted,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAmountKeyboard() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final keyWidth = constraints.maxWidth / 4;
+        Widget cell(Widget child) => SizedBox(width: keyWidth, child: child);
+        return Column(
+          children: [
+            Row(
+              children: [
+                cell(_FinanceAmountKey(
+                  label: '7',
+                  onTap: () => _appendAmount('7'),
+                )),
+                cell(_FinanceAmountKey(
+                  label: '8',
+                  onTap: () => _appendAmount('8'),
+                )),
+                cell(_FinanceAmountKey(
+                  label: '9',
+                  onTap: () => _appendAmount('9'),
+                )),
+                cell(_FinanceAmountKey(
+                  label: _formatDateKey(_date),
+                  keyValue: 'finance_record_date',
+                  dense: true,
+                  onTap: _pickDate,
+                )),
+              ],
+            ),
+            Row(
+              children: [
+                cell(_FinanceAmountKey(
+                  label: '4',
+                  onTap: () => _appendAmount('4'),
+                )),
+                cell(_FinanceAmountKey(
+                  label: '5',
+                  onTap: () => _appendAmount('5'),
+                )),
+                cell(_FinanceAmountKey(
+                  label: '6',
+                  onTap: () => _appendAmount('6'),
+                )),
+                cell(_FinanceAmountKey(
+                  label: '+',
+                  keyValue: 'finance_amount_op_add',
+                  secondary: true,
+                  onTap: () => _applyOperator('+'),
+                )),
+              ],
+            ),
+            Row(
+              children: [
+                cell(_FinanceAmountKey(
+                  label: '1',
+                  onTap: () => _appendAmount('1'),
+                )),
+                cell(_FinanceAmountKey(
+                  label: '2',
+                  onTap: () => _appendAmount('2'),
+                )),
+                cell(_FinanceAmountKey(
+                  label: '3',
+                  onTap: () => _appendAmount('3'),
+                )),
+                cell(_FinanceAmountKey(
+                  label: '-',
+                  keyValue: 'finance_amount_op_minus',
+                  secondary: true,
+                  onTap: () => _applyOperator('-'),
+                )),
+              ],
+            ),
+            Row(
+              children: [
+                cell(_FinanceAmountKey(
+                  label: '.',
+                  keyValue: 'finance_amount_decimal',
+                  onTap: () => _appendAmount('.'),
+                )),
+                cell(_FinanceAmountKey(
+                  label: '0',
+                  onTap: () => _appendAmount('0'),
+                )),
+                cell(_FinanceAmountKey(
+                  icon: Icons.backspace_outlined,
+                  keyValue: 'finance_amount_backspace',
+                  onTap: _backspaceAmount,
+                )),
+                cell(_FinanceAmountKey(
+                  label: _operator == null ? '完成' : '=',
+                  keyValue: 'save_finance_record',
+                  primary: true,
+                  onTap: _operator == null ? _save : _finishCalculation,
+                )),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _save() {
-    final amount = double.tryParse(_amountController.text.trim());
-    final title = _titleController.text.trim();
-    if (amount == null || amount <= 0 || title.isEmpty) {
+    final amount = _currentTotal().abs();
+    if (amount <= 0) {
       return;
     }
     widget.onSave(
       FinanceRecord(
-        icon: _category.$1,
-        title: title,
+        icon: _category.icon,
+        title: _category.title,
         subtitle: _subtitleController.text.trim().isEmpty
             ? '手动记录'
             : _subtitleController.text.trim(),
         amount: amount,
         type: _type,
+        date: _date,
+      ),
+    );
+  }
+
+  List<_FinanceCategorySpec> get _visibleCategories =>
+      _type == '收入' ? _incomeCategories : _expenseCategories;
+
+  _FinanceCategorySpec _categoryForRecord(FinanceRecord? record) {
+    final categories = (record?.type ?? _type) == '收入'
+        ? _incomeCategories
+        : _expenseCategories;
+    if (record == null) {
+      return categories.first;
+    }
+    for (final category in categories) {
+      if (category.title == record.title) {
+        return category;
+      }
+    }
+    return _FinanceCategorySpec(
+        _financeIconForTitle(record.title), record.title);
+  }
+
+  void _setType(String type) {
+    if (_type == type) {
+      return;
+    }
+    setState(() {
+      _type = type;
+      final currentStillVisible = _visibleCategories
+          .any((category) => category.title == _category.title);
+      if (!currentStillVisible) {
+        _category = _visibleCategories.first;
+      }
+    });
+  }
+
+  void _appendAmount(String value) {
+    if (value == '.' && _amountText.contains('.')) {
+      return;
+    }
+    if (_amountText.contains('.') && value != '.') {
+      final decimalCount = _amountText.length - _amountText.indexOf('.') - 1;
+      if (decimalCount >= 2) {
+        return;
+      }
+    }
+    setState(() {
+      if (_amountText == '0' && value != '.') {
+        _amountText = value;
+      } else {
+        _amountText = '$_amountText$value';
+      }
+    });
+    SystemSound.play(SystemSoundType.click);
+  }
+
+  void _clearAmount() {
+    setState(() {
+      _amountText = '0';
+      _accumulator = 0;
+      _operator = null;
+    });
+    HapticFeedback.selectionClick();
+  }
+
+  void _backspaceAmount() {
+    setState(() {
+      _amountText = _amountText.length <= 1
+          ? '0'
+          : _amountText.substring(0, _amountText.length - 1);
+    });
+    SystemSound.play(SystemSoundType.click);
+  }
+
+  void _applyOperator(String operator) {
+    final current = double.tryParse(_amountText) ?? 0;
+    setState(() {
+      if (_operator == '+') {
+        _accumulator += current;
+      } else if (_operator == '-') {
+        _accumulator -= current;
+      } else {
+        _accumulator = current;
+      }
+      _operator = operator;
+      _amountText = '0';
+    });
+    HapticFeedback.selectionClick();
+  }
+
+  void _finishCalculation() {
+    final current = double.tryParse(_amountText) ?? 0;
+    final total = _operator == '+'
+        ? _accumulator + current
+        : _operator == '-'
+            ? _accumulator - current
+            : current;
+    setState(() {
+      _amountText = _formatAmountInput(total.abs());
+      _accumulator = 0;
+      _operator = null;
+    });
+    HapticFeedback.selectionClick();
+  }
+
+  double _currentTotal() {
+    final current = double.tryParse(_amountText) ?? 0;
+    if (_operator == '+') {
+      return _accumulator + current;
+    }
+    if (_operator == '-') {
+      return _accumulator - current;
+    }
+    return current;
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() => _date = DateUtils.dateOnly(picked));
+    }
+  }
+
+  String _formatAmountInput(double amount) {
+    final fixed = amount.toStringAsFixed(2);
+    return fixed
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
+  }
+
+  String _formatDateKey(DateTime date) => '${date.month}/${date.day}';
+}
+
+class _FinanceTypeButton extends StatelessWidget {
+  const _FinanceTypeButton({
+    required this.buttonKey,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Key buttonKey;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: buttonKey,
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.muted,
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FinanceCategoryButton extends StatelessWidget {
+  const _FinanceCategoryButton({
+    required this.buttonKey,
+    required this.category,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Key buttonKey;
+  final _FinanceCategorySpec category;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: buttonKey,
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 68,
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primarySoft : AppColors.background,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.line,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              category.icon,
+              color: selected ? AppColors.primary : AppColors.muted,
+              size: 21,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              category.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: selected ? AppColors.primary : AppColors.ink,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FinanceAmountKey extends StatelessWidget {
+  const _FinanceAmountKey({
+    this.label,
+    this.icon,
+    this.keyValue,
+    this.primary = false,
+    this.secondary = false,
+    this.dense = false,
+    required this.onTap,
+  });
+
+  final String? label;
+  final IconData? icon;
+  final String? keyValue;
+  final bool primary;
+  final bool secondary;
+  final bool dense;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = primary
+        ? AppColors.primary
+        : secondary
+            ? AppColors.primarySoft
+            : AppColors.background;
+    final foreground = primary
+        ? Colors.white
+        : secondary
+            ? AppColors.primary
+            : AppColors.ink;
+    return Padding(
+      padding: const EdgeInsets.all(3),
+      child: Material(
+        color: background,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          key: ValueKey(keyValue ?? 'finance_amount_key_$label'),
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: SizedBox(
+            height: 38,
+            child: Center(
+              child: icon == null
+                  ? Text(
+                      label!,
+                      style: TextStyle(
+                        color: foreground,
+                        fontSize: dense ? 13 : 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    )
+                  : Icon(icon, color: foreground, size: 21),
+            ),
+          ),
+        ),
       ),
     );
   }

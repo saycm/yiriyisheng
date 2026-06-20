@@ -1,19 +1,5 @@
 part of '../main.dart';
 
-class LifeSummarySnapshot {
-  const LifeSummarySnapshot({
-    required this.foodCalories,
-    required this.workoutGroupsByAction,
-    required this.todos,
-    required this.financeRecords,
-  });
-
-  final int foodCalories;
-  final Map<String, int> workoutGroupsByAction;
-  final List<TodoItem>? todos;
-  final List<FinanceRecord>? financeRecords;
-}
-
 enum SystemHealthStatus {
   loading,
   ok,
@@ -123,6 +109,13 @@ class HealthSystemSnapshot {
 
   bool get isReady => status == SystemHealthStatus.ok;
   bool get needsPermission => status == SystemHealthStatus.permissionRequired;
+  bool get hasAnyData => days.any((day) =>
+      day.steps != null ||
+      day.activeCaloriesKcal != null ||
+      day.basalCaloriesKcal != null ||
+      day.sleepMinutes != null ||
+      day.heartRateBpm != null ||
+      day.respiratoryRate != null);
 
   static HealthSystemSnapshot loading() {
     return HealthSystemSnapshot(

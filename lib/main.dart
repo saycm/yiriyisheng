@@ -10,6 +10,7 @@ import 'package:sqflite/sqflite.dart';
 part 'app/app.dart';
 part 'auth/auth.dart';
 part 'api/pingsheng_api.dart';
+part 'models/life_data.dart';
 part 'models/system_health.dart';
 part 'storage/app_data_store.dart';
 part 'storage/widget_store.dart';

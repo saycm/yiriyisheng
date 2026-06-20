@@ -5,10 +5,12 @@ class PingShengApp extends StatelessWidget {
     super.key,
     this.enableAuth = false,
     this.authPreview = false,
+    this.updateResponseOverride,
   });
 
   final bool enableAuth;
   final bool authPreview;
+  final Future<Map<String, dynamic>> Function()? updateResponseOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +21,9 @@ class PingShengApp extends StatelessWidget {
           onSignedIn: (_) async {},
         );
       }
-      return enableAuth ? const _AuthGate() : const LifeHomePage();
+      return enableAuth
+          ? _AuthGate(updateResponseOverride: updateResponseOverride)
+          : const LifeHomePage();
     }
 
     return MaterialApp(
@@ -86,11 +90,11 @@ const String _apiBaseUrl = String.fromEnvironment(
 );
 const String _appVersionName = String.fromEnvironment(
   'PINGSHENG_APP_VERSION_NAME',
-  defaultValue: '1.0.5',
+  defaultValue: '1.0.10',
 );
 const int _appVersionCode = int.fromEnvironment(
   'PINGSHENG_APP_VERSION_CODE',
-  defaultValue: 6,
+  defaultValue: 11,
 );
 
 final RegExp _authHiddenOrWhitespacePattern =

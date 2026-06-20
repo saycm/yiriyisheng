@@ -18,6 +18,9 @@ class _LifeHomePageState extends State<LifeHomePage> {
   int _quickActionToken = 0;
   bool _initialQuickActionChecked = false;
   int _recordedFoodCalories = 0;
+  String _aiFinanceEndpoint = _defaultGlmChatEndpoint;
+  String _aiFinanceModel = _defaultGlmTextModel;
+  String _aiFinanceApiKey = '';
   final Map<String, int> _workoutGroupsByAction = {};
   final List<LifeEvent> _events = [];
   final List<TodoItem> _todos = [
@@ -280,6 +283,13 @@ class _LifeHomePageState extends State<LifeHomePage> {
         ..clear()
         ..addAll(restoredFinanceRecords);
     }
+    _aiFinanceEndpoint = snapshot.aiFinanceEndpoint.trim().isEmpty
+        ? _defaultGlmChatEndpoint
+        : snapshot.aiFinanceEndpoint;
+    _aiFinanceModel = snapshot.aiFinanceModel.trim().isEmpty
+        ? _defaultGlmTextModel
+        : snapshot.aiFinanceModel;
+    _aiFinanceApiKey = snapshot.aiFinanceApiKey;
   }
 
   void _syncLinkedSummaryToWidget() {
@@ -290,6 +300,9 @@ class _LifeHomePageState extends State<LifeHomePage> {
         workoutGroupsByAction: _workoutGroupsByAction,
         todos: _todos,
         financeRecords: _financeRecords,
+        aiFinanceEndpoint: _aiFinanceEndpoint,
+        aiFinanceModel: _aiFinanceModel,
+        aiFinanceApiKey: _aiFinanceApiKey,
       ),
     );
     unawaited(
@@ -324,8 +337,69 @@ class _LifeHomePageState extends State<LifeHomePage> {
     );
   }
 
+  void _openQuickRecordSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _QuickRecordSheet(
+          onSelect: (action) {
+            Navigator.of(context).pop();
+            _dispatchQuickRecordAction(action);
+          },
+        );
+      },
+    );
+  }
+
+  void _dispatchQuickRecordAction(WidgetQuickAction action) {
+    final module = switch (action) {
+      WidgetQuickAction.addTodo => LifeModule.plan,
+      WidgetQuickAction.addFinance => LifeModule.finance,
+      WidgetQuickAction.addFood => LifeModule.food,
+      WidgetQuickAction.startWorkout => LifeModule.workout,
+      WidgetQuickAction.openHealth => LifeModule.health,
+    };
+    setState(() {
+      _module = module;
+      _pendingQuickAction = action;
+      _quickActionToken++;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(child: _buildModulePage()),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            heightFactor: 1,
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.paddingOf(context).bottom +
+                    _moduleSwitchBarBottomGap,
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: _ModuleLinkStrip(
+                  selected: _module,
+                  onSwitchModule: _setModule,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModulePage() {
     return switch (_module) {
       LifeModule.finance => FinanceModulePage(
           onOpenModules: _openModuleSheet,
@@ -335,6 +409,10 @@ class _LifeHomePageState extends State<LifeHomePage> {
           records: _financeRecords,
           onAddRecord: _addFinanceRecord,
           onEditRecord: _editFinanceRecord,
+          aiEndpoint: _aiFinanceEndpoint,
+          aiModel: _aiFinanceModel,
+          aiApiKey: _aiFinanceApiKey,
+          onAiConfigChanged: _updateAiFinanceConfig,
           quickAction: _pendingQuickAction,
           quickActionToken: _quickActionToken,
           onQuickActionHandled: _markQuickActionHandled,
@@ -342,8 +420,11 @@ class _LifeHomePageState extends State<LifeHomePage> {
       LifeModule.plan => PlanModulePage(
           onOpenModules: _openModuleSheet,
           onSwitchModule: _setModule,
+          onOpenQuickRecord: _openQuickRecordSheet,
           foodCalories: _recordedFoodCalories,
           workoutGroups: _workoutFinishedGroups,
+          todayExpense: _todayExpense,
+          healthStatusText: '正常',
           todos: _todos,
           events: _events,
           onToggleTodo: _toggleTodo,
@@ -390,6 +471,10 @@ class _LifeHomePageState extends State<LifeHomePage> {
   }
 
   int get _pendingTodoCount => _todos.where((todo) => todo.isActive).length;
+
+  double get _todayExpense => _financeRecords
+      .where((record) => record.type == '支出')
+      .fold(0, (total, record) => total + record.amount);
 
   void _toggleTodo(TodoItem todo) {
     final wasDone = todo.done;
@@ -567,6 +652,21 @@ class _LifeHomePageState extends State<LifeHomePage> {
     _syncLinkedSummaryToWidget();
   }
 
+  void _updateAiFinanceConfig({
+    required String endpoint,
+    required String model,
+    required String apiKey,
+  }) {
+    setState(() {
+      _aiFinanceEndpoint =
+          endpoint.trim().isEmpty ? _defaultGlmChatEndpoint : endpoint.trim();
+      _aiFinanceModel =
+          model.trim().isEmpty ? _defaultGlmTextModel : model.trim();
+      _aiFinanceApiKey = apiKey.trim();
+    });
+    _syncLinkedSummaryToWidget();
+  }
+
   void _pushLifeEvent(LifeEvent event) {
     // 所有模块产生的关键操作都汇入同一条时间线，计划复盘和模块中心共用。
     _events.insert(0, event);
@@ -727,287 +827,140 @@ class _TodoLinkedActionTile extends StatelessWidget {
   }
 }
 
-class TodoItem {
-  TodoItem({
-    String? id,
-    required this.title,
-    required this.category,
+class _QuickRecordSheet extends StatelessWidget {
+  const _QuickRecordSheet({required this.onSelect});
+
+  final ValueChanged<WidgetQuickAction> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoSheetFrame(
+      title: '快速记录',
+      child: Column(
+        children: [
+          _QuickRecordTile(
+            key: const ValueKey('quick_record_todo'),
+            icon: Icons.add_task_rounded,
+            color: AppColors.primary,
+            title: '加待办',
+            subtitle: '写下今天或待办箱里的事',
+            onTap: () => onSelect(WidgetQuickAction.addTodo),
+          ),
+          _QuickRecordTile(
+            key: const ValueKey('quick_record_finance'),
+            icon: Icons.receipt_long_rounded,
+            color: AppColors.financeRed,
+            title: '记一笔',
+            subtitle: '支出、收入或转账',
+            onTap: () => onSelect(WidgetQuickAction.addFinance),
+          ),
+          _QuickRecordTile(
+            key: const ValueKey('quick_record_food'),
+            icon: Icons.restaurant_rounded,
+            color: AppColors.success,
+            title: '记饮食',
+            subtitle: '补一餐或常吃食物',
+            onTap: () => onSelect(WidgetQuickAction.addFood),
+          ),
+          _QuickRecordTile(
+            key: const ValueKey('quick_record_workout'),
+            icon: Icons.fitness_center_rounded,
+            color: const Color(0xFF9278F7),
+            title: '完成一组',
+            subtitle: '进入今日训练动作',
+            onTap: () => onSelect(WidgetQuickAction.startWorkout),
+          ),
+          _QuickRecordTile(
+            key: const ValueKey('quick_record_health'),
+            icon: Icons.favorite_rounded,
+            color: const Color(0xFFFF6F9D),
+            title: '看健康',
+            subtitle: '打开身体状态仪表盘',
+            onTap: () => onSelect(WidgetQuickAction.openHealth),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickRecordTile extends StatelessWidget {
+  const _QuickRecordTile({
+    super.key,
+    required this.icon,
     required this.color,
-    this.priority = TodoPriority.shouldDo,
-    this.status = TodoStatus.notStarted,
-    this.dueDate,
-    this.note = '',
-    this.repeatRule = TodoRepeatRule.none,
-    List<TodoLinkedModule> linkedModules = const [],
-    this.postponedCount = 0,
-    DateTime? createdAt,
-    this.completedAt,
-  })  : id = id ?? _newLocalId(),
-        linkedModules = List.of(linkedModules),
-        createdAt = createdAt ?? DateTime.now();
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
 
-  final String id;
+  final IconData icon;
+  final Color color;
   final String title;
-  final String category;
-  final Color color;
-  TodoPriority priority;
-  TodoStatus status;
-  DateTime? dueDate;
-  String note;
-  TodoRepeatRule repeatRule;
-  List<TodoLinkedModule> linkedModules;
-  int postponedCount;
-  final DateTime createdAt;
-  DateTime? completedAt;
+  final String subtitle;
+  final VoidCallback onTap;
 
-  bool get done => status == TodoStatus.completed;
-
-  set done(bool value) {
-    status = value ? TodoStatus.completed : TodoStatus.notStarted;
-    completedAt = value ? DateTime.now() : null;
-  }
-
-  bool get isActive =>
-      status != TodoStatus.completed && status != TodoStatus.archived;
-
-  bool get isInbox => dueDate == null && isActive;
-
-  bool isDueOn(DateTime day) =>
-      dueDate != null && DateUtils.isSameDay(dueDate, day);
-
-  TodoItem copyWith({
-    String? title,
-    String? category,
-    Color? color,
-    TodoPriority? priority,
-    TodoStatus? status,
-    DateTime? dueDate,
-    bool clearDueDate = false,
-    String? note,
-    TodoRepeatRule? repeatRule,
-    List<TodoLinkedModule>? linkedModules,
-    int? postponedCount,
-    DateTime? completedAt,
-  }) {
-    return TodoItem(
-      id: id,
-      title: title ?? this.title,
-      category: category ?? this.category,
-      color: color ?? this.color,
-      priority: priority ?? this.priority,
-      status: status ?? this.status,
-      dueDate: clearDueDate ? null : dueDate ?? this.dueDate,
-      note: note ?? this.note,
-      repeatRule: repeatRule ?? this.repeatRule,
-      linkedModules: linkedModules ?? this.linkedModules,
-      postponedCount: postponedCount ?? this.postponedCount,
-      createdAt: createdAt,
-      completedAt: completedAt ?? this.completedAt,
-    );
-  }
-
-  void postponeToTomorrow() {
-    dueDate = DateUtils.dateOnly(DateTime.now()).add(const Duration(days: 1));
-    status = TodoStatus.postponed;
-    postponedCount++;
-  }
-
-  void archive() {
-    status = TodoStatus.archived;
-  }
-
-  Map<String, Object?> toJson() {
-    return {
-      'id': id,
-      'title': title,
-      'category': category,
-      'priority': priority.name,
-      'status': status.name,
-      'dueDate': _dateToJson(dueDate),
-      'note': note,
-      'repeatRule': repeatRule.name,
-      'linkedModules': linkedModules.map((module) => module.name).toList(),
-      'postponedCount': postponedCount,
-      'createdAt': createdAt.toIso8601String(),
-      'completedAt': completedAt?.toIso8601String(),
-      'done': done,
-    };
-  }
-
-  static TodoItem fromJson(Map<String, dynamic> json) {
-    final category = json['category'] as String? ?? '生活';
-    final status = _enumByName(
-      TodoStatus.values,
-      json['status'] as String?,
-      fallback:
-          json['done'] == true ? TodoStatus.completed : TodoStatus.notStarted,
-    );
-    return TodoItem(
-      id: json['id'] as String?,
-      title: json['title'] as String? ?? '未命名待办',
-      category: category,
-      color: _todoColorForCategory(category),
-      priority: _enumByName(
-        TodoPriority.values,
-        json['priority'] as String?,
-        fallback: TodoPriority.shouldDo,
-      ),
-      status: status,
-      dueDate: _dateFromJson(json['dueDate'] as String?),
-      note: json['note'] as String? ?? '',
-      repeatRule: _enumByName(
-        TodoRepeatRule.values,
-        json['repeatRule'] as String?,
-        fallback: TodoRepeatRule.none,
-      ),
-      linkedModules: _linkedModulesFromJson(json['linkedModules']),
-      postponedCount: (json['postponedCount'] as num?)?.toInt() ?? 0,
-      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
-          DateTime.now(),
-      completedAt: DateTime.tryParse(json['completedAt'] as String? ?? ''),
-    );
-  }
-}
-
-enum TodoPriority {
-  mustDo('必须做', Icons.priority_high_rounded, AppColors.financeRed),
-  shouldDo('应该做', Icons.flag_rounded, AppColors.primary),
-  canDelay('可推迟', Icons.low_priority_rounded, AppColors.muted);
-
-  const TodoPriority(this.label, this.icon, this.color);
-
-  final String label;
-  final IconData icon;
-  final Color color;
-}
-
-enum TodoStatus {
-  notStarted('未开始', Icons.radio_button_unchecked_rounded),
-  inProgress('进行中', Icons.timelapse_rounded),
-  completed('已完成', Icons.check_circle_rounded),
-  postponed('已延后', Icons.event_repeat_rounded),
-  archived('已归档', Icons.archive_rounded);
-
-  const TodoStatus(this.label, this.icon);
-
-  final String label;
-  final IconData icon;
-}
-
-enum TodoRepeatRule {
-  none('不重复'),
-  daily('每天'),
-  weekly('每周'),
-  monthly('每月'),
-  custom('自定义周期');
-
-  const TodoRepeatRule(this.label);
-
-  final String label;
-}
-
-enum TodoLinkedModule {
-  finance('财务', Icons.account_balance_wallet_rounded, AppColors.success),
-  food('饮食', Icons.restaurant_rounded, Color(0xFFB88955)),
-  workout('锻炼', Icons.fitness_center_rounded, AppColors.primary),
-  health('健康', Icons.monitor_heart_rounded, Color(0xFFFF6F9D));
-
-  const TodoLinkedModule(this.label, this.icon, this.color);
-
-  final String label;
-  final IconData icon;
-  final Color color;
-
-  LifeModule get lifeModule {
-    return switch (this) {
-      TodoLinkedModule.finance => LifeModule.finance,
-      TodoLinkedModule.food => LifeModule.food,
-      TodoLinkedModule.workout => LifeModule.workout,
-      TodoLinkedModule.health => LifeModule.health,
-    };
-  }
-
-  WidgetQuickAction get quickAction {
-    return switch (this) {
-      TodoLinkedModule.finance => WidgetQuickAction.addFinance,
-      TodoLinkedModule.food => WidgetQuickAction.addFood,
-      TodoLinkedModule.workout => WidgetQuickAction.startWorkout,
-      TodoLinkedModule.health => WidgetQuickAction.openHealth,
-    };
-  }
-
-  String get actionLabel {
-    return switch (this) {
-      TodoLinkedModule.finance => '去记账',
-      TodoLinkedModule.food => '记饮食',
-      TodoLinkedModule.workout => '记录训练',
-      TodoLinkedModule.health => '看健康',
-    };
-  }
-}
-
-Color _todoColorForCategory(String category) {
-  return switch (category) {
-    '健康' => const Color(0xFFFF6F9D),
-    '工作' => const Color(0xFF9278F7),
-    '财务' => AppColors.success,
-    '学习' => const Color(0xFFB88955),
-    _ => const Color(0xFF7D9CFF),
-  };
-}
-
-T _enumByName<T extends Enum>(
-  List<T> values,
-  String? name, {
-  required T fallback,
-}) {
-  for (final value in values) {
-    if (value.name == name) {
-      return value;
-    }
-  }
-  return fallback;
-}
-
-List<TodoLinkedModule> _linkedModulesFromJson(Object? value) {
-  if (value is! List<dynamic>) {
-    return [];
-  }
-  return value
-      .whereType<String>()
-      .map(
-        (name) => _enumByName(
-          TodoLinkedModule.values,
-          name,
-          fallback: TodoLinkedModule.health,
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.13),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: color, size: 23),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: AppColors.muted,
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
         ),
-      )
-      .toSet()
-      .toList();
-}
-
-String? _dateToJson(DateTime? value) {
-  if (value == null) {
-    return null;
+      ),
+    );
   }
-  final date = DateUtils.dateOnly(value);
-  return '${date.year.toString().padLeft(4, '0')}-'
-      '${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
-}
-
-DateTime? _dateFromJson(String? value) {
-  if (value == null || value.trim().isEmpty) {
-    return null;
-  }
-  final parsed = DateTime.tryParse(value);
-  return parsed == null ? null : DateUtils.dateOnly(parsed);
-}
-
-String _newLocalId() {
-  final micros = DateTime.now().microsecondsSinceEpoch;
-  final salt = math.Random().nextInt(1 << 20).toRadixString(16);
-  return 'todo_${micros}_$salt';
 }
 
 String _linkedTodoPrompt(TodoItem todo, TodoLinkedModule module) {

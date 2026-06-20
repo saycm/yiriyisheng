@@ -147,7 +147,8 @@ class _ModuleSheet extends StatelessWidget {
               key: const ValueKey('module_sheet_scroll'),
               children: [
                 _ModuleProfileCard(
-                  onSelectHeatDay: (day) => _showHeatMapDaySheet(context, day),
+                  onSelectHeatDay: (date) =>
+                      _showHeatMapDaySheet(context, date),
                 ),
                 const SizedBox(height: 16),
                 // 模块中心也读取应用级共享状态，方便从任意模块回看今日联动进度。
@@ -298,12 +299,12 @@ class _ModuleSheet extends StatelessWidget {
     );
   }
 
-  void _showHeatMapDaySheet(BuildContext context, int day) {
+  void _showHeatMapDaySheet(BuildContext context, DateTime date) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _HeatMapDaySheet(day: day),
+      builder: (context) => _HeatMapDaySheet(date: date),
     );
   }
 
@@ -326,15 +327,36 @@ class _ModuleSheet extends StatelessWidget {
   }
 }
 
-class _ModuleProfileCard extends StatelessWidget {
+class _ModuleProfileCard extends StatefulWidget {
   const _ModuleProfileCard({
     required this.onSelectHeatDay,
   });
 
-  final ValueChanged<int> onSelectHeatDay;
+  final ValueChanged<DateTime> onSelectHeatDay;
+
+  @override
+  State<_ModuleProfileCard> createState() => _ModuleProfileCardState();
+}
+
+class _ModuleProfileCardState extends State<_ModuleProfileCard> {
+  DateTime _visibleMonth = DateTime(DateTime.now().year, DateTime.now().month);
+
+  void _changeMonth(int delta) {
+    final next = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
+    final current = DateTime(DateTime.now().year, DateTime.now().month);
+    if (next.isAfter(current)) {
+      return;
+    }
+    setState(() => _visibleMonth = next);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final monthText =
+        '${_visibleMonth.year}年 ${_visibleMonth.month.toString().padLeft(2, '0')}月';
+    final recordedDays = _recordedDaysInMonth(_visibleMonth);
+    final totalRecords = _totalRecordsInMonth(_visibleMonth);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
@@ -371,27 +393,92 @@ class _ModuleProfileCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 18),
-          const Text(
-            '2026年 05月',
-            style: TextStyle(
-              color: AppColors.ink,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  monthText,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Tooltip(
+                message: '上个月',
+                child: IconButton(
+                  key: const ValueKey('module_heat_prev_month'),
+                  onPressed: () => _changeMonth(-1),
+                  icon: const Icon(Icons.chevron_left_rounded),
+                  style: IconButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    backgroundColor: AppColors.primarySoft,
+                    fixedSize: const Size(34, 34),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Tooltip(
+                message: '下个月',
+                child: IconButton(
+                  key: const ValueKey('module_heat_next_month'),
+                  onPressed: DateUtils.isSameMonth(
+                    _visibleMonth,
+                    DateTime.now(),
+                  )
+                      ? null
+                      : () => _changeMonth(1),
+                  icon: const Icon(Icons.chevron_right_rounded),
+                  style: IconButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    backgroundColor: AppColors.background,
+                    fixedSize: const Size(34, 34),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
-          _ModuleHeatMap(onSelectDay: onSelectHeatDay),
+          _ModuleHeatMap(
+            month: _visibleMonth,
+            onSelectDay: widget.onSelectHeatDay,
+          ),
           const SizedBox(height: 16),
-          const Row(
+          Row(
             children: [
-              Expanded(child: _ModuleStat(value: '984', label: '天\n坚持记录')),
-              Expanded(child: _ModuleStat(value: '76', label: '条\n总记录')),
-              Expanded(child: _ModuleStat(value: '联动', label: '热力图')),
+              Expanded(
+                child: _ModuleStat(value: '$recordedDays', label: '天\n坚持记录'),
+              ),
+              Expanded(
+                child: _ModuleStat(value: '$totalRecords', label: '条\n总记录'),
+              ),
+              const Expanded(child: _ModuleStat(value: '联动', label: '热力图')),
             ],
           ),
         ],
       ),
     );
+  }
+
+  int _recordedDaysInMonth(DateTime month) {
+    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
+    var count = 0;
+    for (var day = 1; day <= daysInMonth; day++) {
+      if (_heatValueForDay(month, day) > 0) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  int _totalRecordsInMonth(DateTime month) {
+    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
+    var total = 0;
+    for (var day = 1; day <= daysInMonth; day++) {
+      total += _heatValueForDay(month, day);
+    }
+    return total;
   }
 }
 
@@ -420,46 +507,20 @@ class _AppIconMark extends StatelessWidget {
 
 class _ModuleHeatMap extends StatelessWidget {
   const _ModuleHeatMap({
+    required this.month,
     required this.onSelectDay,
   });
 
-  final ValueChanged<int> onSelectDay;
+  final DateTime month;
+  final ValueChanged<DateTime> onSelectDay;
 
   @override
   Widget build(BuildContext context) {
-    const values = [
-      3,
-      4,
-      2,
-      2,
-      1,
-      1,
-      3,
-      2,
-      2,
-      1,
-      0,
-      2,
-      3,
-      2,
-      3,
-      2,
-      1,
-      1,
-      3,
-      0,
-      1,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-    ];
+    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
+    final values = List.generate(daysInMonth, (index) {
+      final day = index + 1;
+      return _heatValueForDay(month, day);
+    });
 
     return SizedBox(
       height: 132,
@@ -472,15 +533,23 @@ class _ModuleHeatMap extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               crossAxisSpacing: 5,
               mainAxisSpacing: 5,
+              childAspectRatio: 2.25,
               children: List.generate(values.length, (index) {
                 final value = values[index];
                 final day = index + 1;
-                final label = day == 15 ? '15' : (day == 31 ? '31' : '');
+                final label =
+                    day == 15 ? '15' : (day == daysInMonth ? '$day' : '');
                 // 热力图每个日期格都可点击，避免模块中心出现只可看的“死图”。
                 return InkWell(
-                  key: ValueKey('module_heat_day_$day'),
+                  key: ValueKey(
+                    'module_heat_day_${month.year}_${month.month}_$day',
+                  ),
                   borderRadius: BorderRadius.circular(5),
-                  onTap: () => onSelectDay(day),
+                  onTap: () => onSelectDay(DateTime(
+                    month.year,
+                    month.month,
+                    day,
+                  )),
                   child: Container(
                     decoration: BoxDecoration(
                       color: value == 0
@@ -513,23 +582,37 @@ class _ModuleHeatMap extends StatelessWidget {
   }
 }
 
-class _HeatMapDaySheet extends StatelessWidget {
-  const _HeatMapDaySheet({required this.day});
+int _heatValueForDay(DateTime month, int day) {
+  final current = DateUtils.dateOnly(DateTime.now());
+  final date = DateTime(month.year, month.month, day);
+  if (date.isAfter(current)) {
+    return 0;
+  }
+  return switch (day % 7) {
+    1 || 4 => 3,
+    2 || 5 => 2,
+    3 => 1,
+    _ => 0,
+  };
+}
 
-  final int day;
+class _HeatMapDaySheet extends StatelessWidget {
+  const _HeatMapDaySheet({required this.date});
+
+  final DateTime date;
 
   @override
   Widget build(BuildContext context) {
-    final level = switch (day % 5) {
+    final level = switch (date.day % 5) {
       0 => '高活跃',
       1 || 2 => '轻记录',
       3 => '稳定记录',
       _ => '待补充',
     };
-    final recordCount = day % 5;
+    final recordCount = date.day % 5;
 
     return _InfoSheetFrame(
-      title: '2026年5月$day日',
+      title: '${date.year}年${date.month}月${date.day}日',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1355,23 +1438,28 @@ class _GuideSheet extends StatelessWidget {
         children: const [
           _GuideStep(
             number: '1',
-            title: '先选模块',
-            body: '点击左上角模块按钮，在财务、健康、计划、锻炼、饮食之间切换。',
+            title: '底部切换模块',
+            body: '主页面最底部固定显示财务、计划、饮食、锻炼、健康，随时点对应入口切换大模块。',
           ),
           _GuideStep(
             number: '2',
-            title: '每天记录一点',
-            body: '待办可以勾选归档，饮食可以添加食物，锻炼可以按组完成。',
+            title: '先安排今天',
+            body: '计划模块负责今天要做什么：新增待办、设置分类优先级，或把无日期任务放进待办箱再安排到本周。',
           ),
           _GuideStep(
             number: '3',
-            title: '回看你的生活模式',
-            body: '计划页的本周回顾和健康/财务图表会把分散记录整理成趋势。',
+            title: '记录饮食和训练',
+            body: '饮食按餐次记录食物和热量，锻炼按动作完成组数；训练后可以直接去饮食补一条加餐。',
           ),
           _GuideStep(
             number: '4',
-            title: '逐步补齐真实数据',
-            body: '当前是原型数据，后面可以接本地数据库、云同步和提醒通知。',
+            title: '看联动和小组件',
+            body: '财务、饮食、锻炼和健康数据会汇总到今日联动，也会同步到桌面小组件；健康页可连接 Health Connect。',
+          ),
+          _GuideStep(
+            number: '5',
+            title: '本地优先保存',
+            body: 'App 主数据优先写入本地数据库，小组件只保留摘要；登录态和服务端账号用于后续同步扩展。',
           ),
         ],
       ),
@@ -1701,6 +1789,7 @@ class _PlanBottomNav extends StatelessWidget {
       selectedIndex: selectedIndex,
       items: items,
       onChanged: onChanged,
+      softCompact: true,
       keyPrefix: 'plan_bottom_nav',
     );
   }
@@ -1727,6 +1816,8 @@ class _FinanceBottomNav extends StatelessWidget {
       selectedIndex: selectedIndex,
       items: items,
       onChanged: onChanged,
+      softCompact: true,
+      keyPrefix: 'finance_bottom_nav',
     );
   }
 }
@@ -1775,6 +1866,11 @@ class _ModuleQuickNav extends StatelessWidget {
   }
 }
 
+const double _moduleSwitchBarBottomGap = 8;
+const double _moduleSwitchBarReservedHeight = 76;
+const double _moduleStackedBottomNavInset = _moduleSwitchBarReservedHeight;
+const double _planStackedBottomNavInset = _moduleStackedBottomNavInset;
+
 class _ModuleLinkStrip extends StatelessWidget {
   const _ModuleLinkStrip({
     required this.selected,
@@ -1787,16 +1883,16 @@ class _ModuleLinkStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 这里是所有主模块共用的联动入口，保证任意模块都能直接跳到其它模块。
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Center(
-        // 小屏手机宽度不足时允许横向滑动，避免顶部模块入口出现 RenderFlex 溢出条。
-        child: _ModuleQuickNav(
-          selected: selected,
-          onSwitchModule: onSwitchModule,
-          keyPrefix: 'module_link',
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: _ModuleQuickNav(
+            selected: selected,
+            onSwitchModule: onSwitchModule,
+            keyPrefix: 'module_link',
+          ),
         ),
       ),
     );
@@ -1809,6 +1905,7 @@ class _CapsuleNav extends StatelessWidget {
     required this.items,
     required this.onChanged,
     this.compact = false,
+    this.softCompact = false,
     this.keyPrefix,
   });
 
@@ -1816,21 +1913,64 @@ class _CapsuleNav extends StatelessWidget {
   final List<(IconData, String)> items;
   final ValueChanged<int> onChanged;
   final bool compact;
+  final bool softCompact;
   final String? keyPrefix;
 
   @override
   Widget build(BuildContext context) {
+    final outerPadding = compact
+        ? 4.0
+        : softCompact
+            ? 5.0
+            : 7.0;
+    final outerRadius = compact
+        ? 16.0
+        : softCompact
+            ? 20.0
+            : 18.0;
+    final itemRadius = compact
+        ? 12.0
+        : softCompact
+            ? 16.0
+            : 15.0;
+    final itemWidth = compact
+        ? 42.0
+        : softCompact
+            ? 64.0
+            : 88.0;
+    final itemVerticalPadding = compact
+        ? 3.0
+        : softCompact
+            ? 4.0
+            : 9.0;
+    final iconSize = compact
+        ? 17.0
+        : softCompact
+            ? 18.0
+            : 23.0;
+    final labelSize = compact
+        ? 9.0
+        : softCompact
+            ? 10.0
+            : 12.0;
+    final iconLabelGap = compact
+        ? 0.0
+        : softCompact
+            ? 1.0
+            : 3.0;
+
     return Container(
-      padding: const EdgeInsets.all(7),
+      key: keyPrefix == null ? null : ValueKey('${keyPrefix}_container'),
+      padding: EdgeInsets.all(outerPadding),
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(outerRadius),
         border: Border.all(color: AppColors.line),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: compact || softCompact ? 14 : 20,
+            offset: Offset(0, compact || softCompact ? 7 : 10),
           ),
         ],
       ),
@@ -1841,32 +1981,32 @@ class _CapsuleNav extends StatelessWidget {
           final selected = selectedIndex == index;
           return InkWell(
             key: keyPrefix == null ? null : ValueKey('${keyPrefix}_$index'),
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(itemRadius),
             onTap: () => onChanged(index),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 160),
-              width: compact ? 52 : 88,
-              padding: const EdgeInsets.symmetric(vertical: 9),
+              width: itemWidth,
+              padding: EdgeInsets.symmetric(vertical: itemVerticalPadding),
               decoration: BoxDecoration(
                 color: selected ? AppColors.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(itemRadius),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     item.$1,
-                    size: 23,
+                    size: iconSize,
                     color: selected ? Colors.white : AppColors.muted,
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: iconLabelGap),
                   Text(
                     item.$2,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: selected ? Colors.white : AppColors.muted,
-                      fontSize: 12,
+                      fontSize: labelSize,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
