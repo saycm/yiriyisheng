@@ -27,6 +27,7 @@ class WorkoutAction {
 class WorkoutModulePage extends StatefulWidget {
   const WorkoutModulePage({
     super.key,
+    required this.moduleNav,
     required this.onOpenModules,
     required this.onSwitchModule,
     required this.finishedGroupsByAction,
@@ -37,6 +38,7 @@ class WorkoutModulePage extends StatefulWidget {
     required this.onQuickActionHandled,
   });
 
+  final Widget moduleNav;
   final VoidCallback onOpenModules;
   final ValueChanged<LifeModule> onSwitchModule;
   final Map<String, int> finishedGroupsByAction;
@@ -186,22 +188,34 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            _WorkoutHeader(onOpenModules: widget.onOpenModules),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _WorkoutBottomNav(
-                selectedIndex: _selectedBottomTab,
-                onChanged: _handleBottomNav,
-                keyPrefix: 'workout_bottom_nav',
+            Column(
+              children: [
+                _WorkoutHeader(onOpenModules: widget.onOpenModules),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: widget.moduleNav,
+                ),
+                _WorkoutTopTabs(
+                  selected: _selectedTopTab,
+                  onChanged: (index) => setState(() => _selectedTopTab = index),
+                ),
+                Expanded(child: _buildWorkoutContent()),
+              ],
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding:
+                    const EdgeInsets.only(bottom: _moduleSwitchBarBottomGap),
+                child: _WorkoutBottomNav(
+                  selectedIndex: _selectedBottomTab,
+                  onChanged: _handleBottomNav,
+                  keyPrefix: 'workout_bottom_nav',
+                ),
               ),
             ),
-            _WorkoutTopTabs(
-              selected: _selectedTopTab,
-              onChanged: (index) => setState(() => _selectedTopTab = index),
-            ),
-            Expanded(child: _buildWorkoutContent()),
           ],
         ),
       ),

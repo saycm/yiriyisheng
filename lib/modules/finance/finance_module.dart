@@ -7,6 +7,7 @@ const String _defaultGlmTextModel = 'glm-4-flash';
 class FinanceModulePage extends StatefulWidget {
   const FinanceModulePage({
     super.key,
+    required this.moduleNav,
     required this.onOpenModules,
     required this.onSwitchModule,
     required this.foodCalories,
@@ -23,6 +24,7 @@ class FinanceModulePage extends StatefulWidget {
     required this.onQuickActionHandled,
   });
 
+  final Widget moduleNav;
   final VoidCallback onOpenModules;
   final ValueChanged<LifeModule> onSwitchModule;
   final int foodCalories;
@@ -91,21 +93,33 @@ class _FinanceModulePageState extends State<FinanceModulePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            _FinanceHeader(
-              onOpenModules: widget.onOpenModules,
-              onAddRecord: _openRecordSheet,
-              onAiRecord: _openAiRecordSheet,
+            Column(
+              children: [
+                _FinanceHeader(
+                  onOpenModules: widget.onOpenModules,
+                  onAddRecord: _openRecordSheet,
+                  onAiRecord: _openAiRecordSheet,
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: widget.moduleNav,
+                ),
+                Expanded(child: _buildContent()),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _FinanceBottomNav(
-                selectedIndex: _selectedTab,
-                onChanged: (index) => setState(() => _selectedTab = index),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding:
+                    const EdgeInsets.only(bottom: _moduleSwitchBarBottomGap),
+                child: _FinanceBottomNav(
+                  selectedIndex: _selectedTab,
+                  onChanged: (index) => setState(() => _selectedTab = index),
+                ),
               ),
             ),
-            Expanded(child: _buildContent()),
           ],
         ),
       ),

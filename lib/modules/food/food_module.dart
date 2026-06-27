@@ -90,6 +90,7 @@ double _foodMacro(FoodItem food, _FoodMacro macro) {
 class FoodModulePage extends StatefulWidget {
   const FoodModulePage({
     super.key,
+    required this.moduleNav,
     required this.onOpenModules,
     required this.onSwitchModule,
     required this.onRecordCalories,
@@ -100,6 +101,7 @@ class FoodModulePage extends StatefulWidget {
     required this.onQuickActionHandled,
   });
 
+  final Widget moduleNav;
   final VoidCallback onOpenModules;
   final ValueChanged<LifeModule> onSwitchModule;
   final ValueChanged<int> onRecordCalories;
@@ -388,9 +390,9 @@ class _FoodModulePageState extends State<FoodModulePage> {
                   onChanged: (value) => setState(() => _foodQuery = value),
                   onClear: _clearFoodSearch,
                 ),
-                _FoodTabs(
-                  active: _activeGroup,
-                  onChanged: (group) => setState(() => _activeGroup = group),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: widget.moduleNav,
                 ),
                 Expanded(
                   child: ListView(
@@ -399,7 +401,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
                       18,
                       6,
                       18,
-                      112 + _moduleSwitchBarReservedHeight,
+                      150 + _moduleSwitchBarReservedHeight,
                     ),
                     children: [
                       _ModuleLinkedSummaryCard(
@@ -459,10 +461,19 @@ class _FoodModulePageState extends State<FoodModulePage> {
             ),
             Align(
               alignment: Alignment.bottomCenter,
-              child: _FoodSelectedBar(
-                count: _selectedFoods.length,
-                calories: _totalCalories,
-                onRecord: _recordFoods,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _FoodTabs(
+                    active: _activeGroup,
+                    onChanged: (group) => setState(() => _activeGroup = group),
+                  ),
+                  _FoodSelectedBar(
+                    count: _selectedFoods.length,
+                    calories: _totalCalories,
+                    onRecord: _recordFoods,
+                  ),
+                ],
               ),
             ),
           ],
@@ -1975,7 +1986,7 @@ class _FoodSelectedBar extends StatelessWidget {
         18,
         0,
         18,
-        10 + _moduleSwitchBarReservedHeight,
+        _moduleSwitchBarBottomGap,
       ),
       child: Container(
         key: const ValueKey('food_selected_bar_container'),

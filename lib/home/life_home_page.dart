@@ -370,38 +370,17 @@ class _LifeHomePageState extends State<LifeHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned.fill(child: _buildModulePage()),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            heightFactor: 1,
-            child: Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.paddingOf(context).bottom +
-                    _moduleSwitchBarBottomGap,
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: _ModuleLinkStrip(
-                  selected: _module,
-                  onSwitchModule: _setModule,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+    return _buildModulePage();
   }
 
   Widget _buildModulePage() {
+    final moduleNav = _ModuleLinkStrip(
+      selected: _module,
+      onSwitchModule: _setModule,
+    );
     return switch (_module) {
       LifeModule.finance => FinanceModulePage(
+          moduleNav: moduleNav,
           onOpenModules: _openModuleSheet,
           onSwitchModule: _setModule,
           foodCalories: _recordedFoodCalories,
@@ -418,6 +397,7 @@ class _LifeHomePageState extends State<LifeHomePage> {
           onQuickActionHandled: _markQuickActionHandled,
         ),
       LifeModule.plan => PlanModulePage(
+          moduleNav: moduleNav,
           onOpenModules: _openModuleSheet,
           onSwitchModule: _setModule,
           onOpenQuickRecord: _openQuickRecordSheet,
@@ -439,6 +419,7 @@ class _LifeHomePageState extends State<LifeHomePage> {
           onQuickActionHandled: _markQuickActionHandled,
         ),
       LifeModule.food => FoodModulePage(
+          moduleNav: moduleNav,
           onOpenModules: _openModuleSheet,
           onSwitchModule: _setModule,
           onRecordCalories: _recordFoodCalories,
@@ -449,6 +430,7 @@ class _LifeHomePageState extends State<LifeHomePage> {
           onQuickActionHandled: _markQuickActionHandled,
         ),
       LifeModule.workout => WorkoutModulePage(
+          moduleNav: moduleNav,
           onOpenModules: _openModuleSheet,
           onSwitchModule: _setModule,
           finishedGroupsByAction: _workoutGroupsByAction,
@@ -459,6 +441,7 @@ class _LifeHomePageState extends State<LifeHomePage> {
           onQuickActionHandled: _markQuickActionHandled,
         ),
       LifeModule.health => HealthModulePage(
+          moduleNav: moduleNav,
           onOpenModules: _openModuleSheet,
           onSwitchModule: _setModule,
           foodCalories: _recordedFoodCalories,

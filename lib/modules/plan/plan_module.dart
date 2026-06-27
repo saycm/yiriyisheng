@@ -3,6 +3,7 @@ part of '../../main.dart';
 class PlanModulePage extends StatefulWidget {
   const PlanModulePage({
     super.key,
+    required this.moduleNav,
     required this.onOpenModules,
     required this.onSwitchModule,
     required this.onOpenQuickRecord,
@@ -24,6 +25,7 @@ class PlanModulePage extends StatefulWidget {
     required this.onQuickActionHandled,
   });
 
+  final Widget moduleNav;
   final VoidCallback onOpenModules;
   final ValueChanged<LifeModule> onSwitchModule;
   final VoidCallback onOpenQuickRecord;
@@ -130,26 +132,38 @@ class _PlanModulePageState extends State<PlanModulePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            _PlanHeader(
-              selectedDate: _selectedDate,
-              todos: widget.todos,
-              onDateChanged: (date) => setState(() {
-                _selectedDate = date;
-                _selectedTab = 2;
-              }),
-              onOpenModules: widget.onOpenModules,
-              onOpenMore: _openMoreSheet,
+            Column(
+              children: [
+                _PlanHeader(
+                  selectedDate: _selectedDate,
+                  todos: widget.todos,
+                  onDateChanged: (date) => setState(() {
+                    _selectedDate = date;
+                    _selectedTab = 2;
+                  }),
+                  onOpenModules: widget.onOpenModules,
+                  onOpenMore: _openMoreSheet,
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: widget.moduleNav,
+                ),
+                Expanded(child: _buildTabContent()),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _PlanBottomNav(
-                selectedIndex: _selectedTab,
-                onChanged: (index) => setState(() => _selectedTab = index),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding:
+                    const EdgeInsets.only(bottom: _moduleSwitchBarBottomGap),
+                child: _PlanBottomNav(
+                  selectedIndex: _selectedTab,
+                  onChanged: (index) => setState(() => _selectedTab = index),
+                ),
               ),
             ),
-            Expanded(child: _buildTabContent()),
           ],
         ),
       ),
@@ -707,7 +721,7 @@ class _PlanHeader extends StatefulWidget {
 }
 
 class _PlanHeaderState extends State<_PlanHeader> {
-  static const double _datePillExtent = 52;
+  static const double _datePillExtent = 42;
   final ScrollController _dateScrollController = ScrollController();
 
   @override
@@ -755,6 +769,21 @@ class _PlanHeaderState extends State<_PlanHeader> {
     }
   }
 
+  void _shiftMonth(int delta) {
+    final selected = widget.selectedDate;
+    final targetMonth = DateTime(selected.year, selected.month + delta);
+    final maxDay = DateUtils.getDaysInMonth(
+      targetMonth.year,
+      targetMonth.month,
+    );
+    widget.onDateChanged(
+      DateUtils.dateOnly(
+        DateTime(targetMonth.year, targetMonth.month,
+            math.min(selected.day, maxDay)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final today = DateUtils.dateOnly(DateTime.now());
@@ -784,13 +813,30 @@ class _PlanHeaderState extends State<_PlanHeader> {
               ),
               Expanded(
                 child: Center(
-                  child: Text(
-                    monthText,
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _MonthNavButton(
+                        key: const ValueKey('plan_prev_month'),
+                        icon: Icons.chevron_left_rounded,
+                        onTap: () => _shiftMonth(-1),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        monthText,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      _MonthNavButton(
+                        key: const ValueKey('plan_next_month'),
+                        icon: Icons.chevron_right_rounded,
+                        onTap: () => _shiftMonth(1),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -801,9 +847,9 @@ class _PlanHeaderState extends State<_PlanHeader> {
               ),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 12),
           SizedBox(
-            height: 60,
+            height: 50,
             child: SingleChildScrollView(
               key: const ValueKey('plan_header_date_scroller'),
               controller: _dateScrollController,
@@ -824,23 +870,47 @@ class _PlanHeaderState extends State<_PlanHeader> {
                           .length,
                       onTap: () => widget.onDateChanged(day),
                     ),
-                    if (day != days.last) const SizedBox(width: 8),
+                    if (day != days.last) const SizedBox(width: 6),
                   ],
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Container(
-            width: 42,
-            height: 4,
+            width: 36,
+            height: 3,
             decoration: BoxDecoration(
               color: const Color(0xFF9AA0AD),
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
         ],
+      ),
+    );
+  }
+}
+
+class _MonthNavButton extends StatelessWidget {
+  const _MonthNavButton({
+    super.key,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: SizedBox(
+        width: 28,
+        height: 28,
+        child: Icon(icon, color: AppColors.muted, size: 22),
       ),
     );
   }
@@ -871,8 +941,8 @@ class _DatePill extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        width: 44,
-        padding: const EdgeInsets.symmetric(vertical: 3),
+        width: 36,
+        padding: const EdgeInsets.symmetric(vertical: 2),
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
@@ -883,23 +953,23 @@ class _DatePill extends StatelessWidget {
               week,
               style: TextStyle(
                 color: selected ? Colors.white : AppColors.muted,
-                fontSize: 12,
+                fontSize: 10,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 1),
             Text(
               '$day',
               style: TextStyle(
                 color: selected ? Colors.white : AppColors.ink,
-                fontSize: 16,
+                fontSize: 13,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 2),
             Container(
-              width: count > 0 ? 16 : 5,
-              height: 5,
+              width: count > 0 ? 12 : 4,
+              height: 3,
               decoration: BoxDecoration(
                 color: selected
                     ? Colors.white

@@ -548,7 +548,7 @@ void main() {
     );
   });
 
-  testWidgets('module link strip is compact and inner nav stays at top',
+  testWidgets('module link strip is compact and inner nav stays at bottom',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() async => tester.binding.setSurfaceSize(null));
@@ -574,8 +574,20 @@ void main() {
 
     final innerTop = tester.getTopLeft(innerNavFrame).dy;
     final mainTop = tester.getTopLeft(mainLink).dy;
-    expect(innerTop, lessThan(mainTop));
-    expect(innerTop, lessThanOrEqualTo(180));
+    expect(mainTop, lessThan(innerTop));
+    expect(mainTop, lessThanOrEqualTo(220));
+    expect(innerTop, greaterThanOrEqualTo(720));
+
+    final now = DateTime.now();
+    final previousMonth = DateTime(now.year, now.month - 1);
+    await tester.tap(find.byKey(const ValueKey('plan_prev_month')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        '${previousMonth.year}年${previousMonth.month.toString().padLeft(2, '0')}月',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('finance workout and health bottom navs use compact capsules',
