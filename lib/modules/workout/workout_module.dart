@@ -186,30 +186,22 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Column(
-              children: [
-                _WorkoutHeader(onOpenModules: widget.onOpenModules),
-                _WorkoutTopTabs(
-                  selected: _selectedTopTab,
-                  onChanged: (index) => setState(() => _selectedTopTab = index),
-                ),
-                Expanded(child: _buildWorkoutContent()),
-              ],
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding:
-                    const EdgeInsets.only(bottom: _moduleStackedBottomNavInset),
-                child: _WorkoutBottomNav(
-                  selectedIndex: _selectedBottomTab,
-                  onChanged: _handleBottomNav,
-                  keyPrefix: 'workout_bottom_nav',
-                ),
+            _WorkoutHeader(onOpenModules: widget.onOpenModules),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _WorkoutBottomNav(
+                selectedIndex: _selectedBottomTab,
+                onChanged: _handleBottomNav,
+                keyPrefix: 'workout_bottom_nav',
               ),
             ),
+            _WorkoutTopTabs(
+              selected: _selectedTopTab,
+              onChanged: (index) => setState(() => _selectedTopTab = index),
+            ),
+            Expanded(child: _buildWorkoutContent()),
           ],
         ),
       ),
@@ -239,7 +231,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     return ListView(
       key: const ValueKey('workout_main_list'),
       padding: const EdgeInsets.fromLTRB(
-          18, 18, 18, 128 + _moduleSwitchBarReservedHeight),
+          18, 18, 18, _moduleSwitchBarReservedHeight + 24),
       children: [
         _WorkoutSummaryCard(
           finishedActions: _finishedActionCount,
@@ -846,7 +838,7 @@ class _WorkoutPlanView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-          18, 18, 18, 128 + _moduleSwitchBarReservedHeight),
+          18, 18, 18, _moduleSwitchBarReservedHeight + 24),
       children: const [
         _WorkoutTemplateRail(),
         SizedBox(height: 12),
@@ -1047,7 +1039,7 @@ class _WorkoutDataView extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-          18, 18, 18, 128 + _moduleSwitchBarReservedHeight),
+          18, 18, 18, _moduleSwitchBarReservedHeight + 24),
       children: [
         GridView.count(
           crossAxisCount: 2,
@@ -1164,7 +1156,7 @@ class _WorkoutHistoryView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-          18, 18, 18, 128 + _moduleSwitchBarReservedHeight),
+          18, 18, 18, _moduleSwitchBarReservedHeight + 24),
       children: const [
         _WorkoutCalendarCard(),
         SizedBox(height: 12),

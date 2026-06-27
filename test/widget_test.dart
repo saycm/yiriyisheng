@@ -548,7 +548,7 @@ void main() {
     );
   });
 
-  testWidgets('module link strip is compact and separated from inner nav',
+  testWidgets('module link strip is compact and inner nav stays at top',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() async => tester.binding.setSurfaceSize(null));
@@ -570,12 +570,12 @@ void main() {
     final frame = tester.widget<Container>(innerNavFrame);
     final decoration = frame.decoration! as BoxDecoration;
     final borderRadius = decoration.borderRadius! as BorderRadius;
-    expect(borderRadius.topLeft.x, greaterThanOrEqualTo(20));
+    expect(borderRadius.topLeft.x, lessThanOrEqualTo(14));
 
-    final innerBottom = tester.getBottomLeft(innerNavFrame).dy;
+    final innerTop = tester.getTopLeft(innerNavFrame).dy;
     final mainTop = tester.getTopLeft(mainLink).dy;
-    expect(mainTop - innerBottom, greaterThanOrEqualTo(12));
-    expect(mainTop - innerBottom, lessThanOrEqualTo(28));
+    expect(innerTop, lessThan(mainTop));
+    expect(innerTop, lessThanOrEqualTo(180));
   });
 
   testWidgets('finance workout and health bottom navs use compact capsules',
@@ -911,7 +911,7 @@ void main() {
     await tester.tap(financeTile);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('记录').last);
+    await tester.tap(find.byKey(const ValueKey('finance_bottom_nav_1')));
     await tester.pumpAndSettle();
 
     expect(find.text('工资'), findsOneWidget);
@@ -935,7 +935,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('记录').last);
+    await tester.tap(find.byKey(const ValueKey('finance_bottom_nav_1')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('finance_add_record')));
@@ -983,7 +983,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('记录').last);
+    await tester.tap(find.byKey(const ValueKey('finance_bottom_nav_1')));
     await tester.pumpAndSettle();
 
     expect(find.text('奖金'), findsOneWidget);

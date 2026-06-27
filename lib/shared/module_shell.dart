@@ -1868,8 +1868,6 @@ class _ModuleQuickNav extends StatelessWidget {
 
 const double _moduleSwitchBarBottomGap = 8;
 const double _moduleSwitchBarReservedHeight = 76;
-const double _moduleStackedBottomNavInset = _moduleSwitchBarReservedHeight;
-const double _planStackedBottomNavInset = _moduleStackedBottomNavInset;
 
 class _ModuleLinkStrip extends StatelessWidget {
   const _ModuleLinkStrip({
@@ -1921,37 +1919,37 @@ class _CapsuleNav extends StatelessWidget {
     final outerPadding = compact
         ? 4.0
         : softCompact
-            ? 5.0
+            ? 4.0
             : 7.0;
     final outerRadius = compact
         ? 16.0
         : softCompact
-            ? 20.0
+            ? 14.0
             : 18.0;
     final itemRadius = compact
         ? 12.0
         : softCompact
-            ? 16.0
+            ? 11.0
             : 15.0;
     final itemWidth = compact
         ? 42.0
         : softCompact
-            ? 64.0
+            ? 50.0
             : 88.0;
     final itemVerticalPadding = compact
         ? 3.0
         : softCompact
-            ? 4.0
+            ? 3.0
             : 9.0;
     final iconSize = compact
         ? 17.0
         : softCompact
-            ? 18.0
+            ? 15.0
             : 23.0;
     final labelSize = compact
         ? 9.0
         : softCompact
-            ? 10.0
+            ? 9.0
             : 12.0;
     final iconLabelGap = compact
         ? 0.0
@@ -1969,8 +1967,8 @@ class _CapsuleNav extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.08),
-            blurRadius: compact || softCompact ? 14 : 20,
-            offset: Offset(0, compact || softCompact ? 7 : 10),
+            blurRadius: compact || softCompact ? 10 : 20,
+            offset: Offset(0, compact || softCompact ? 5 : 10),
           ),
         ],
       ),

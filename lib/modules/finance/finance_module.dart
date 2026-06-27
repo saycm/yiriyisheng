@@ -91,29 +91,21 @@ class _FinanceModulePageState extends State<FinanceModulePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Column(
-              children: [
-                _FinanceHeader(
-                  onOpenModules: widget.onOpenModules,
-                  onAddRecord: _openRecordSheet,
-                  onAiRecord: _openAiRecordSheet,
-                ),
-                Expanded(child: _buildContent()),
-              ],
+            _FinanceHeader(
+              onOpenModules: widget.onOpenModules,
+              onAddRecord: _openRecordSheet,
+              onAiRecord: _openAiRecordSheet,
             ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding:
-                    const EdgeInsets.only(bottom: _moduleStackedBottomNavInset),
-                child: _FinanceBottomNav(
-                  selectedIndex: _selectedTab,
-                  onChanged: (index) => setState(() => _selectedTab = index),
-                ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _FinanceBottomNav(
+                selectedIndex: _selectedTab,
+                onChanged: (index) => setState(() => _selectedTab = index),
               ),
             ),
+            Expanded(child: _buildContent()),
           ],
         ),
       ),
@@ -278,7 +270,7 @@ class _FinanceOverviewView extends StatelessWidget {
     final expense = _financeTotal(records, '支出');
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-          18, 0, 18, 128 + _moduleSwitchBarReservedHeight),
+          18, 0, 18, _moduleSwitchBarReservedHeight + 24),
       children: [
         _NetAssetCard(
           income: income,
@@ -2292,7 +2284,7 @@ class _FinanceRecordsViewState extends State<_FinanceRecordsView> {
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-          18, 0, 18, 128 + _moduleSwitchBarReservedHeight),
+          18, 0, 18, _moduleSwitchBarReservedHeight + 24),
       children: [
         _FinanceMonthSummary(records: widget.records),
         const SizedBox(height: 14),
@@ -2363,7 +2355,7 @@ class _FinanceAssetsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-          18, 0, 18, 128 + _moduleSwitchBarReservedHeight),
+          18, 0, 18, _moduleSwitchBarReservedHeight + 24),
       children: const [
         _AssetTotalCard(),
         SizedBox(height: 14),

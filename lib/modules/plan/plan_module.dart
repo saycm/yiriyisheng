@@ -130,40 +130,32 @@ class _PlanModulePageState extends State<PlanModulePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Column(
-              children: [
-                _PlanHeader(
-                  selectedDate: _selectedDate,
-                  todos: widget.todos,
-                  onDateChanged: (date) => setState(() {
-                    _selectedDate = date;
-                    _selectedTab = 2;
-                  }),
-                  onOpenModules: widget.onOpenModules,
-                  onOpenMore: _openMoreSheet,
-                ),
-                Expanded(child: _buildTabContent()),
-              ],
+            _PlanHeader(
+              selectedDate: _selectedDate,
+              todos: widget.todos,
+              onDateChanged: (date) => setState(() {
+                _selectedDate = date;
+                _selectedTab = 2;
+              }),
+              onOpenModules: widget.onOpenModules,
+              onOpenMore: _openMoreSheet,
             ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding:
-                    const EdgeInsets.only(bottom: _planStackedBottomNavInset),
-                child: _PlanBottomNav(
-                  selectedIndex: _selectedTab,
-                  onChanged: (index) => setState(() => _selectedTab = index),
-                ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _PlanBottomNav(
+                selectedIndex: _selectedTab,
+                onChanged: (index) => setState(() => _selectedTab = index),
               ),
             ),
+            Expanded(child: _buildTabContent()),
           ],
         ),
       ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(
-          bottom: 76 + _moduleSwitchBarReservedHeight,
+          bottom: _moduleSwitchBarReservedHeight + 12,
         ),
         child: FloatingActionButton(
           onPressed: _showAddTodoSheet,
@@ -955,7 +947,7 @@ class _TodoList extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-          18, 0, 18, 130 + _moduleSwitchBarReservedHeight),
+          18, 0, 18, _moduleSwitchBarReservedHeight + 88),
       children: [
         if (header != null) ...[
           header!,
@@ -1541,7 +1533,7 @@ class _InboxView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-          18, 0, 18, 130 + _moduleSwitchBarReservedHeight),
+          18, 0, 18, _moduleSwitchBarReservedHeight + 88),
       children: [
         _InboxQuickCaptureCard(
           onTap: () => _openQuickCaptureSheet(context),
@@ -1860,7 +1852,7 @@ class _WeekPlanView extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-          18, 0, 18, 130 + _moduleSwitchBarReservedHeight),
+          18, 0, 18, _moduleSwitchBarReservedHeight + 88),
       children: [
         const Text(
           '周计划',
@@ -2054,7 +2046,7 @@ class _PlanStatsView extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-          18, 0, 18, 130 + _moduleSwitchBarReservedHeight),
+          18, 0, 18, _moduleSwitchBarReservedHeight + 88),
       children: [
         _WeeklyProgressCard(
           percent: percent,

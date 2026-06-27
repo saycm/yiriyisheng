@@ -153,99 +153,99 @@ class _HealthModulePageState extends State<HealthModulePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            ListView(
-              key: const ValueKey('health_main_list'),
-              padding: const EdgeInsets.fromLTRB(
-                18,
-                10,
-                18,
-                190 + _moduleSwitchBarReservedHeight,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
+              child: _HealthHeader(
+                title: selectedDay.title,
+                onOpenModules: widget.onOpenModules,
+                onOpenSummary: _openSummarySheet,
               ),
-              children: [
-                _HealthHeader(
-                  title: selectedDay.title,
-                  onOpenModules: widget.onOpenModules,
-                  onOpenSummary: _openSummarySheet,
-                ),
-                const SizedBox(height: 16),
-                _HealthDateStrip(
-                  days: days,
-                  selectedDay: selectedDay,
-                  onSelect: (day) {
-                    setState(() => _selectedIndex = days.indexOf(day));
-                  },
-                ),
-                const SizedBox(height: 16),
-                _HealthSystemStatusCard(
-                  snapshot: _systemHealth,
-                  loading: _loadingHealth,
-                  onRefresh: _loadSystemHealth,
-                  onRequestPermission: _requestSystemHealthAccess,
-                  onOpenSettings: _openSystemHealthSettings,
-                ),
-                const SizedBox(height: 14),
-                _HealthRingsCard(day: selectedDay),
-                const SizedBox(height: 14),
-                _HealthLinkedSummaryCard(
-                  foodCalories: widget.foodCalories,
-                  workoutGroups: widget.workoutGroups,
-                ),
-                const SizedBox(height: 14),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.05,
-                  children: selectedDay.metrics
-                      .map(
-                        (metric) => _HealthMetricCard(
-                          metric: metric,
-                          onTap: () => _openMetricSheet(metric),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 14),
-                _HealthManualStatusCard(
-                  bodyTag: _bodyTag,
-                  energyLevel: _energyLevel.round(),
-                  fatigueLevel: _fatigueLevel.round(),
-                  stressLevel: _stressLevel.round(),
-                  painNote: _painNote,
-                  moodNote: _moodNote,
-                  onTap: _openManualRecordSheet,
-                ),
-                const SizedBox(height: 14),
-                _HealthReminderCard(
-                  reminders: _healthReminders(selectedDay),
-                ),
-                const SizedBox(height: 14),
-                _HealthTrendDashboardCard(day: selectedDay),
-                const SizedBox(height: 14),
-                _HealthSensorCard(snapshot: _systemHealth.sensors),
-              ],
             ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding:
-                    const EdgeInsets.only(bottom: _moduleStackedBottomNavInset),
-                child: _WorkoutBottomNav(
-                  selectedIndex: 0,
-                  keyPrefix: 'health_bottom_nav',
-                  onChanged: (index) {
-                    if (index == 1) {
-                      widget.onSwitchModule(LifeModule.workout);
-                    }
-                    if (index == 2) {
-                      widget.onSwitchModule(LifeModule.food);
-                    }
-                  },
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _WorkoutBottomNav(
+                selectedIndex: 0,
+                keyPrefix: 'health_bottom_nav',
+                onChanged: (index) {
+                  if (index == 1) {
+                    widget.onSwitchModule(LifeModule.workout);
+                  }
+                  if (index == 2) {
+                    widget.onSwitchModule(LifeModule.food);
+                  }
+                },
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                key: const ValueKey('health_main_list'),
+                padding: const EdgeInsets.fromLTRB(
+                  18,
+                  16,
+                  18,
+                  _moduleSwitchBarReservedHeight + 24,
                 ),
+                children: [
+                  _HealthDateStrip(
+                    days: days,
+                    selectedDay: selectedDay,
+                    onSelect: (day) {
+                      setState(() => _selectedIndex = days.indexOf(day));
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _HealthSystemStatusCard(
+                    snapshot: _systemHealth,
+                    loading: _loadingHealth,
+                    onRefresh: _loadSystemHealth,
+                    onRequestPermission: _requestSystemHealthAccess,
+                    onOpenSettings: _openSystemHealthSettings,
+                  ),
+                  const SizedBox(height: 14),
+                  _HealthRingsCard(day: selectedDay),
+                  const SizedBox(height: 14),
+                  _HealthLinkedSummaryCard(
+                    foodCalories: widget.foodCalories,
+                    workoutGroups: widget.workoutGroups,
+                  ),
+                  const SizedBox(height: 14),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 1.05,
+                    children: selectedDay.metrics
+                        .map(
+                          (metric) => _HealthMetricCard(
+                            metric: metric,
+                            onTap: () => _openMetricSheet(metric),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 14),
+                  _HealthManualStatusCard(
+                    bodyTag: _bodyTag,
+                    energyLevel: _energyLevel.round(),
+                    fatigueLevel: _fatigueLevel.round(),
+                    stressLevel: _stressLevel.round(),
+                    painNote: _painNote,
+                    moodNote: _moodNote,
+                    onTap: _openManualRecordSheet,
+                  ),
+                  const SizedBox(height: 14),
+                  _HealthReminderCard(
+                    reminders: _healthReminders(selectedDay),
+                  ),
+                  const SizedBox(height: 14),
+                  _HealthTrendDashboardCard(day: selectedDay),
+                  const SizedBox(height: 14),
+                  _HealthSensorCard(snapshot: _systemHealth.sensors),
+                ],
               ),
             ),
           ],
