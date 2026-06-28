@@ -595,6 +595,18 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         orElse: () => _actions.last,
       );
 
+  WorkoutAction get _nextActionForCurrentScope {
+    final activePlan = _activePlan;
+    if (activePlan == null) {
+      return _nextAction;
+    }
+    final scopedActions = _actionsForPlan(activePlan);
+    return scopedActions.firstWhere(
+      (action) => _finishedGroupsFor(action) < action.groups,
+      orElse: () => scopedActions.last,
+    );
+  }
+
   int _finishedGroupsFor(WorkoutAction action) =>
       widget.finishedGroupsByAction[action.name] ?? 0;
 
@@ -623,7 +635,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         return;
       }
       // 小组件“练一组”进入下一个待完成动作，仍由用户确认开始，避免误触直接改训练数据。
-      setState(() => _activeAction = _nextAction);
+      setState(() => _activeAction = _nextActionForCurrentScope);
       widget.onQuickActionHandled();
     });
   }
@@ -766,8 +778,9 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
           totalActions: _actions.length,
           finishedGroups: _finishedGroupsTotal,
           totalGroups: _totalGroups,
-          nextActionName: _nextAction.name,
-          onStart: () => setState(() => _activeAction = _nextAction),
+          nextActionName: _nextActionForCurrentScope.name,
+          onStart: () =>
+              setState(() => _activeAction = _nextActionForCurrentScope),
         ),
         const SizedBox(height: 12),
         _ModuleLinkedSummaryCard(

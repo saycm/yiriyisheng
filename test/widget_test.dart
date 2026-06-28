@@ -1250,6 +1250,57 @@ void main() {
     expect(find.text('平板支撑'), findsNothing);
   });
 
+  testWidgets('workout quick action respects active plan scope',
+      (tester) async {
+    Widget buildWorkout({WidgetQuickAction? quickAction, int token = 0}) {
+      return MaterialApp(
+        home: WorkoutModulePage(
+          moduleNav: const SizedBox.shrink(),
+          onOpenModules: () {},
+          onSwitchModule: (_) {},
+          finishedGroupsByAction: const {},
+          onUpdateActionGroups: (_, __) {},
+          foodCalories: 0,
+          quickAction: quickAction,
+          quickActionToken: token,
+          onQuickActionHandled: () {},
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildWorkout());
+
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+
+    final legPlanCard =
+        find.byKey(const ValueKey('workout_plan_card_leg_stability'));
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -120));
+    await tester.pumpAndSettle();
+    await tester.tap(legPlanCard);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('开始训练'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('当前计划'), findsOneWidget);
+    expect(find.text('腿部稳定'), findsWidgets);
+    expect(find.text('杠铃深蹲'), findsWidgets);
+
+    await tester.pumpWidget(
+      buildWorkout(
+        quickAction: WidgetQuickAction.startWorkout,
+        token: 1,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout_action_detail_list')),
+        findsOneWidget);
+    expect(find.text('杠铃深蹲'), findsWidgets);
+    expect(find.text('蝴蝶机夹胸'), findsNothing);
+  });
+
   testWidgets('workout history shows calendar and progress trends',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
