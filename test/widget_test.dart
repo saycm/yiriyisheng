@@ -183,6 +183,53 @@ void main() {
     expect(snapshot.financeRecords?.single.title, '工资');
   });
 
+  test('workout models serialize and restore training history', () {
+    final startedAt = DateTime(2026, 6, 29, 8, 0);
+    final finishedAt = DateTime(2026, 6, 29, 8, 32);
+
+    final entry = WorkoutHistoryEntry(
+      id: 'history-1',
+      planId: 'plan-chest',
+      planName: '胸背强化',
+      startedAt: startedAt,
+      finishedAt: finishedAt,
+      durationMinutes: 32,
+      totalGroups: 8,
+      estimatedCalories: 184,
+      actionResults: const [
+        WorkoutActionResult(
+          actionName: '蝴蝶机夹胸',
+          bodyPart: '胸背',
+          targetGroups: 4,
+          finishedGroups: 4,
+          reps: '8次',
+          weight: '30kg',
+        ),
+        WorkoutActionResult(
+          actionName: '宽握高位下拉',
+          bodyPart: '胸背',
+          targetGroups: 4,
+          finishedGroups: 4,
+          reps: '12次',
+          weight: '30kg',
+        ),
+      ],
+      feedback: '适中',
+    );
+
+    final restored = WorkoutHistoryEntry.fromJson(entry.toJson());
+
+    expect(restored.id, 'history-1');
+    expect(restored.planName, '胸背强化');
+    expect(restored.durationMinutes, 32);
+    expect(restored.totalGroups, 8);
+    expect(restored.estimatedCalories, 184);
+    expect(restored.actionResults.map((item) => item.actionName), [
+      '蝴蝶机夹胸',
+      '宽握高位下拉',
+    ]);
+  });
+
   test('ai finance parser handles markdown json array', () {
     const parser = AiFinanceJsonParser();
     final bills = parser.parse('''

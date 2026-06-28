@@ -41,6 +41,7 @@ part 'modules/plan/widgets/todo_list.dart';
 part 'modules/plan/widgets/week_plan_view.dart';
 part 'modules/finance/finance_module.dart';
 part 'modules/food/food_module.dart';
+part 'modules/workout/workout_models.dart';
 part 'modules/workout/workout_module.dart';
 part 'modules/health/health_module.dart';
 part 'shared/module_shell.dart';

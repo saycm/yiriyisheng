@@ -6,6 +6,9 @@ class LifeSummarySnapshot {
     required this.workoutGroupsByAction,
     required this.todos,
     required this.financeRecords,
+    this.workoutPlans,
+    this.activeWorkoutSession,
+    this.workoutHistory,
     this.aiFinanceEndpoint = _defaultGlmChatEndpoint,
     this.aiFinanceModel = _defaultGlmTextModel,
     this.aiFinanceApiKey = '',
@@ -15,6 +18,9 @@ class LifeSummarySnapshot {
   final Map<String, int> workoutGroupsByAction;
   final List<TodoItem>? todos;
   final List<FinanceRecord>? financeRecords;
+  final List<WorkoutPlan>? workoutPlans;
+  final ActiveWorkoutSession? activeWorkoutSession;
+  final List<WorkoutHistoryEntry>? workoutHistory;
   final String aiFinanceEndpoint;
   final String aiFinanceModel;
   final String aiFinanceApiKey;
