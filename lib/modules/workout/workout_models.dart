@@ -97,7 +97,7 @@ class ActiveWorkoutSession {
     required this.planName,
     required this.startedAt,
     required Map<String, int> actionProgress,
-    this.feedback = '适中',
+    this.feedback = '刚好',
   })  : id = id ?? _newLocalId(),
         actionProgress = Map.of(actionProgress);
 
@@ -148,7 +148,7 @@ class ActiveWorkoutSession {
       startedAt: DateTime.tryParse(json['startedAt']?.toString() ?? '') ??
           DateTime.now(),
       actionProgress: _intMapFromJson(json['actionProgress']),
-      feedback: feedback is String ? feedback : '适中',
+      feedback: feedback is String ? feedback : '刚好',
     );
   }
 }
@@ -214,7 +214,7 @@ class WorkoutHistoryEntry {
     required this.totalGroups,
     required this.estimatedCalories,
     required List<WorkoutActionResult> actionResults,
-    this.feedback = '适中',
+    this.feedback = '刚好',
   })  : id = id ?? _newLocalId(),
         actionResults = List.of(actionResults);
 
@@ -270,7 +270,7 @@ class WorkoutHistoryEntry {
           ? estimatedCalories.toInt()
           : int.tryParse(estimatedCalories?.toString() ?? '') ?? 0,
       actionResults: _actionResultsFromJson(json['actionResults']),
-      feedback: feedback is String ? feedback : '适中',
+      feedback: feedback is String ? feedback : '刚好',
     );
   }
 }
@@ -289,8 +289,13 @@ Map<String, int> _intMapFromJson(Object? value) {
   final result = <String, int>{};
   for (final entry in value.entries) {
     final mapValue = entry.value;
-    if (entry.key is String && mapValue is num) {
-      result[entry.key as String] = mapValue.toInt();
+    final parsedValue = mapValue is num
+        ? mapValue.toInt()
+        : mapValue is String
+            ? num.tryParse(mapValue.trim())?.toInt()
+            : null;
+    if (entry.key is String && parsedValue != null) {
+      result[entry.key as String] = parsedValue;
     }
   }
   return result;

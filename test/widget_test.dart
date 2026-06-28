@@ -230,6 +230,34 @@ void main() {
     ]);
   });
 
+  test('workout session restores supported feedback and numeric progress', () {
+    final session = ActiveWorkoutSession.fromJson({
+      'id': 'session-1',
+      'planId': 'plan-chest',
+      'planName': '胸背强化',
+      'startedAt': '2026-06-29T08:00:00.000',
+      'actionProgress': {'蝴蝶机夹胸': '2', '宽握高位下拉': 1},
+    });
+
+    expect(session.feedback, '刚好');
+    expect(session.groupsFor('蝴蝶机夹胸'), 2);
+    expect(session.groupsFor('宽握高位下拉'), 1);
+
+    final history = WorkoutHistoryEntry.fromJson({
+      'id': 'history-1',
+      'planId': 'plan-chest',
+      'planName': '胸背强化',
+      'startedAt': '2026-06-29T08:00:00.000',
+      'finishedAt': '2026-06-29T08:30:00.000',
+      'durationMinutes': 30,
+      'totalGroups': 4,
+      'estimatedCalories': 128,
+      'actionResults': const [],
+    });
+
+    expect(history.feedback, '刚好');
+  });
+
   test('ai finance parser handles markdown json array', () {
     const parser = AiFinanceJsonParser();
     final bills = parser.parse('''
