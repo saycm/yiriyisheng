@@ -1218,6 +1218,38 @@ void main() {
     expect(find.text('肩颈恢复'), findsOneWidget);
   });
 
+  testWidgets('workout plan opens detail and starts scoped workout',
+      (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+
+    await tester
+        .tap(find.byKey(const ValueKey('workout_plan_card_chest_power')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout_plan_detail_sheet')),
+        findsOneWidget);
+    expect(find.text('胸背强化'), findsWidgets);
+    expect(find.text('5 个动作'), findsOneWidget);
+    expect(find.text('19 组'), findsOneWidget);
+    expect(find.text('开始训练'), findsOneWidget);
+
+    await tester.tap(find.text('开始训练'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('当前计划'), findsOneWidget);
+    expect(find.text('胸背强化'), findsWidgets);
+    expect(find.text('5 个动作'), findsWidgets);
+    expect(find.text('蝴蝶机夹胸'), findsWidgets);
+    expect(find.text('宽握高位下拉'), findsWidgets);
+    expect(find.text('平板支撑'), findsNothing);
+  });
+
   testWidgets('workout history shows calendar and progress trends',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
