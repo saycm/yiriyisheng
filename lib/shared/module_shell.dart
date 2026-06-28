@@ -1,5 +1,26 @@
 part of '../main.dart';
 
+BoxShadow _airyShadow([Color color = AppColors.primary]) {
+  return BoxShadow(
+    color: color.withValues(alpha: 0.11),
+    blurRadius: 22,
+    offset: const Offset(0, 10),
+  );
+}
+
+BoxDecoration _airyCardDecoration({
+  Color color = AppColors.surface,
+  Color? borderColor,
+  List<BoxShadow>? shadows,
+}) {
+  return BoxDecoration(
+    color: color,
+    borderRadius: BorderRadius.circular(8),
+    border: Border.all(color: borderColor ?? AppColors.line),
+    boxShadow: shadows ?? [_airyShadow()],
+  );
+}
+
 class PlaceholderModulePage extends StatelessWidget {
   const PlaceholderModulePage({
     super.key,
@@ -359,17 +380,9 @@ class _ModuleProfileCardState extends State<_ModuleProfileCard> {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
+      decoration: _airyCardDecoration(
+        color: AppColors.surface.withValues(alpha: 0.96),
+        shadows: [_airyShadow(AppColors.lavender)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -766,15 +779,28 @@ class _ModuleListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 1),
-      decoration: const BoxDecoration(color: AppColors.surface),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: _airyCardDecoration(
+        color: AppColors.surface.withValues(alpha: 0.92),
+        borderColor: AppColors.line.withValues(alpha: 0.78),
+        shadows: [_airyShadow(iconColor)],
+      ),
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           child: Row(
             children: [
-              Icon(icon, color: iconColor, size: 20),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: iconColor, size: 18),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -1630,9 +1656,16 @@ class _InfoSheetFrame extends StatelessWidget {
         18,
         MediaQuery.of(context).viewInsets.bottom + 22,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: 0.10),
+            blurRadius: 28,
+            offset: const Offset(0, -10),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1726,27 +1759,21 @@ class _ModuleTile extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected ? AppColors.primary : Colors.transparent,
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFB8C0D9).withValues(alpha: 0.10),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
+        decoration: _airyCardDecoration(
+          color: selected
+              ? AppColors.primarySoft.withValues(alpha: 0.92)
+              : AppColors.surface.withValues(alpha: 0.96),
+          borderColor: selected
+              ? AppColors.primary.withValues(alpha: 0.55)
+              : AppColors.line,
+          shadows: [_airyShadow(selected ? AppColors.primary : AppColors.sky)],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              color: selected ? AppColors.primary : const Color(0xFF8FA2E9),
+              color: selected ? AppColors.primary : AppColors.muted,
               size: 30,
             ),
             const SizedBox(height: 10),
@@ -1961,15 +1988,11 @@ class _CapsuleNav extends StatelessWidget {
       key: keyPrefix == null ? null : ValueKey('${keyPrefix}_container'),
       padding: EdgeInsets.all(outerPadding),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.96),
+        color: AppColors.surface.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(outerRadius),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: AppColors.line.withValues(alpha: 0.88)),
         boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.08),
-            blurRadius: compact || softCompact ? 10 : 20,
-            offset: Offset(0, compact || softCompact ? 5 : 10),
-          ),
+          _airyShadow(AppColors.primary),
         ],
       ),
       child: Row(
@@ -1986,7 +2009,14 @@ class _CapsuleNav extends StatelessWidget {
               width: itemWidth,
               padding: EdgeInsets.symmetric(vertical: itemVerticalPadding),
               decoration: BoxDecoration(
-                color: selected ? AppColors.primary : Colors.transparent,
+                gradient: selected
+                    ? const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppColors.sky, AppColors.primary],
+                      )
+                    : null,
+                color: selected ? null : Colors.transparent,
                 borderRadius: BorderRadius.circular(itemRadius),
               ),
               child: Column(
@@ -2031,9 +2061,9 @@ class _EmptyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
+      decoration: _airyCardDecoration(
+        color: AppColors.surface.withValues(alpha: 0.96),
+        shadows: [_airyShadow(AppColors.sky)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2080,17 +2110,10 @@ class _IconBubble extends StatelessWidget {
       child: Container(
         width: 42,
         height: 42,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.line),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.ink.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+        decoration: _airyCardDecoration(
+          color: AppColors.surface.withValues(alpha: 0.96),
+          borderColor: color.withValues(alpha: 0.16),
+          shadows: [_airyShadow(color)],
         ),
         child: Icon(icon, color: color),
       ),

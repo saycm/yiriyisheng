@@ -138,7 +138,6 @@ class _PlanModulePageState extends State<PlanModulePage> {
               children: [
                 _PlanHeader(
                   selectedDate: _selectedDate,
-                  todos: widget.todos,
                   onDateChanged: (date) => setState(() {
                     _selectedDate = date;
                     _selectedTab = 2;
@@ -171,14 +170,14 @@ class _PlanModulePageState extends State<PlanModulePage> {
         padding: const EdgeInsets.only(
           bottom: _moduleSwitchBarReservedHeight + 12,
         ),
-        child: FloatingActionButton(
+        child: FloatingActionButton.small(
+          key: const ValueKey('plan_add_todo_fab'),
           onPressed: _showAddTodoSheet,
           tooltip: 'Add',
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          elevation: 9,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, size: 34),
+          elevation: 8,
+          child: const Icon(Icons.add, size: 24),
         ),
       ),
     );
@@ -229,7 +228,6 @@ class _PlanModulePageState extends State<PlanModulePage> {
         foodCalories: widget.foodCalories,
         workoutGroups: widget.workoutGroups,
         healthStatusText: widget.healthStatusText,
-        onQuickRecord: widget.onOpenQuickRecord,
       ),
       onToggle: _toggleTodo,
       onPostpone: widget.onPostponeTodo,
@@ -315,317 +313,372 @@ class _PlanModulePageState extends State<PlanModulePage> {
           builder: (sheetContext, setSheetState) {
             return ConstrainedBox(
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(sheetContext).size.height * 0.92,
+                maxHeight: MediaQuery.of(sheetContext).size.height * 0.88,
               ),
               child: Container(
                 padding: EdgeInsets.fromLTRB(
-                  20,
-                  10,
-                  20,
-                  MediaQuery.of(sheetContext).viewInsets.bottom + 20,
+                  16,
+                  8,
+                  16,
+                  MediaQuery.of(sheetContext).viewInsets.bottom + 16,
                 ),
                 decoration: const BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _SheetHandle(),
-                      const SizedBox(height: 20),
-                      const Text(
-                        '新增待办',
-                        style: TextStyle(
-                          color: AppColors.ink,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
+                child: Theme(
+                  data: Theme.of(sheetContext).copyWith(
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity:
+                        const VisualDensity(horizontal: -2, vertical: -2),
+                    chipTheme: Theme.of(sheetContext).chipTheme.copyWith(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 0,
+                          ),
+                          labelPadding:
+                              const EdgeInsets.symmetric(horizontal: 2),
+                          labelStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          secondaryLabelStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: titleController,
-                        autofocus: true,
-                        decoration: _planInputDecoration('标题，例如：还信用卡'),
-                      ),
-                      const SizedBox(height: 16),
-                      const _PlanFieldLabel('分类'),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: categories.map((category) {
-                          final selected = selectedCategory.$1 == category.$1;
-                          return ChoiceChip(
-                            label: Text(category.$1),
-                            selected: selected,
-                            selectedColor: category.$2.withValues(alpha: 0.16),
-                            backgroundColor: AppColors.background,
-                            showCheckmark: false,
-                            labelStyle: TextStyle(
-                              color: selected ? category.$2 : AppColors.muted,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            side: BorderSide(
-                              color:
-                                  selected ? category.$2 : Colors.transparent,
-                            ),
-                            onSelected: (_) {
-                              setSheetState(() => selectedCategory = category);
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      if (selectedCategory.$1 == '自定义') ...[
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _SheetHandle(),
+                        const SizedBox(height: 14),
+                        const Text(
+                          '新增待办',
+                          style: TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                         const SizedBox(height: 12),
                         TextField(
-                          controller: customCategoryController,
-                          decoration: _planInputDecoration('自定义分类名称'),
+                          controller: titleController,
+                          autofocus: true,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: _planInputDecoration('标题，例如：还信用卡'),
                         ),
-                      ],
-                      const SizedBox(height: 16),
-                      const _PlanFieldLabel('优先级'),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: TodoPriority.values.map((priority) {
-                          final selected = selectedPriority == priority;
-                          return ChoiceChip(
-                            avatar: Icon(
-                              priority.icon,
-                              size: 17,
-                              color:
-                                  selected ? priority.color : AppColors.muted,
-                            ),
-                            label: Text(priority.label),
-                            selected: selected,
-                            selectedColor:
-                                priority.color.withValues(alpha: 0.13),
-                            backgroundColor: AppColors.background,
-                            showCheckmark: false,
-                            labelStyle: TextStyle(
-                              color:
-                                  selected ? priority.color : AppColors.muted,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            side: BorderSide(
-                              color: selected
-                                  ? priority.color
-                                  : Colors.transparent,
-                            ),
-                            onSelected: (_) {
-                              setSheetState(() => selectedPriority = priority);
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16),
-                      const _PlanFieldLabel('日期'),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          ChoiceChip(
-                            label: const Text('今天'),
-                            selected: DateUtils.isSameDay(selectedDate, _today),
-                            selectedColor: AppColors.primarySoft,
-                            backgroundColor: AppColors.background,
-                            showCheckmark: false,
-                            onSelected: (_) {
-                              setSheetState(() => selectedDate = _today);
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('明天'),
-                            selected: DateUtils.isSameDay(
-                              selectedDate,
-                              _today.add(const Duration(days: 1)),
-                            ),
-                            selectedColor: AppColors.primarySoft,
-                            backgroundColor: AppColors.background,
-                            showCheckmark: false,
-                            onSelected: (_) {
-                              setSheetState(
-                                () => selectedDate =
-                                    _today.add(const Duration(days: 1)),
-                              );
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('无日期'),
-                            selected: selectedDate == null,
-                            selectedColor: AppColors.primarySoft,
-                            backgroundColor: AppColors.background,
-                            showCheckmark: false,
-                            onSelected: (_) {
-                              setSheetState(() => selectedDate = null);
-                            },
-                          ),
-                          OutlinedButton.icon(
-                            onPressed: () async {
-                              final picked = await showDatePicker(
-                                context: sheetContext,
-                                initialDate: selectedDate ?? _today,
-                                firstDate:
-                                    _today.subtract(const Duration(days: 365)),
-                                lastDate:
-                                    _today.add(const Duration(days: 365 * 2)),
-                              );
-                              if (picked == null) {
-                                return;
-                              }
-                              setSheetState(
-                                () => selectedDate = DateUtils.dateOnly(picked),
-                              );
-                            },
-                            icon: const Icon(Icons.calendar_month_rounded),
-                            label: Text(
-                              selectedDate == null
-                                  ? '选择日期'
-                                  : _formatPlanDate(selectedDate),
-                            ),
+                        const SizedBox(height: 12),
+                        const _PlanFieldLabel('分类'),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: categories.map((category) {
+                            final selected = selectedCategory.$1 == category.$1;
+                            return ChoiceChip(
+                              label: Text(category.$1),
+                              selected: selected,
+                              selectedColor:
+                                  category.$2.withValues(alpha: 0.16),
+                              backgroundColor: AppColors.background,
+                              showCheckmark: false,
+                              labelStyle: TextStyle(
+                                color: selected ? category.$2 : AppColors.muted,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              side: BorderSide(
+                                color:
+                                    selected ? category.$2 : Colors.transparent,
+                              ),
+                              onSelected: (_) {
+                                setSheetState(
+                                    () => selectedCategory = category);
+                              },
+                            );
+                          }).toList(),
+                        ),
+                        if (selectedCategory.$1 == '自定义') ...[
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: customCategoryController,
+                            style: const TextStyle(fontSize: 14),
+                            decoration: _planInputDecoration('自定义分类名称'),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 16),
-                      const _PlanFieldLabel('状态'),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          TodoStatus.notStarted,
-                          TodoStatus.inProgress,
-                        ].map((status) {
-                          final selected = selectedStatus == status;
-                          return ChoiceChip(
-                            avatar: Icon(
-                              status.icon,
-                              size: 17,
-                              color: selected
-                                  ? AppColors.primary
-                                  : AppColors.muted,
-                            ),
-                            label: Text(status.label),
-                            selected: selected,
-                            selectedColor: AppColors.primarySoft,
-                            backgroundColor: AppColors.background,
-                            showCheckmark: false,
-                            onSelected: (_) {
-                              setSheetState(() => selectedStatus = status);
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16),
-                      const _PlanFieldLabel('重复'),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: TodoRepeatRule.values.map((rule) {
-                          final selected = selectedRepeat == rule;
-                          return ChoiceChip(
-                            label: Text(rule.label),
-                            selected: selected,
-                            selectedColor: AppColors.primarySoft,
-                            backgroundColor: AppColors.background,
-                            showCheckmark: false,
-                            labelStyle: TextStyle(
-                              color: selected
-                                  ? AppColors.primary
-                                  : AppColors.muted,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            onSelected: (_) {
-                              setSheetState(() => selectedRepeat = rule);
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16),
-                      const _PlanFieldLabel('任务联动'),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: TodoLinkedModule.values.map((module) {
-                          final selected = linkedModules.contains(module);
-                          return FilterChip(
-                            avatar: Icon(
-                              module.icon,
-                              size: 17,
-                              color: selected ? module.color : AppColors.muted,
-                            ),
-                            label: Text(module.label),
-                            selected: selected,
-                            selectedColor: module.color.withValues(alpha: 0.13),
-                            backgroundColor: AppColors.background,
-                            showCheckmark: false,
-                            labelStyle: TextStyle(
-                              color: selected ? module.color : AppColors.muted,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            onSelected: (checked) {
-                              setSheetState(() {
-                                if (checked) {
-                                  linkedModules.add(module);
-                                } else {
-                                  linkedModules.remove(module);
-                                }
-                              });
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: noteController,
-                        minLines: 2,
-                        maxLines: 3,
-                        decoration: _planInputDecoration('备注，可写触发条件或补充说明'),
-                      ),
-                      const SizedBox(height: 22),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: FilledButton(
-                          onPressed: () {
-                            final title = titleController.text.trim();
-                            if (title.isEmpty) {
-                              return;
-                            }
-                            final customCategory =
-                                customCategoryController.text.trim();
-                            final category = selectedCategory.$1 == '自定义' &&
-                                    customCategory.isNotEmpty
-                                ? customCategory
-                                : selectedCategory.$1;
-                            widget.onAddTodo(
-                              TodoItem(
-                                title: title,
-                                category: category,
-                                color: _todoColorForCategory(category),
-                                priority: selectedPriority,
-                                status: selectedStatus,
-                                dueDate: selectedDate,
-                                note: noteController.text.trim(),
-                                repeatRule: selectedRepeat,
-                                linkedModules: linkedModules.toList(),
+                        const SizedBox(height: 12),
+                        const _PlanFieldLabel('优先级'),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: TodoPriority.values.map((priority) {
+                            final selected = selectedPriority == priority;
+                            return ChoiceChip(
+                              avatar: Icon(
+                                priority.icon,
+                                size: 15,
+                                color:
+                                    selected ? priority.color : AppColors.muted,
                               ),
+                              label: Text(priority.label),
+                              selected: selected,
+                              selectedColor:
+                                  priority.color.withValues(alpha: 0.13),
+                              backgroundColor: AppColors.background,
+                              showCheckmark: false,
+                              labelStyle: TextStyle(
+                                color:
+                                    selected ? priority.color : AppColors.muted,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              side: BorderSide(
+                                color: selected
+                                    ? priority.color
+                                    : Colors.transparent,
+                              ),
+                              onSelected: (_) {
+                                setSheetState(
+                                    () => selectedPriority = priority);
+                              },
                             );
-                            Navigator.of(sheetContext).pop();
-                          },
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 12),
+                        const _PlanFieldLabel('日期'),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            ChoiceChip(
+                              label: const Text('今天'),
+                              selected:
+                                  DateUtils.isSameDay(selectedDate, _today),
+                              selectedColor: AppColors.primarySoft,
+                              backgroundColor: AppColors.background,
+                              showCheckmark: false,
+                              onSelected: (_) {
+                                setSheetState(() => selectedDate = _today);
+                              },
                             ),
-                          ),
-                          child: const Text(
-                            '保存',
-                            style: TextStyle(fontWeight: FontWeight.w800),
+                            ChoiceChip(
+                              label: const Text('明天'),
+                              selected: DateUtils.isSameDay(
+                                selectedDate,
+                                _today.add(const Duration(days: 1)),
+                              ),
+                              selectedColor: AppColors.primarySoft,
+                              backgroundColor: AppColors.background,
+                              showCheckmark: false,
+                              onSelected: (_) {
+                                setSheetState(
+                                  () => selectedDate =
+                                      _today.add(const Duration(days: 1)),
+                                );
+                              },
+                            ),
+                            ChoiceChip(
+                              label: const Text('无日期'),
+                              selected: selectedDate == null,
+                              selectedColor: AppColors.primarySoft,
+                              backgroundColor: AppColors.background,
+                              showCheckmark: false,
+                              onSelected: (_) {
+                                setSheetState(() => selectedDate = null);
+                              },
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () async {
+                                final picked = await showDatePicker(
+                                  context: sheetContext,
+                                  initialDate: selectedDate ?? _today,
+                                  firstDate: _today
+                                      .subtract(const Duration(days: 365)),
+                                  lastDate:
+                                      _today.add(const Duration(days: 365 * 2)),
+                                );
+                                if (picked == null) {
+                                  return;
+                                }
+                                setSheetState(
+                                  () =>
+                                      selectedDate = DateUtils.dateOnly(picked),
+                                );
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: const BorderSide(color: AppColors.line),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
+                                minimumSize: const Size(0, 34),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              icon: const Icon(
+                                Icons.calendar_month_rounded,
+                                size: 16,
+                              ),
+                              label: Text(
+                                selectedDate == null
+                                    ? '选择日期'
+                                    : _formatPlanDate(selectedDate),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        const _PlanFieldLabel('状态'),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            TodoStatus.notStarted,
+                            TodoStatus.inProgress,
+                          ].map((status) {
+                            final selected = selectedStatus == status;
+                            return ChoiceChip(
+                              avatar: Icon(
+                                status.icon,
+                                size: 15,
+                                color: selected
+                                    ? AppColors.primary
+                                    : AppColors.muted,
+                              ),
+                              label: Text(status.label),
+                              selected: selected,
+                              selectedColor: AppColors.primarySoft,
+                              backgroundColor: AppColors.background,
+                              showCheckmark: false,
+                              onSelected: (_) {
+                                setSheetState(() => selectedStatus = status);
+                              },
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 12),
+                        const _PlanFieldLabel('重复'),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: TodoRepeatRule.values.map((rule) {
+                            final selected = selectedRepeat == rule;
+                            return ChoiceChip(
+                              label: Text(rule.label),
+                              selected: selected,
+                              selectedColor: AppColors.primarySoft,
+                              backgroundColor: AppColors.background,
+                              showCheckmark: false,
+                              labelStyle: TextStyle(
+                                color: selected
+                                    ? AppColors.primary
+                                    : AppColors.muted,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              onSelected: (_) {
+                                setSheetState(() => selectedRepeat = rule);
+                              },
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 12),
+                        const _PlanFieldLabel('任务联动'),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: TodoLinkedModule.values.map((module) {
+                            final selected = linkedModules.contains(module);
+                            return FilterChip(
+                              avatar: Icon(
+                                module.icon,
+                                size: 15,
+                                color:
+                                    selected ? module.color : AppColors.muted,
+                              ),
+                              label: Text(module.label),
+                              selected: selected,
+                              selectedColor:
+                                  module.color.withValues(alpha: 0.13),
+                              backgroundColor: AppColors.background,
+                              showCheckmark: false,
+                              labelStyle: TextStyle(
+                                color:
+                                    selected ? module.color : AppColors.muted,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              onSelected: (checked) {
+                                setSheetState(() {
+                                  if (checked) {
+                                    linkedModules.add(module);
+                                  } else {
+                                    linkedModules.remove(module);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: noteController,
+                          style: const TextStyle(fontSize: 14),
+                          minLines: 1,
+                          maxLines: 2,
+                          decoration: _planInputDecoration('备注，可写触发条件或补充说明'),
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 46,
+                          child: FilledButton(
+                            onPressed: () {
+                              final title = titleController.text.trim();
+                              if (title.isEmpty) {
+                                return;
+                              }
+                              final customCategory =
+                                  customCategoryController.text.trim();
+                              final category = selectedCategory.$1 == '自定义' &&
+                                      customCategory.isNotEmpty
+                                  ? customCategory
+                                  : selectedCategory.$1;
+                              widget.onAddTodo(
+                                TodoItem(
+                                  title: title,
+                                  category: category,
+                                  color: _todoColorForCategory(category),
+                                  priority: selectedPriority,
+                                  status: selectedStatus,
+                                  dueDate: selectedDate,
+                                  note: noteController.text.trim(),
+                                  repeatRule: selectedRepeat,
+                                  linkedModules: linkedModules.toList(),
+                                ),
+                              );
+                              Navigator.of(sheetContext).pop();
+                            },
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              padding: EdgeInsets.zero,
+                              textStyle: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text('保存'),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -645,12 +698,12 @@ class _PlanFieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
         style: const TextStyle(
           color: AppColors.ink,
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -661,6 +714,13 @@ class _PlanFieldLabel extends StatelessWidget {
 InputDecoration _planInputDecoration(String hint) {
   return InputDecoration(
     hintText: hint,
+    hintStyle: const TextStyle(
+      color: AppColors.muted,
+      fontSize: 13,
+      fontWeight: FontWeight.w500,
+    ),
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
     filled: true,
     fillColor: AppColors.background,
     border: OutlineInputBorder(
@@ -685,7 +745,11 @@ String _formatPlanDate(DateTime? date) {
   if (date == null) {
     return '无日期';
   }
-  return '${date.month}/${date.day}';
+  return '${date.year}年${date.month.toString().padLeft(2, '0')}月${date.day.toString().padLeft(2, '0')}日';
+}
+
+String _formatPlanMonth(DateTime date) {
+  return '${date.year}年${date.month.toString().padLeft(2, '0')}月';
 }
 
 String _weekdayLabel(DateTime date) {
@@ -701,286 +765,135 @@ String _pendingLinkedHint(TodoItem todo) {
   return '完成后会提醒你补充$modules记录。';
 }
 
-class _PlanHeader extends StatefulWidget {
+class _PlanHeader extends StatelessWidget {
   const _PlanHeader({
     required this.selectedDate,
-    required this.todos,
     required this.onDateChanged,
     required this.onOpenModules,
     required this.onOpenMore,
   });
 
   final DateTime selectedDate;
-  final List<TodoItem> todos;
   final ValueChanged<DateTime> onDateChanged;
   final VoidCallback onOpenModules;
   final VoidCallback onOpenMore;
 
-  @override
-  State<_PlanHeader> createState() => _PlanHeaderState();
-}
-
-class _PlanHeaderState extends State<_PlanHeader> {
-  static const double _datePillExtent = 42;
-  final ScrollController _dateScrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollSelectedDateIntoView(animated: false);
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant _PlanHeader oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!DateUtils.isSameDay(oldWidget.selectedDate, widget.selectedDate)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollSelectedDateIntoView();
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _dateScrollController.dispose();
-    super.dispose();
-  }
-
-  void _scrollSelectedDateIntoView({bool animated = true}) {
-    if (!_dateScrollController.hasClients) {
+  Future<void> _pickDate(BuildContext context) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(now.year - 5, 1, 1),
+      lastDate: DateTime(now.year + 5, 12, 31),
+    );
+    if (picked == null) {
       return;
     }
-    final target =
-        math.max(0.0, (widget.selectedDate.day - 3) * _datePillExtent);
-    final offset = target.clamp(
-      0.0,
-      _dateScrollController.position.maxScrollExtent,
-    );
-    if (animated) {
-      _dateScrollController.animateTo(
-        offset,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-      );
-    } else {
-      _dateScrollController.jumpTo(offset);
-    }
-  }
-
-  void _shiftMonth(int delta) {
-    final selected = widget.selectedDate;
-    final targetMonth = DateTime(selected.year, selected.month + delta);
-    final maxDay = DateUtils.getDaysInMonth(
-      targetMonth.year,
-      targetMonth.month,
-    );
-    widget.onDateChanged(
-      DateUtils.dateOnly(
-        DateTime(targetMonth.year, targetMonth.month,
-            math.min(selected.day, maxDay)),
-      ),
-    );
+    onDateChanged(DateUtils.dateOnly(picked));
   }
 
   @override
   Widget build(BuildContext context) {
-    final today = DateUtils.dateOnly(DateTime.now());
-    final monthStart =
-        DateTime(widget.selectedDate.year, widget.selectedDate.month);
-    final monthDays = DateUtils.getDaysInMonth(
-      widget.selectedDate.year,
-      widget.selectedDate.month,
-    );
-    final days = List.generate(
-      monthDays,
-      (index) => DateUtils.dateOnly(monthStart.add(Duration(days: index))),
-    );
-    final monthText =
-        '${widget.selectedDate.year}年${widget.selectedDate.month.toString().padLeft(2, '0')}月';
+    final monthText = _formatPlanMonth(selectedDate);
+    final selectedDateText = _formatPlanDate(selectedDate);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
       child: Column(
         children: [
-          Row(
-            children: [
-              _IconBubble(
-                icon: Icons.view_sidebar_rounded,
-                color: const Color(0xFF91A3FF),
-                onTap: widget.onOpenModules,
-              ),
-              Expanded(
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _MonthNavButton(
-                        key: const ValueKey('plan_prev_month'),
-                        icon: Icons.chevron_left_rounded,
-                        onTap: () => _shiftMonth(-1),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        monthText,
-                        style: const TextStyle(
-                          color: AppColors.ink,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: _airyCardDecoration(
+              color: AppColors.surface.withValues(alpha: 0.94),
+              borderColor: AppColors.line.withValues(alpha: 0.82),
+              shadows: [_airyShadow(AppColors.sky)],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    _IconBubble(
+                      icon: Icons.view_sidebar_rounded,
+                      color: AppColors.lavender,
+                      onTap: onOpenModules,
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: InkWell(
+                          key: const ValueKey('plan_header_date_button'),
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () => _pickDate(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primarySoft.withValues(
+                                alpha: 0.82,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.calendar_month_rounded,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  monthText,
+                                  style: const TextStyle(
+                                    color: AppColors.ink,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+                                const Icon(
+                                  Icons.expand_more_rounded,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      _MonthNavButton(
-                        key: const ValueKey('plan_next_month'),
-                        icon: Icons.chevron_right_rounded,
-                        onTap: () => _shiftMonth(1),
-                      ),
-                    ],
+                    ),
+                    _IconBubble(
+                      icon: Icons.more_horiz_rounded,
+                      color: AppColors.primary,
+                      onTap: onOpenMore,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  key: const ValueKey('plan_header_selected_date'),
+                  selectedDateText,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
-              _IconBubble(
-                icon: Icons.more_horiz_rounded,
-                color: AppColors.primary,
-                onTap: widget.onOpenMore,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 50,
-            child: SingleChildScrollView(
-              key: const ValueKey('plan_header_date_scroller'),
-              controller: _dateScrollController,
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final day in days) ...[
-                    _DatePill(
-                      key: ValueKey(
-                        'plan_header_date_${day.year}_${day.month}_${day.day}',
-                      ),
-                      week: _weekdayLabel(day),
-                      day: day.day,
-                      selected: DateUtils.isSameDay(widget.selectedDate, day),
-                      isToday: DateUtils.isSameDay(today, day),
-                      count: widget.todos
-                          .where((todo) => todo.isActive && todo.isDueOn(day))
-                          .length,
-                      onTap: () => widget.onDateChanged(day),
-                    ),
-                    if (day != days.last) const SizedBox(width: 6),
-                  ],
-                ],
-              ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Container(
-            width: 36,
+            width: 42,
             height: 3,
             decoration: BoxDecoration(
-              color: const Color(0xFF9AA0AD),
+              color: AppColors.muted.withValues(alpha: 0.42),
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
         ],
-      ),
-    );
-  }
-}
-
-class _MonthNavButton extends StatelessWidget {
-  const _MonthNavButton({
-    super.key,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: SizedBox(
-        width: 28,
-        height: 28,
-        child: Icon(icon, color: AppColors.muted, size: 22),
-      ),
-    );
-  }
-}
-
-class _DatePill extends StatelessWidget {
-  const _DatePill({
-    super.key,
-    required this.week,
-    required this.day,
-    required this.selected,
-    required this.isToday,
-    required this.count,
-    required this.onTap,
-  });
-
-  final String week;
-  final int day;
-  final bool selected;
-  final bool isToday;
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: 36,
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          children: [
-            Text(
-              week,
-              style: TextStyle(
-                color: selected ? Colors.white : AppColors.muted,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 1),
-            Text(
-              '$day',
-              style: TextStyle(
-                color: selected ? Colors.white : AppColors.ink,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Container(
-              width: count > 0 ? 12 : 4,
-              height: 3,
-              decoration: BoxDecoration(
-                color: selected
-                    ? Colors.white
-                    : isToday
-                        ? AppColors.primary
-                        : AppColors.muted.withValues(alpha: 0.35),
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1061,7 +974,6 @@ class _TodayOverviewCard extends StatelessWidget {
     required this.foodCalories,
     required this.workoutGroups,
     required this.healthStatusText,
-    required this.onQuickRecord,
   });
 
   final int pendingTodos;
@@ -1069,7 +981,6 @@ class _TodayOverviewCard extends StatelessWidget {
   final int foodCalories;
   final int workoutGroups;
   final String healthStatusText;
-  final VoidCallback onQuickRecord;
 
   @override
   Widget build(BuildContext context) {
@@ -1108,41 +1019,21 @@ class _TodayOverviewCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
+      decoration: _airyCardDecoration(
+        color: AppColors.surface.withValues(alpha: 0.96),
+        shadows: [_airyShadow(AppColors.primary)],
       ),
       key: const ValueKey('today_overview_card'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  '今日总览',
-                  style: TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              Tooltip(
-                message: '快速记录',
-                child: IconButton(
-                  key: const ValueKey('home_quick_record_button'),
-                  onPressed: onQuickRecord,
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    fixedSize: const Size(40, 40),
-                  ),
-                  icon: const Icon(Icons.add_rounded),
-                ),
-              ),
-            ],
+          const Text(
+            '今日总览',
+            style: TextStyle(
+              color: AppColors.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -1185,8 +1076,9 @@ class _TodayOverviewMetric extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: color.withValues(alpha: 0.11),
           borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.10)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1328,16 +1220,9 @@ class _TodoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFB8C0D9).withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+      decoration: _airyCardDecoration(
+        color: AppColors.surface.withValues(alpha: 0.97),
+        shadows: [_airyShadow(todo.color)],
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),

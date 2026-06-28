@@ -367,7 +367,8 @@ class _FoodModulePageState extends State<FoodModulePage> {
   Widget build(BuildContext context) {
     final query = _foodQuery.trim();
     final visibleFoods = _foods.where((food) {
-      final groupMatches = query.isNotEmpty || food.group == _activeGroup;
+      final groupMatches =
+          query.isNotEmpty || _tabForFoodGroup(food.group) == _activeGroup;
       final queryMatches = query.isEmpty || food.name.contains(query);
       return groupMatches && queryMatches;
     }).toList();
@@ -622,7 +623,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
                   group: group,
                 ),
               );
-              _activeGroup = group;
+              _activeGroup = _tabForFoodGroup(group);
               _foodSearchController.clear();
               _foodQuery = '';
             });
@@ -630,6 +631,13 @@ class _FoodModulePageState extends State<FoodModulePage> {
         );
       },
     );
+  }
+
+  String _tabForFoodGroup(String group) {
+    if (group == '收藏' || group == '自定义') {
+      return group;
+    }
+    return '常见';
   }
 }
 
@@ -1440,122 +1448,40 @@ class _FoodTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const quickGroups = ['常见', '收藏', '自定义'];
-    const allGroups = [
-      '常见',
-      '早餐',
-      '主食杂粮',
-      '肉蛋奶',
-      '低脂高蛋白',
-      '海鲜水产',
-      '蔬菜水果',
-      '家常菜',
-      '外卖快餐',
-      '汤粥',
-      '饮品',
-      '零食',
-      '坚果种子',
-      '调味酱料',
-      '收藏',
-      '自定义',
-    ];
-
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: quickGroups.map((group) {
-            final selected = active == group;
-            return InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () => onChanged(group),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                child: Column(
-                  children: [
-                    Text(
-                      group,
-                      style: TextStyle(
-                        color: selected ? AppColors.ink : AppColors.muted,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      width: selected ? 20 : 0,
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 34,
-          child: ListView(
-            key: const ValueKey('food_group_scroller'),
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            children: allGroups.map((group) {
-              return _FoodChip(
-                label: group,
-                selected: active == group,
-                onTap: () => onChanged(group),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _FoodChip extends StatelessWidget {
-  const _FoodChip({
-    required this.label,
-    required this.onTap,
-    this.selected = false,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      key: ValueKey('food_group_$label'),
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(right: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primarySoft : AppColors.surface,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: quickGroups.map((group) {
+        final selected = active == group;
+        return InkWell(
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected ? AppColors.primary : Colors.transparent,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? AppColors.primary : AppColors.ink,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
+          onTap: () => onChanged(group),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+            child: Column(
+              children: [
+                Text(
+                  group,
+                  style: TextStyle(
+                    color: selected ? AppColors.ink : AppColors.muted,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: selected ? 20 : 0,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-      ),
+        );
+      }).toList(),
     );
   }
 }

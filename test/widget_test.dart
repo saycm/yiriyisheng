@@ -248,26 +248,20 @@ void main() {
     await tester.pumpWidget(const PingShengApp());
 
     expect(find.text('今日计划  4'), findsOneWidget);
-    final currentMonth = DateTime.now();
-    final lastDay = DateUtils.getDaysInMonth(
-      currentMonth.year,
-      currentMonth.month,
+    expect(
+        find.byKey(const ValueKey('plan_header_date_button')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('plan_header_date_scroller')),
+      findsNothing,
     );
     expect(
-      find.byKey(
-        ValueKey(
-          'plan_header_date_${currentMonth.year}_${currentMonth.month}_1',
-        ),
-      ),
-      findsOneWidget,
+      find.byKey(const ValueKey('home_quick_record_button')),
+      findsNothing,
     );
+    expect(find.byKey(const ValueKey('plan_add_todo_fab')), findsOneWidget);
     expect(
-      find.byKey(
-        ValueKey(
-          'plan_header_date_${currentMonth.year}_${currentMonth.month}_$lastDay',
-        ),
-      ),
-      findsOneWidget,
+      tester.getSize(find.byKey(const ValueKey('plan_add_todo_fab'))).width,
+      lessThan(56),
     );
 
     await tester.tap(find.byTooltip('Add'));
@@ -277,9 +271,17 @@ void main() {
     expect(find.text('优先级'), findsOneWidget);
     expect(find.text('任务联动'), findsOneWidget);
     expect(find.text('保存'), findsOneWidget);
+    expect(
+      tester.getSize(find.widgetWithText(FilledButton, '保存')).height,
+      lessThanOrEqualTo(48),
+    );
+    expect(
+      tester.getSize(find.widgetWithText(ChoiceChip, '工作').first).height,
+      lessThanOrEqualTo(36),
+    );
   });
 
-  testWidgets('today overview and quick record sheet route to modules',
+  testWidgets('today overview hides duplicate quick record button',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
 
@@ -296,18 +298,13 @@ void main() {
         findsOneWidget);
     expect(find.descendant(of: overview, matching: find.text('健康')),
         findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('home_quick_record_button')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('快速记录'), findsOneWidget);
-    expect(find.text('记一笔'), findsOneWidget);
-    expect(find.text('记饮食'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('quick_record_finance')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('finance_record_amount')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: overview,
+        matching: find.byKey(const ValueKey('home_quick_record_button')),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('inbox quick capture creates undated todo', (tester) async {
@@ -578,16 +575,9 @@ void main() {
     expect(mainTop, lessThanOrEqualTo(220));
     expect(innerTop, greaterThanOrEqualTo(720));
 
-    final now = DateTime.now();
-    final previousMonth = DateTime(now.year, now.month - 1);
-    await tester.tap(find.byKey(const ValueKey('plan_prev_month')));
+    await tester.tap(find.byKey(const ValueKey('plan_header_date_button')));
     await tester.pumpAndSettle();
-    expect(
-      find.text(
-        '${previousMonth.year}年${previousMonth.month.toString().padLeft(2, '0')}月',
-      ),
-      findsOneWidget,
-    );
+    expect(find.byType(CalendarDatePicker), findsOneWidget);
   });
 
   testWidgets('finance workout and health bottom navs use compact capsules',
@@ -1249,6 +1239,45 @@ void main() {
     expect(find.text('8次 → 12次'), findsOneWidget);
   });
 
+  testWidgets('workout body part filters expose expanded exercise library',
+      (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
+    await tester.pumpAndSettle();
+
+    final workoutTile = find.byKey(const ValueKey('module_sheet_workout'));
+    await tester.scrollUntilVisible(
+      workoutTile,
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(workoutTile);
+    await tester.pumpAndSettle();
+
+    expect(find.text('42 个动作'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('workout_action_art_蝴蝶机夹胸')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('workout_body_part_肩颈')));
+    await tester.pumpAndSettle();
+    expect(find.text('7 个动作'), findsOneWidget);
+    expect(find.text('哑铃侧平举'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('workout_body_part_有氧')));
+    await tester.pumpAndSettle();
+    expect(find.text('7 个动作'), findsOneWidget);
+    expect(find.text('跑步机慢跑'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('workout_body_part_拉伸')));
+    await tester.pumpAndSettle();
+    expect(find.text('7 个动作'), findsOneWidget);
+    expect(find.text('站姿股四头肌拉伸'), findsOneWidget);
+  });
+
   testWidgets('workout finished set updates list summary and data',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
@@ -1266,7 +1295,7 @@ void main() {
     await tester.tap(workoutTile);
     await tester.pumpAndSettle();
 
-    expect(find.text('0/19 组'), findsOneWidget);
+    expect(find.text('0/133 组'), findsOneWidget);
     expect(find.text('0/4 组 ›'), findsWidgets);
 
     await tester.tap(find.text('开始动作'));
@@ -1283,14 +1312,14 @@ void main() {
     await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded).first);
     await tester.pumpAndSettle();
 
-    expect(find.text('1/19 组'), findsOneWidget);
+    expect(find.text('1/133 组'), findsOneWidget);
     expect(find.text('1/4 组 ›'), findsOneWidget);
     expect(find.text('进行中'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('workout_top_tab_2')));
     await tester.pumpAndSettle();
 
-    expect(find.text('1/19'), findsOneWidget);
+    expect(find.text('1/133'), findsOneWidget);
     expect(find.text('2 min'), findsOneWidget);
     expect(find.text('538'), findsOneWidget);
   });
@@ -1395,32 +1424,42 @@ void main() {
     await tester.tap(foodTile);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('food_group_主食杂粮')));
-    await tester.pumpAndSettle();
-    expect(find.text('米饭'), findsOneWidget);
-    expect(find.text('鸡胸肉'), findsNothing);
+    expect(find.byKey(const ValueKey('food_group_scroller')), findsNothing);
+    expect(find.byKey(const ValueKey('food_group_早餐')), findsNothing);
+    expect(find.byKey(const ValueKey('food_group_主食杂粮')), findsNothing);
+    expect(find.text('混合沙拉'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('food_group_肉蛋奶')));
+    await tester.enterText(
+        find.byKey(const ValueKey('food_search_field')), '希腊酸奶');
     await tester.pumpAndSettle();
-    expect(find.text('鸡胸肉'), findsWidgets);
-    expect(find.text('米饭'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('food_main_list')),
+        matching: find.text('希腊酸奶'),
+      ),
+      findsOneWidget,
+    );
 
-    final groupScroller = find.byKey(const ValueKey('food_group_scroller'));
-    await tester.drag(groupScroller, const Offset(-360, 0));
+    await tester.enterText(
+        find.byKey(const ValueKey('food_search_field')), '麻辣烫');
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('food_group_低脂高蛋白')));
-    await tester.pumpAndSettle();
-    expect(find.text('希腊酸奶'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('food_main_list')),
+        matching: find.text('麻辣烫'),
+      ),
+      findsOneWidget,
+    );
 
-    await tester.drag(groupScroller, const Offset(-520, 0));
+    await tester.enterText(find.byKey(const ValueKey('food_search_field')), '');
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('food_group_外卖快餐')));
-    await tester.pumpAndSettle();
-    expect(find.text('麻辣烫'), findsOneWidget);
 
-    await tester.drag(groupScroller, const Offset(900, 0));
+    await tester.tap(find.text('收藏').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('food_group_常见')));
+    expect(find.text('美式咖啡'), findsOneWidget);
+    expect(find.text('混合沙拉'), findsNothing);
+
+    await tester.tap(find.text('常见').first);
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -1474,9 +1513,18 @@ void main() {
     await tester.tap(foodTile);
     await tester.pumpAndSettle();
 
+    await tester.enterText(
+        find.byKey(const ValueKey('food_search_field')), 'zzz');
+    await tester.pumpAndSettle();
+
     final foodList = find.byKey(const ValueKey('food_main_list'));
     final trainingSnack = find.byKey(const ValueKey('food_template_训练后加餐'));
-    await dragUntilFound(tester, trainingSnack, scrollable: foodList);
+    await dragUntilFound(
+      tester,
+      trainingSnack,
+      scrollable: foodList,
+      maxDrags: 18,
+    );
     await tester.tap(trainingSnack);
     await tester.pumpAndSettle();
 
@@ -1564,6 +1612,7 @@ void main() {
       tester,
       find.byKey(const ValueKey('workout_today_stats_card')),
       scrollable: workoutList,
+      maxDrags: 18,
     );
     expect(find.text('太累'), findsOneWidget);
 
@@ -1576,6 +1625,28 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('workout_open_food_link')));
     await tester.pumpAndSettle();
     expect(find.text('添加食物'), findsOneWidget);
+  });
+
+  testWidgets('plan visual shell uses top date picker and single add entry',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    expect(
+        find.byKey(const ValueKey('plan_header_date_button')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('plan_header_date_scroller')), findsNothing);
+    expect(find.byKey(const ValueKey('today_overview_card')), findsOneWidget);
+    expect(find.byKey(const ValueKey('module_link_container')), findsOneWidget);
+    expect(find.byKey(const ValueKey('plan_bottom_nav_container')),
+        findsOneWidget);
+    expect(find.text('今日总览'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('home_quick_record_button')), findsNothing);
+    expect(find.byKey(const ValueKey('plan_add_todo_fab')), findsOneWidget);
   });
 
   testWidgets('health manual body record updates dashboard', (tester) async {
