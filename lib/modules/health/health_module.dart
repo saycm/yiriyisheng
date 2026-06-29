@@ -251,14 +251,8 @@ class _HealthModulePageState extends State<HealthModulePage> {
                 child: _WorkoutBottomNav(
                   selectedIndex: 0,
                   keyPrefix: 'health_bottom_nav',
-                  onChanged: (index) {
-                    if (index == 1) {
-                      widget.onSwitchModule(LifeModule.workout);
-                    }
-                    if (index == 2) {
-                      widget.onSwitchModule(LifeModule.food);
-                    }
-                  },
+                  items: const [(Icons.monitor_heart_rounded, '总览')],
+                  onChanged: (_) {},
                 ),
               ),
             ),

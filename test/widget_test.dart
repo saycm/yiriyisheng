@@ -953,7 +953,7 @@ void main() {
     expect(args['workoutGroupsJson'], contains('蝴蝶机夹胸'));
   });
 
-  testWidgets('workout bottom nav switches between health and food',
+  testWidgets('workout and health bottom navs hide duplicate module links',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
 
@@ -971,21 +971,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('胸背'), findsOneWidget);
+    expect(find.byKey(const ValueKey('workout_bottom_nav_0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('workout_bottom_nav_1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('workout_bottom_nav_2')), findsNothing);
 
     await tester.tap(find.text('总览').last);
     await tester.pumpAndSettle();
 
     expect(find.textContaining('系统健康'), findsWidgets);
+    expect(find.byKey(const ValueKey('health_bottom_nav_0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('health_bottom_nav_1')), findsNothing);
+    expect(find.byKey(const ValueKey('health_bottom_nav_2')), findsNothing);
 
-    await tester.tap(find.text('锻炼').last);
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
 
     expect(find.text('胸背'), findsOneWidget);
-
-    await tester.tap(find.text('饮食').last);
-    await tester.pumpAndSettle();
-
-    expect(find.text('添加食物'), findsOneWidget);
   });
 
   testWidgets('health date switch opens metric detail and summary',

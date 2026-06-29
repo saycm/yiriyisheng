@@ -1009,10 +1009,6 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
       widget.onSwitchModule(LifeModule.health);
       return;
     }
-    if (index == 2) {
-      widget.onSwitchModule(LifeModule.food);
-      return;
-    }
     setState(() => _selectedBottomTab = index);
   }
 }
@@ -3751,21 +3747,22 @@ class _WorkoutBottomNav extends StatelessWidget {
     required this.selectedIndex,
     required this.onChanged,
     required this.keyPrefix,
+    this.items = const [
+      (Icons.monitor_heart_rounded, '总览'),
+      (Icons.fitness_center_rounded, '锻炼'),
+    ],
   });
 
   final int selectedIndex;
   final ValueChanged<int> onChanged;
   final String keyPrefix;
+  final List<(IconData, String)> items;
 
   @override
   Widget build(BuildContext context) {
     return _CapsuleNav(
       selectedIndex: selectedIndex,
-      items: const [
-        (Icons.monitor_heart_rounded, '总览'),
-        (Icons.fitness_center_rounded, '锻炼'),
-        (Icons.restaurant_rounded, '饮食'),
-      ],
+      items: items,
       onChanged: onChanged,
       softCompact: true,
       keyPrefix: keyPrefix,
