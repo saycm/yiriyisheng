@@ -22,6 +22,9 @@ class _LifeHomePageState extends State<LifeHomePage> {
   String _aiFinanceModel = _defaultGlmTextModel;
   String _aiFinanceApiKey = '';
   final Map<String, int> _workoutGroupsByAction = {};
+  final List<WorkoutPlan> _workoutPlans = _createDefaultWorkoutPlans();
+  ActiveWorkoutSession? _activeWorkoutSession;
+  final List<WorkoutHistoryEntry> _workoutHistory = [];
   final List<LifeEvent> _events = [];
   final List<TodoItem> _todos = _createSeedTodos();
   final List<FinanceRecord> _financeRecords = _createSeedFinanceRecords();

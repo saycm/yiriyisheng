@@ -38,6 +38,19 @@ extension _LifeHomePersistence on _LifeHomePageState {
         ..clear()
         ..addAll(restoredFinanceRecords);
     }
+    final restoredWorkoutPlans = snapshot.workoutPlans;
+    if (restoredWorkoutPlans != null && restoredWorkoutPlans.isNotEmpty) {
+      _workoutPlans
+        ..clear()
+        ..addAll(restoredWorkoutPlans);
+    }
+    _activeWorkoutSession = snapshot.activeWorkoutSession;
+    final restoredWorkoutHistory = snapshot.workoutHistory;
+    if (restoredWorkoutHistory != null) {
+      _workoutHistory
+        ..clear()
+        ..addAll(restoredWorkoutHistory);
+    }
     _aiFinanceEndpoint = snapshot.aiFinanceEndpoint.trim().isEmpty
         ? _defaultGlmChatEndpoint
         : snapshot.aiFinanceEndpoint;
@@ -55,6 +68,9 @@ extension _LifeHomePersistence on _LifeHomePageState {
         workoutGroupsByAction: _workoutGroupsByAction,
         todos: _todos,
         financeRecords: _financeRecords,
+        workoutPlans: _workoutPlans,
+        activeWorkoutSession: _activeWorkoutSession,
+        workoutHistory: _workoutHistory,
         aiFinanceEndpoint: _aiFinanceEndpoint,
         aiFinanceModel: _aiFinanceModel,
         aiFinanceApiKey: _aiFinanceApiKey,

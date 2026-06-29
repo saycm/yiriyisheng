@@ -183,6 +183,60 @@ void main() {
     expect(snapshot.financeRecords?.single.title, '工资');
   });
 
+  test('life summary snapshot carries workout training state', () {
+    final plan = WorkoutPlan(
+      id: 'plan-chest',
+      name: '胸背强化',
+      target: '胸背训练',
+      bodyParts: const ['胸背'],
+      actionNames: const ['蝴蝶机夹胸'],
+      estimatedMinutes: 28,
+      createdAt: DateTime(2026, 6, 29),
+      updatedAt: DateTime(2026, 6, 29),
+    );
+    final session = ActiveWorkoutSession(
+      id: 'session-1',
+      planId: 'plan-chest',
+      planName: '胸背强化',
+      startedAt: DateTime(2026, 6, 29, 8),
+      actionProgress: const {'蝴蝶机夹胸': 2},
+    );
+    final history = WorkoutHistoryEntry(
+      id: 'history-1',
+      planId: 'plan-chest',
+      planName: '胸背强化',
+      startedAt: DateTime(2026, 6, 29, 8),
+      finishedAt: DateTime(2026, 6, 29, 8, 30),
+      durationMinutes: 30,
+      totalGroups: 4,
+      estimatedCalories: 128,
+      actionResults: const [
+        WorkoutActionResult(
+          actionName: '蝴蝶机夹胸',
+          bodyPart: '胸背',
+          targetGroups: 4,
+          finishedGroups: 4,
+          reps: '8次',
+          weight: '30kg',
+        ),
+      ],
+    );
+
+    final snapshot = LifeSummarySnapshot(
+      foodCalories: 0,
+      workoutGroupsByAction: const {'蝴蝶机夹胸': 4},
+      todos: const [],
+      financeRecords: const [],
+      workoutPlans: [plan],
+      activeWorkoutSession: session,
+      workoutHistory: [history],
+    );
+
+    expect(snapshot.workoutPlans?.single.name, '胸背强化');
+    expect(snapshot.activeWorkoutSession?.groupsFor('蝴蝶机夹胸'), 2);
+    expect(snapshot.workoutHistory?.single.totalGroups, 4);
+  });
+
   test('workout models serialize and restore training history', () {
     final startedAt = DateTime(2026, 6, 29, 8, 0);
     final finishedAt = DateTime(2026, 6, 29, 8, 32);

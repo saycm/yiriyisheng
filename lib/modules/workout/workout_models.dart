@@ -319,3 +319,69 @@ List<WorkoutActionResult> _actionResultsFromJson(Object? value) {
   }
   return results;
 }
+
+List<WorkoutPlan> _createDefaultWorkoutPlans() {
+  final now = DateTime.now();
+  return [
+    WorkoutPlan(
+      id: 'plan-chest-back',
+      name: '胸背强化',
+      target: '胸背力量和体态稳定',
+      bodyParts: const ['胸背'],
+      actionNames: const [
+        '蝴蝶机夹胸',
+        '宽握高位下拉',
+        '器械推胸',
+        '坐姿绳索划船',
+        '上斜哑铃卧推',
+      ],
+      estimatedMinutes: 38,
+      createdAt: now,
+      updatedAt: now,
+    ),
+    WorkoutPlan(
+      id: 'plan-leg-stability',
+      name: '腿部稳定',
+      target: '下肢力量和髋膝稳定',
+      bodyParts: const ['腿臀'],
+      actionNames: const [
+        '杠铃深蹲',
+        '腿举',
+        '罗马尼亚硬拉',
+        '保加利亚分腿蹲',
+      ],
+      estimatedMinutes: 34,
+      createdAt: now,
+      updatedAt: now,
+    ),
+    WorkoutPlan(
+      id: 'plan-core-recovery',
+      name: '核心恢复',
+      target: '核心控制和轻恢复',
+      bodyParts: const ['核心', '拉伸'],
+      actionNames: const [
+        '平板支撑',
+        '死虫',
+        '猫牛式伸展',
+        '儿童式放松',
+      ],
+      estimatedMinutes: 24,
+      createdAt: now,
+      updatedAt: now,
+    ),
+    WorkoutPlan(
+      id: 'plan-quick-ten',
+      name: '快练 10 分钟',
+      target: '碎片时间快速激活',
+      bodyParts: const ['核心', '有氧'],
+      actionNames: const [
+        '登山跑',
+        '俄罗斯转体',
+        '波比跳',
+      ],
+      estimatedMinutes: 10,
+      createdAt: now,
+      updatedAt: now,
+    ),
+  ];
+}
