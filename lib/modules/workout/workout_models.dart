@@ -275,6 +275,31 @@ class WorkoutHistoryEntry {
   }
 }
 
+enum WorkoutMetricKind {
+  todayGroups('今日完成组数'),
+  todayMinutes('今日训练时长'),
+  todayCalories('今日预估消耗'),
+  maxWeight('今日最高重量'),
+  recentSessions('最近训练次数'),
+  recentGroups('最近完成组数');
+
+  const WorkoutMetricKind(this.label);
+
+  final String label;
+}
+
+class WorkoutMetricDetail {
+  const WorkoutMetricDetail({
+    required this.kind,
+    required this.value,
+    required this.records,
+  });
+
+  final WorkoutMetricKind kind;
+  final String value;
+  final List<WorkoutHistoryEntry> records;
+}
+
 List<String> _stringListFromJson(Object? value) {
   if (value is! List) {
     return [];
