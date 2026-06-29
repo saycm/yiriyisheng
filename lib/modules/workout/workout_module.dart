@@ -571,8 +571,28 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     );
   }
 
-  int _finishedGroupsFor(WorkoutAction action) =>
-      widget.finishedGroupsByAction[action.name] ?? 0;
+  bool get _activePlanCompleted {
+    final session = widget.activeWorkoutSession;
+    if (session == null || session.actionProgress.isEmpty) {
+      return false;
+    }
+    final plannedActions = _actions
+        .where((action) => session.actionProgress.containsKey(action.name))
+        .toList();
+    if (plannedActions.isEmpty) {
+      return false;
+    }
+    return plannedActions
+        .every((action) => session.groupsFor(action.name) >= action.groups);
+  }
+
+  int _finishedGroupsFor(WorkoutAction action) {
+    final session = widget.activeWorkoutSession;
+    if (session != null && session.actionProgress.containsKey(action.name)) {
+      return session.groupsFor(action.name);
+    }
+    return widget.finishedGroupsByAction[action.name] ?? 0;
+  }
 
   String _bodyPartLabel(String bodyPart) => bodyPart == '胸背' ? '胸背部' : bodyPart;
 
@@ -671,7 +691,10 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
       );
     }
     if (_selectedTopTab == 3) {
-      return const _WorkoutHistoryView();
+      return _WorkoutHistoryView(
+        history: widget.workoutHistory,
+        onOpenHistory: (_) {},
+      );
     }
     final session = widget.activeWorkoutSession;
     final sourceActions = session == null
@@ -695,6 +718,18 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         if (session != null) ...[
           _WorkoutActivePlanBanner(plan: activePlan, session: session),
           const SizedBox(height: 14),
+          if (_activePlanCompleted) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _finishActivePlan,
+                  child: const Text('完成训练'),
+                ),
+              ),
+            ),
+          ],
         ] else ...[
           _WorkoutSummaryCard(
             finishedActions: _finishedActionCount,
@@ -781,6 +816,15 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         .toList();
   }
 
+  WorkoutAction? _actionByName(String actionName) {
+    for (final action in _actions) {
+      if (action.name == actionName) {
+        return action;
+      }
+    }
+    return null;
+  }
+
   Future<void> _openPlanDetail(WorkoutPlan plan) {
     return showModalBottomSheet<void>(
       context: context,
@@ -822,9 +866,67 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     if (action == null) {
       return;
     }
-    final nextCount = math.min(action.groups, _finishedGroupsFor(action) + 1);
+    final currentGroups = _finishedGroupsFor(action);
+    final nextCount = math.min(action.groups, currentGroups + 1);
+    final session = widget.activeWorkoutSession;
+    if (session != null && session.actionProgress.containsKey(action.name)) {
+      final nextProgress = Map<String, int>.of(session.actionProgress);
+      nextProgress[action.name] = nextCount;
+      widget.onUpdateWorkoutSession(
+        session.copyWith(
+          actionProgress: nextProgress,
+          feedback: _lastFeedback,
+        ),
+      );
+    }
     widget.onUpdateActionGroups(action.name, nextCount);
     setState(() => _restSecondsLeft = nextCount >= action.groups ? 0 : 120);
+  }
+
+  void _finishActivePlan() {
+    final session = widget.activeWorkoutSession;
+    if (session == null) {
+      return;
+    }
+    final now = DateTime.now();
+    final actionResults = <WorkoutActionResult>[];
+    for (final actionName in session.actionProgress.keys) {
+      final action = _actionByName(actionName);
+      if (action == null) {
+        continue;
+      }
+      actionResults.add(
+        WorkoutActionResult(
+          actionName: action.name,
+          bodyPart: action.bodyPart,
+          targetGroups: action.groups,
+          finishedGroups: session.groupsFor(action.name),
+          reps: action.reps,
+          weight: action.weight,
+        ),
+      );
+    }
+    final totalGroups = actionResults.fold<int>(
+      0,
+      (total, result) => total + result.finishedGroups,
+    );
+    final entry = WorkoutHistoryEntry(
+      planId: session.planId,
+      planName: session.planName,
+      startedAt: session.startedAt,
+      finishedAt: now,
+      durationMinutes: math.max(1, now.difference(session.startedAt).inMinutes),
+      totalGroups: totalGroups,
+      estimatedCalories: 80 + totalGroups * 18,
+      actionResults: actionResults,
+      feedback: _lastFeedback,
+    );
+    widget.onFinishWorkoutSession(entry);
+    setState(() {
+      _selectedTopTab = 3;
+      _activeAction = null;
+      _restSecondsLeft = 0;
+    });
   }
 
   void _handleBottomNav(int index) {
@@ -1882,39 +1984,78 @@ class _WorkoutDataCard extends StatelessWidget {
 }
 
 class _WorkoutHistoryView extends StatelessWidget {
-  const _WorkoutHistoryView();
+  const _WorkoutHistoryView({
+    required this.history,
+    required this.onOpenHistory,
+  });
+
+  final List<WorkoutHistoryEntry> history;
+  final ValueChanged<WorkoutHistoryEntry> onOpenHistory;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return SingleChildScrollView(
+      key: history.isEmpty ? null : const ValueKey('workout_history_real_list'),
       padding: const EdgeInsets.fromLTRB(
           18, 18, 18, _moduleSwitchBarReservedHeight + 24),
-      children: const [
-        _WorkoutCalendarCard(),
-        SizedBox(height: 12),
-        _WorkoutActionTrendCard(),
-        SizedBox(height: 12),
-        _WorkoutProgressTrendCard(),
-        SizedBox(height: 12),
-        _WorkoutHistoryTile(
-          title: '胸背',
-          subtitle: '5 个动作 · 19 组 · 18:05',
-          status: '今天',
-          color: AppColors.primary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _WorkoutCalendarCard(),
+          const SizedBox(height: 12),
+          const _WorkoutActionTrendCard(),
+          const SizedBox(height: 12),
+          const _WorkoutProgressTrendCard(),
+          const SizedBox(height: 12),
+          if (history.isEmpty)
+            const _WorkoutEmptyHistoryCard()
+          else
+            ...history.map(
+              (entry) => _WorkoutHistoryTile(
+                title: entry.planName,
+                subtitle:
+                    '${entry.actionResults.length} 个动作 · ${entry.totalGroups} 组 · ${entry.durationMinutes} min',
+                status: _historyStatusLabel(entry.finishedAt),
+                color: AppColors.primary,
+                onTap: () => onOpenHistory(entry),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _historyStatusLabel(DateTime finishedAt) {
+    final now = DateTime.now();
+    if (DateUtils.isSameDay(finishedAt, now)) {
+      return '今天';
+    }
+    final yesterday = now.subtract(const Duration(days: 1));
+    if (DateUtils.isSameDay(finishedAt, yesterday)) {
+      return '昨天';
+    }
+    return '${finishedAt.month}/${finishedAt.day}';
+  }
+}
+
+class _WorkoutEmptyHistoryCard extends StatelessWidget {
+  const _WorkoutEmptyHistoryCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Text(
+        '暂无训练记录',
+        style: TextStyle(
+          color: AppColors.muted,
+          fontWeight: FontWeight.w800,
         ),
-        _WorkoutHistoryTile(
-          title: '肩颈恢复',
-          subtitle: '3 个动作 · 9 组 · 24 min',
-          status: '周三',
-          color: AppColors.success,
-        ),
-        _WorkoutHistoryTile(
-          title: '核心训练',
-          subtitle: '4 个动作 · 12 组 · 31 min',
-          status: '周一',
-          color: Color(0xFFFF9559),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -2245,66 +2386,74 @@ class _WorkoutHistoryTile extends StatelessWidget {
     required this.subtitle,
     required this.status,
     required this.color,
+    this.onTap,
   });
 
   final String title;
   final String subtitle;
   final String status;
   final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
         borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.13),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.history_rounded, color: color),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(8),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.13),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
+                child: Icon(Icons.history_rounded, color: color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Text(
+                status,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
           ),
-          Text(
-            status,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

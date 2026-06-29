@@ -1339,12 +1339,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('workout_top_tab_3')));
     await tester.pumpAndSettle();
     expect(find.text('训练日历'), findsOneWidget);
-    await dragUntilFound(
-      tester,
-      find.text('肩颈恢复'),
-      scrollable: find.byType(Scrollable).last,
-    );
-    expect(find.text('肩颈恢复'), findsOneWidget);
+    expect(find.text('暂无训练记录'), findsOneWidget);
   });
 
   testWidgets('workout plan opens detail and starts scoped workout',
@@ -1407,6 +1402,49 @@ void main() {
         findsOneWidget);
     expect(find.textContaining('胸背强化'), findsWidgets);
     expect(find.text('蝴蝶机夹胸'), findsWidgets);
+  });
+
+  testWidgets('finishing planned workout creates history entry',
+      (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+    final planCard = find.byKey(const ValueKey('workout_plan_plan-quick-ten'));
+    await tester.scrollUntilVisible(
+      planCard,
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(planCard);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('开始训练'));
+    await tester.pumpAndSettle();
+
+    for (final actionName in ['登山跑', '俄罗斯转体', '波比跳']) {
+      for (var index = 0; index < 3; index++) {
+        final action = find.text(actionName).first;
+        await tester.ensureVisible(action);
+        await tester.pumpAndSettle();
+        await tester.tap(action);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('开始动作'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
+        await tester.pumpAndSettle();
+      }
+    }
+
+    expect(find.text('完成训练'), findsOneWidget);
+    await tester.tap(find.text('完成训练'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout_history_real_list')),
+        findsOneWidget);
+    expect(find.text('快练 10 分钟'), findsWidgets);
   });
 
   testWidgets('workout quick action respects active plan scope',
