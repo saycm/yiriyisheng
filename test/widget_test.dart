@@ -1587,6 +1587,28 @@ void main() {
     );
   });
 
+  testWidgets('workout training templates open matching plan detail',
+      (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+
+    final template =
+        find.byKey(const ValueKey('workout_template_plan-quick-ten'));
+    await tester.ensureVisible(template);
+    await tester.pumpAndSettle();
+    await tester.tap(template);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout_plan_detail_sheet')),
+        findsOneWidget);
+    expect(find.text('快练 10 分钟'), findsWidgets);
+    expect(find.text('开始训练'), findsOneWidget);
+  });
+
   testWidgets('workout quick action respects active plan scope',
       (tester) async {
     final plans = [

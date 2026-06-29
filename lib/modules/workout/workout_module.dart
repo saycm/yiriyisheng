@@ -1512,7 +1512,7 @@ class _WorkoutEmptyPartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return const _EmptyCard(
       title: '这个部位今天没有动作',
-      subtitle: '可以先切回全部动作，后续再把训练模板接入自定义计划。',
+      subtitle: '可以先切回全部动作，或从训练模板选择一个计划。',
     );
   }
 }
@@ -1534,7 +1534,10 @@ class _WorkoutPlanView extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(
           18, 18, 18, _moduleSwitchBarReservedHeight + 24),
       children: [
-        const _WorkoutTemplateRail(),
+        _WorkoutTemplateRail(
+          plans: plans,
+          onOpenPlan: onOpenPlan,
+        ),
         const SizedBox(height: 12),
         ...plans.map(
           (plan) => _WorkoutPlanCard(
@@ -2065,20 +2068,45 @@ class _WorkoutPlanEditRow extends StatelessWidget {
 }
 
 class _WorkoutTemplateRail extends StatelessWidget {
-  const _WorkoutTemplateRail();
+  const _WorkoutTemplateRail({
+    required this.plans,
+    required this.onOpenPlan,
+  });
+
+  final List<WorkoutPlan> plans;
+  final ValueChanged<WorkoutPlan> onOpenPlan;
 
   @override
   Widget build(BuildContext context) {
     const templates = [
       (
+        'plan-chest-back',
         '胸背日',
         Icons.accessibility_new_rounded,
         AppColors.primary,
         '5 动作 · 19 组'
       ),
-      ('核心日', Icons.self_improvement_rounded, AppColors.success, '4 动作 · 12 组'),
-      ('恢复日', Icons.spa_rounded, Color(0xFFFF9559), '拉伸 + 轻有氧'),
-      ('快练 10 分钟', Icons.flash_on_rounded, Color(0xFF43C6C8), '碎片时间可做'),
+      (
+        'plan-core-recovery',
+        '核心日',
+        Icons.self_improvement_rounded,
+        AppColors.success,
+        '4 动作 · 12 组'
+      ),
+      (
+        'plan-core-recovery',
+        '恢复日',
+        Icons.spa_rounded,
+        Color(0xFFFF9559),
+        '拉伸 + 轻有氧'
+      ),
+      (
+        'plan-quick-ten',
+        '快练 10 分钟',
+        Icons.flash_on_rounded,
+        Color(0xFF43C6C8),
+        '碎片时间可做'
+      ),
     ];
 
     return Container(
@@ -2101,52 +2129,72 @@ class _WorkoutTemplateRail extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ...templates.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: item.$3.withValues(alpha: 0.13),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(item.$2, color: item.$3, size: 22),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            (item) {
+              final plan = _planById(item.$1);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: InkWell(
+                  key: ValueKey('workout_template_${item.$1}'),
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: plan == null ? null : () => onOpenPlan(plan),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
                       children: [
-                        Text(
-                          item.$1,
-                          style: const TextStyle(
-                            color: AppColors.ink,
-                            fontWeight: FontWeight.w900,
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: item.$4.withValues(alpha: 0.13),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(item.$3, color: item.$4, size: 22),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.$2,
+                                style: const TextStyle(
+                                  color: AppColors.ink,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                item.$5,
+                                style: const TextStyle(
+                                  color: AppColors.muted,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          item.$4,
-                          style: const TextStyle(
-                            color: AppColors.muted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                        const Icon(Icons.chevron_right_rounded,
+                            color: AppColors.muted),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: AppColors.muted),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
+  }
+
+  WorkoutPlan? _planById(String id) {
+    for (final plan in plans) {
+      if (plan.id == id) {
+        return plan;
+      }
+    }
+    return null;
   }
 }
 
