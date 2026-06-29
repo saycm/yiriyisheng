@@ -1358,14 +1358,16 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester
-        .tap(find.byKey(const ValueKey('workout_plan_card_chest_power')));
+        .tap(find.byKey(const ValueKey('workout_plan_plan-chest-back')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('workout_plan_detail_sheet')),
-        findsOneWidget);
+    final detailSheet = find.byKey(const ValueKey('workout_plan_detail_sheet'));
+    expect(detailSheet, findsOneWidget);
     expect(find.text('胸背强化'), findsWidgets);
-    expect(find.text('5 个动作'), findsOneWidget);
-    expect(find.text('19 组'), findsOneWidget);
+    expect(find.descendant(of: detailSheet, matching: find.text('5 个动作')),
+        findsOneWidget);
+    expect(find.descendant(of: detailSheet, matching: find.text('20 组')),
+        findsOneWidget);
     expect(find.text('开始训练'), findsOneWidget);
 
     await tester.tap(find.text('开始训练'));
@@ -1379,8 +1381,67 @@ void main() {
     expect(find.text('平板支撑'), findsNothing);
   });
 
+  testWidgets('workout plan opens detail and starts plan training',
+      (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+
+    await tester
+        .tap(find.byKey(const ValueKey('workout_plan_plan-chest-back')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout_plan_detail_sheet')),
+        findsOneWidget);
+    expect(find.text('胸背强化'), findsWidgets);
+    expect(find.text('开始训练'), findsOneWidget);
+
+    await tester.tap(find.text('开始训练'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout_active_plan_banner')),
+        findsOneWidget);
+    expect(find.textContaining('胸背强化'), findsWidgets);
+    expect(find.text('蝴蝶机夹胸'), findsWidgets);
+  });
+
   testWidgets('workout quick action respects active plan scope',
       (tester) async {
+    final plans = [
+      WorkoutPlan(
+        id: 'plan-chest-back',
+        name: '胸背强化',
+        target: '胸背力量和体态稳定',
+        bodyParts: const ['胸背'],
+        actionNames: const [
+          '蝴蝶机夹胸',
+          '宽握高位下拉',
+          '器械推胸',
+          '坐姿绳索划船',
+          '上斜哑铃卧推',
+        ],
+        estimatedMinutes: 38,
+      ),
+      WorkoutPlan(
+        id: 'plan-leg-stability',
+        name: '腿部稳定',
+        target: '下肢力量和髋膝稳定',
+        bodyParts: const ['腿臀'],
+        actionNames: const [
+          '杠铃深蹲',
+          '腿举',
+          '罗马尼亚硬拉',
+          '保加利亚分腿蹲',
+        ],
+        estimatedMinutes: 34,
+      ),
+    ];
+    ActiveWorkoutSession? activeSession;
+
     Widget buildWorkout({WidgetQuickAction? quickAction, int token = 0}) {
       return MaterialApp(
         home: WorkoutModulePage(
@@ -1389,6 +1450,12 @@ void main() {
           onSwitchModule: (_) {},
           finishedGroupsByAction: const {},
           onUpdateActionGroups: (_, __) {},
+          workoutPlans: plans,
+          activeWorkoutSession: activeSession,
+          workoutHistory: const [],
+          onStartWorkoutSession: (session) => activeSession = session,
+          onUpdateWorkoutSession: (session) => activeSession = session,
+          onFinishWorkoutSession: (_) => activeSession = null,
           foodCalories: 0,
           quickAction: quickAction,
           quickActionToken: token,
@@ -1403,13 +1470,15 @@ void main() {
     await tester.pumpAndSettle();
 
     final legPlanCard =
-        find.byKey(const ValueKey('workout_plan_card_leg_stability'));
+        find.byKey(const ValueKey('workout_plan_plan-leg-stability'));
     await tester.drag(find.byType(Scrollable).last, const Offset(0, -120));
     await tester.pumpAndSettle();
     await tester.tap(legPlanCard);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('开始训练'));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(buildWorkout());
     await tester.pumpAndSettle();
 
     expect(find.text('当前计划'), findsOneWidget);
