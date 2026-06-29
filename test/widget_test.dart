@@ -611,6 +611,22 @@ void main() {
     expect(find.text('健康总览'), findsOneWidget);
   });
 
+  testWidgets('week plan shows redesigned weekly overview', (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
+    await tester.pumpAndSettle();
+
+    expect(
+        find.byKey(const ValueKey('week_plan_overview_card')), findsOneWidget);
+    expect(find.byKey(const ValueKey('week_plan_selected_tasks_panel')),
+        findsOneWidget);
+    expect(find.text('本周概览'), findsOneWidget);
+    expect(find.text('本周任务'), findsOneWidget);
+    expect(find.text('必做'), findsWidgets);
+    expect(find.text('延后'), findsWidgets);
+  });
+
   testWidgets('module sheet switches heat map month and uses sane stats',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
