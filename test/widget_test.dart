@@ -1546,6 +1546,47 @@ void main() {
     expect(find.textContaining('快练 10 分钟'), findsWidgets);
   });
 
+  testWidgets('workout plan detail can remove and add existing action',
+      (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('workout_plan_plan-chest-back')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('编辑计划'));
+    await tester.pumpAndSettle();
+
+    expect(
+        find.byKey(const ValueKey('workout_plan_edit_sheet')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('workout_plan_remove_蝴蝶机夹胸')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('workout_plan_selected_actions')),
+        matching: find.text('蝴蝶机夹胸'),
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('workout_plan_add_蝴蝶机夹胸')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('workout_plan_selected_actions')),
+        matching: find.text('蝴蝶机夹胸'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('workout quick action respects active plan scope',
       (tester) async {
     final plans = [
@@ -1588,6 +1629,7 @@ void main() {
           finishedGroupsByAction: const {},
           onUpdateActionGroups: (_, __) {},
           workoutPlans: plans,
+          onUpdateWorkoutPlan: (_) {},
           activeWorkoutSession: activeSession,
           workoutHistory: const [],
           onStartWorkoutSession: (session) => activeSession = session,

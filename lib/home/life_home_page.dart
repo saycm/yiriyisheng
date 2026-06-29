@@ -132,6 +132,7 @@ class _LifeHomePageState extends State<LifeHomePage> {
       onUpdateAiFinanceConfig: _updateAiFinanceConfig,
       onRecordFoodCalories: _recordFoodCalories,
       onUpdateWorkoutGroups: _updateWorkoutGroups,
+      onUpdateWorkoutPlan: _updateWorkoutPlan,
       onStartWorkoutSession: _startWorkoutSession,
       onUpdateWorkoutSession: _updateWorkoutSession,
       onFinishWorkoutSession: _finishWorkoutSession,

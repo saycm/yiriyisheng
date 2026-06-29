@@ -75,6 +75,15 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  void _updateWorkoutPlan(WorkoutPlan plan) {
+    final index = _workoutPlans.indexWhere((item) => item.id == plan.id);
+    if (index == -1) {
+      return;
+    }
+    _updateState(() => _workoutPlans[index] = plan);
+    _syncLinkedSummaryToWidget();
+  }
+
   void _toggleTodo(TodoItem todo) {
     final wasDone = todo.done;
     var shouldShowLinkedActions = false;

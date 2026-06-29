@@ -29,6 +29,7 @@ Widget _buildLifeHomeModulePage({
   required ValueChanged<int> onRecordFoodCalories,
   required void Function(String actionName, int finishedGroups)
       onUpdateWorkoutGroups,
+  required ValueChanged<WorkoutPlan> onUpdateWorkoutPlan,
   required ValueChanged<ActiveWorkoutSession> onStartWorkoutSession,
   required ValueChanged<ActiveWorkoutSession> onUpdateWorkoutSession,
   required ValueChanged<WorkoutHistoryEntry> onFinishWorkoutSession,
@@ -105,6 +106,7 @@ Widget _buildLifeHomeModulePage({
         finishedGroupsByAction: workoutGroupsByAction,
         onUpdateActionGroups: onUpdateWorkoutGroups,
         workoutPlans: workoutPlans,
+        onUpdateWorkoutPlan: onUpdateWorkoutPlan,
         activeWorkoutSession: activeWorkoutSession,
         workoutHistory: workoutHistory,
         onStartWorkoutSession: onStartWorkoutSession,

@@ -35,6 +35,7 @@ class WorkoutModulePage extends StatefulWidget {
     required this.finishedGroupsByAction,
     required this.onUpdateActionGroups,
     required this.workoutPlans,
+    required this.onUpdateWorkoutPlan,
     required this.activeWorkoutSession,
     required this.workoutHistory,
     required this.onStartWorkoutSession,
@@ -53,6 +54,7 @@ class WorkoutModulePage extends StatefulWidget {
   final void Function(String actionName, int finishedGroups)
       onUpdateActionGroups;
   final List<WorkoutPlan> workoutPlans;
+  final ValueChanged<WorkoutPlan> onUpdateWorkoutPlan;
   final ActiveWorkoutSession? activeWorkoutSession;
   final List<WorkoutHistoryEntry> workoutHistory;
   final ValueChanged<ActiveWorkoutSession> onStartWorkoutSession;
@@ -834,6 +836,10 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         return _WorkoutPlanDetailSheet(
           plan: plan,
           actions: _actionsForPlan(plan),
+          onEdit: () {
+            Navigator.of(context).pop();
+            _openPlanEdit(plan);
+          },
           onStart: () {
             Navigator.of(context).pop();
             _startPlanTraining(plan);
@@ -851,6 +857,28 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
       builder: (context) {
         return _WorkoutMetricDetailSheet(detail: detail);
       },
+    );
+  }
+
+  Future<void> _openPlanEdit(WorkoutPlan plan) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _WorkoutPlanEditSheet(
+          plan: _latestPlan(plan),
+          allActions: _actions,
+          onChanged: widget.onUpdateWorkoutPlan,
+        );
+      },
+    );
+  }
+
+  WorkoutPlan _latestPlan(WorkoutPlan plan) {
+    return widget.workoutPlans.firstWhere(
+      (item) => item.id == plan.id,
+      orElse: () => plan,
     );
   }
 
@@ -1668,11 +1696,13 @@ class _WorkoutPlanDetailSheet extends StatelessWidget {
   const _WorkoutPlanDetailSheet({
     required this.plan,
     required this.actions,
+    required this.onEdit,
     required this.onStart,
   });
 
   final WorkoutPlan plan;
   final List<WorkoutAction> actions;
+  final VoidCallback onEdit;
   final VoidCallback onStart;
 
   @override
@@ -1770,6 +1800,25 @@ class _WorkoutPlanDetailSheet extends StatelessWidget {
             const SizedBox(height: 6),
             SizedBox(
               width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: onEdit,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.line),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: const Icon(Icons.edit_rounded, size: 18),
+                label: const Text(
+                  '编辑计划',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
               height: 48,
               child: FilledButton.icon(
                 onPressed: hasActions ? onStart : null,
@@ -1812,6 +1861,203 @@ class _WorkoutPlanInfoPill extends StatelessWidget {
           color: AppColors.ink,
           fontSize: 12,
           fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutPlanEditSheet extends StatefulWidget {
+  const _WorkoutPlanEditSheet({
+    required this.plan,
+    required this.allActions,
+    required this.onChanged,
+  });
+
+  final WorkoutPlan plan;
+  final List<WorkoutAction> allActions;
+  final ValueChanged<WorkoutPlan> onChanged;
+
+  @override
+  State<_WorkoutPlanEditSheet> createState() => _WorkoutPlanEditSheetState();
+}
+
+class _WorkoutPlanEditSheetState extends State<_WorkoutPlanEditSheet> {
+  late WorkoutPlan _plan = widget.plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedActions = widget.allActions
+        .where((action) => _plan.actionNames.contains(action.name))
+        .toList();
+    final availableActions = widget.allActions
+        .where((action) => !_plan.actionNames.contains(action.name))
+        .toList();
+
+    return SafeArea(
+      child: Container(
+        key: const ValueKey('workout_plan_edit_sheet'),
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _plan.name,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '已选动作',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  key: const ValueKey('workout_plan_selected_actions'),
+                  children: selectedActions
+                      .map(
+                        (action) => _WorkoutPlanEditRow(
+                          action: action,
+                          icon: Icons.remove_circle_outline_rounded,
+                          color: AppColors.financeRed,
+                          keyValue: 'workout_plan_remove_${action.name}',
+                          onTap: () => _removeAction(action),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '可添加动作',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: availableActions
+                      .map(
+                        (action) => _WorkoutPlanEditRow(
+                          action: action,
+                          icon: Icons.add_circle_outline_rounded,
+                          color: AppColors.primary,
+                          keyValue: 'workout_plan_add_${action.name}',
+                          onTap: () => _addAction(action),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _removeAction(WorkoutAction action) {
+    _save(
+      _plan.copyWith(
+        actionNames: _plan.actionNames
+            .where((actionName) => actionName != action.name)
+            .toList(),
+      ),
+    );
+  }
+
+  void _addAction(WorkoutAction action) {
+    _save(_plan.copyWith(actionNames: [..._plan.actionNames, action.name]));
+  }
+
+  void _save(WorkoutPlan plan) {
+    setState(() => _plan = plan);
+    widget.onChanged(plan);
+  }
+}
+
+class _WorkoutPlanEditRow extends StatelessWidget {
+  const _WorkoutPlanEditRow({
+    required this.action,
+    required this.icon,
+    required this.color,
+    required this.keyValue,
+    required this.onTap,
+  });
+
+  final WorkoutAction action;
+  final IconData icon;
+  final Color color;
+  final String keyValue;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        key: ValueKey(keyValue),
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  action.name,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                action.reps,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
