@@ -12,6 +12,7 @@ extension _LifeHomeOverlays on _LifeHomePageState {
           pendingTodos: _pendingTodoCount,
           foodCalories: _recordedFoodCalories,
           workoutGroups: _workoutFinishedGroups,
+          todayExpense: _todayExpense,
           events: _events,
           onSelect: (module) {
             Navigator.of(context).pop();

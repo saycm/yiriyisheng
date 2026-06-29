@@ -496,8 +496,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
 
-    expect(find.text('今日联动'), findsOneWidget);
-    expect(find.text('5 项'), findsOneWidget);
+    expect(find.text('今日状态'), findsOneWidget);
+    expect(find.text('待办 5 项'), findsOneWidget);
   });
 
   testWidgets('completed linked todo opens target module action',
@@ -590,27 +590,6 @@ void main() {
     expect(find.textContaining('Health Connect'), findsWidgets);
   });
 
-  testWidgets('module heat map day opens linked detail sheet', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
-
-    await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
-    await tester.pumpAndSettle();
-
-    final now = DateTime.now();
-    await tester.tap(
-      find.byKey(
-        ValueKey('module_heat_day_${now.year}_${now.month}_1'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('${now.year}年${now.month}月1日'), findsOneWidget);
-    expect(find.text('计划待办'), findsOneWidget);
-    expect(find.text('饮食记录'), findsOneWidget);
-    expect(find.text('锻炼记录'), findsOneWidget);
-    expect(find.text('健康总览'), findsOneWidget);
-  });
-
   testWidgets('week plan shows redesigned weekly overview', (tester) async {
     await tester.pumpWidget(const PingShengApp());
 
@@ -627,67 +606,58 @@ void main() {
     expect(find.text('延后'), findsWidgets);
   });
 
-  testWidgets('module sheet switches heat map month and uses sane stats',
+  testWidgets('module sheet presents compact module center content',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
 
-    final now = DateTime.now();
-    expect(find.text('${now.year}年 ${now.month.toString().padLeft(2, '0')}月'),
-        findsOneWidget);
-    expect(find.text('984'), findsNothing);
+    expect(find.text('功能模块'), findsWidgets);
+    expect(find.byKey(const ValueKey('module_today_summary')), findsOneWidget);
+    expect(find.text('今日状态'), findsOneWidget);
+    expect(find.text('待办 6 项'), findsOneWidget);
+    expect(find.text('饮食 0 kcal'), findsOneWidget);
+    expect(find.text('锻炼 0 组'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('module_heat_prev_month')));
-    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('module_sheet_plan')), findsOneWidget);
+    expect(find.byKey(const ValueKey('module_sheet_finance')), findsOneWidget);
+    expect(find.byKey(const ValueKey('module_sheet_food')), findsOneWidget);
+    expect(find.byKey(const ValueKey('module_sheet_workout')), findsOneWidget);
+    expect(find.byKey(const ValueKey('module_sheet_health')), findsOneWidget);
+    expect(find.byKey(const ValueKey('module_sheet_settings')), findsOneWidget);
 
-    final previousMonth = DateTime(now.year, now.month - 1);
     expect(
-      find.text(
-          '${previousMonth.year}年 ${previousMonth.month.toString().padLeft(2, '0')}月'),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(
-        ValueKey(
-          'module_heat_day_${previousMonth.year}_${previousMonth.month}_1',
-        ),
+      find.descendant(
+        of: find.byKey(const ValueKey('module_sheet_finance')),
+        matching: find.text('今日支出 ¥524'),
       ),
       findsOneWidget,
     );
-
-    await tester.tap(find.byKey(const ValueKey('module_heat_next_month')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('${now.year}年 ${now.month.toString().padLeft(2, '0')}月'),
-        findsOneWidget);
+    expect(find.text('最近动态'), findsOneWidget);
+    expect(find.text('今天还没有新记录'), findsOneWidget);
+    expect(find.text('热力图'), findsNothing);
   });
 
-  testWidgets('module heat map day sheet follows selected month',
+  testWidgets('module sheet shows recent activity after app actions',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
+
+    await dragUntilFound(
+      tester,
+      find.text('遛狗'),
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('遛狗'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
 
-    final now = DateTime.now();
-    final previousMonth = DateTime(now.year, now.month - 1);
-    await tester.tap(find.byKey(const ValueKey('module_heat_prev_month')));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(
-        ValueKey(
-          'module_heat_day_${previousMonth.year}_${previousMonth.month}_1',
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('${previousMonth.year}年${previousMonth.month}月1日'),
-      findsOneWidget,
-    );
+    expect(find.text('最近动态'), findsOneWidget);
+    expect(find.text('完成待办'), findsOneWidget);
+    expect(find.text('遛狗'), findsWidgets);
+    expect(find.text('待办 5 项'), findsOneWidget);
   });
 
   testWidgets('module link strip is compact and inner nav stays at bottom',
@@ -920,8 +890,10 @@ void main() {
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
 
-    expect(find.text('今日联动'), findsOneWidget);
-    expect(find.text('1 项'), findsOneWidget);
+    expect(find.text('今日状态'), findsOneWidget);
+    expect(find.text('待办 1 项'), findsOneWidget);
+    expect(find.text('饮食 168 kcal'), findsOneWidget);
+    expect(find.text('锻炼 2 组'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.close_rounded).first);
     await tester.pumpAndSettle();
@@ -1891,19 +1863,19 @@ void main() {
     expect(find.text('1 组'), findsWidgets);
     await dragPageUp(tester);
     expect(find.text('联动记录'), findsOneWidget);
-    expect(find.text('记录饮食'), findsOneWidget);
-    expect(find.text('完成锻炼'), findsOneWidget);
+    expect(find.text('记录饮食'), findsWidgets);
+    expect(find.text('完成锻炼'), findsWidgets);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
 
-    expect(find.text('今日联动'), findsOneWidget);
-    expect(find.text('联动记录'), findsOneWidget);
-    expect(find.text('记录饮食'), findsOneWidget);
-    expect(find.text('完成锻炼'), findsOneWidget);
-    expect(find.text('6 项'), findsOneWidget);
+    expect(find.text('今日状态'), findsOneWidget);
+    expect(find.text('最近动态'), findsOneWidget);
+    expect(find.text('记录饮食'), findsWidgets);
+    expect(find.text('完成锻炼'), findsWidgets);
+    expect(find.text('待办 6 项'), findsOneWidget);
     expect(find.text('80 kcal'), findsWidgets);
-    expect(find.text('1 组'), findsWidgets);
+    expect(find.text('锻炼 1 组'), findsOneWidget);
   });
 
   testWidgets('food search filters items and custom food can be added',

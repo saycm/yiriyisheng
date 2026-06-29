@@ -111,6 +111,7 @@ class _ModuleSheet extends StatelessWidget {
     required this.pendingTodos,
     required this.foodCalories,
     required this.workoutGroups,
+    required this.todayExpense,
     required this.events,
     required this.onSelect,
     this.onSignOut,
@@ -120,6 +121,7 @@ class _ModuleSheet extends StatelessWidget {
   final int pendingTodos;
   final int foodCalories;
   final int workoutGroups;
+  final double todayExpense;
   final List<LifeEvent> events;
   final ValueChanged<LifeModule> onSelect;
   final Future<void> Function()? onSignOut;
@@ -167,105 +169,29 @@ class _ModuleSheet extends StatelessWidget {
             child: ListView(
               key: const ValueKey('module_sheet_scroll'),
               children: [
-                _ModuleProfileCard(
-                  onSelectHeatDay: (date) =>
-                      _showHeatMapDaySheet(context, date),
+                _ModuleTodaySummaryBar(
+                  pendingTodos: pendingTodos,
+                  foodCalories: foodCalories,
+                  workoutGroups: workoutGroups,
                 ),
-                const SizedBox(height: 16),
-                // 模块中心也读取应用级共享状态，方便从任意模块回看今日联动进度。
-                _ModuleLinkedSummaryCard(
-                  title: '今日联动',
-                  subtitle: '计划、健康和桌面小组件都会同步这里的实时状态。',
-                  icon: Icons.hub_rounded,
-                  values: [
-                    ('待办', '$pendingTodos 项'),
-                    ('饮食', '$foodCalories kcal'),
-                    ('锻炼', '$workoutGroups 组'),
-                  ],
+                const SizedBox(height: 14),
+                _ModuleCenterGrid(
+                  selected: selected,
+                  pendingTodos: pendingTodos,
+                  foodCalories: foodCalories,
+                  workoutGroups: workoutGroups,
+                  todayExpense: todayExpense,
+                  onSelect: onSelect,
+                  onOpenSettings: () => _showSettingsSheet(context),
                 ),
-                const SizedBox(height: 16),
-                _LifeEventFeedCard(events: events.take(5).toList()),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+                _ModuleRecentEventsCard(events: events.take(3).toList()),
+                const SizedBox(height: 14),
                 const _ModuleSectionTitle(
-                  icon: Icons.grid_view_rounded,
-                  title: '功能模块',
+                  icon: Icons.more_horiz_rounded,
+                  title: '更多',
                 ),
                 const SizedBox(height: 10),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final tileWidth = (constraints.maxWidth - 24) / 3;
-                    final tileHeight = tileWidth / 1.05;
-                    Widget tile(Widget child) {
-                      return SizedBox(
-                        width: tileWidth,
-                        height: tileHeight,
-                        child: child,
-                      );
-                    }
-
-                    return Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        tile(
-                          _ModuleTile(
-                            tileKey: const ValueKey('module_sheet_plan'),
-                            icon: Icons.event_available_rounded,
-                            label: '计划待办',
-                            selected: selected == LifeModule.plan,
-                            onTap: () => onSelect(LifeModule.plan),
-                          ),
-                        ),
-                        tile(
-                          _ModuleTile(
-                            tileKey: const ValueKey('module_sheet_finance'),
-                            icon: Icons.account_balance_wallet_rounded,
-                            label: '财务',
-                            selected: selected == LifeModule.finance,
-                            onTap: () => onSelect(LifeModule.finance),
-                          ),
-                        ),
-                        tile(
-                          _ModuleTile(
-                            tileKey: const ValueKey('module_sheet_food'),
-                            icon: Icons.restaurant_rounded,
-                            label: '饮食',
-                            selected: selected == LifeModule.food,
-                            onTap: () => onSelect(LifeModule.food),
-                          ),
-                        ),
-                        tile(
-                          _ModuleTile(
-                            tileKey: const ValueKey('module_sheet_workout'),
-                            icon: Icons.fitness_center_rounded,
-                            label: '锻炼',
-                            selected: selected == LifeModule.workout,
-                            onTap: () => onSelect(LifeModule.workout),
-                          ),
-                        ),
-                        tile(
-                          _ModuleTile(
-                            tileKey: const ValueKey('module_sheet_health'),
-                            icon: Icons.monitor_heart_rounded,
-                            label: '健康',
-                            selected: selected == LifeModule.health,
-                            onTap: () => onSelect(LifeModule.health),
-                          ),
-                        ),
-                        tile(
-                          _ModuleTile(
-                            tileKey: const ValueKey('module_sheet_settings'),
-                            icon: Icons.settings_rounded,
-                            label: '设置',
-                            selected: false,
-                            onTap: () => _showSettingsSheet(context),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
                 _ModuleListItem(
                   icon: Icons.info_outline_rounded,
                   title: '关于 App',
@@ -320,15 +246,6 @@ class _ModuleSheet extends StatelessWidget {
     );
   }
 
-  void _showHeatMapDaySheet(BuildContext context, DateTime date) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _HeatMapDaySheet(date: date),
-    );
-  }
-
   void _showGuideSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
@@ -348,151 +265,411 @@ class _ModuleSheet extends StatelessWidget {
   }
 }
 
-class _ModuleProfileCard extends StatefulWidget {
-  const _ModuleProfileCard({
-    required this.onSelectHeatDay,
+class _ModuleTodaySummaryBar extends StatelessWidget {
+  const _ModuleTodaySummaryBar({
+    required this.pendingTodos,
+    required this.foodCalories,
+    required this.workoutGroups,
   });
 
-  final ValueChanged<DateTime> onSelectHeatDay;
-
-  @override
-  State<_ModuleProfileCard> createState() => _ModuleProfileCardState();
-}
-
-class _ModuleProfileCardState extends State<_ModuleProfileCard> {
-  DateTime _visibleMonth = DateTime(DateTime.now().year, DateTime.now().month);
-
-  void _changeMonth(int delta) {
-    final next = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
-    final current = DateTime(DateTime.now().year, DateTime.now().month);
-    if (next.isAfter(current)) {
-      return;
-    }
-    setState(() => _visibleMonth = next);
-  }
+  final int pendingTodos;
+  final int foodCalories;
+  final int workoutGroups;
 
   @override
   Widget build(BuildContext context) {
-    final monthText =
-        '${_visibleMonth.year}年 ${_visibleMonth.month.toString().padLeft(2, '0')}月';
-    final recordedDays = _recordedDaysInMonth(_visibleMonth);
-    final totalRecords = _totalRecordsInMonth(_visibleMonth);
-
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      key: const ValueKey('module_today_summary'),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: _airyCardDecoration(
         color: AppColors.surface.withValues(alpha: 0.96),
-        shadows: [_airyShadow(AppColors.lavender)],
+        borderColor: AppColors.line,
+        shadows: [_airyShadow(AppColors.sky)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              _AppIconMark(),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  '平生',
-                  style: TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              Icon(Icons.workspace_premium_rounded,
-                  color: Color(0xFFFFC846), size: 30),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  monthText,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              Tooltip(
-                message: '上个月',
-                child: IconButton(
-                  key: const ValueKey('module_heat_prev_month'),
-                  onPressed: () => _changeMonth(-1),
-                  icon: const Icon(Icons.chevron_left_rounded),
-                  style: IconButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    backgroundColor: AppColors.primarySoft,
-                    fixedSize: const Size(34, 34),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Tooltip(
-                message: '下个月',
-                child: IconButton(
-                  key: const ValueKey('module_heat_next_month'),
-                  onPressed: DateUtils.isSameMonth(
-                    _visibleMonth,
-                    DateTime.now(),
-                  )
-                      ? null
-                      : () => _changeMonth(1),
-                  icon: const Icon(Icons.chevron_right_rounded),
-                  style: IconButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    backgroundColor: AppColors.background,
-                    fixedSize: const Size(34, 34),
-                  ),
+              Icon(Icons.bolt_rounded, color: AppColors.primary, size: 18),
+              SizedBox(width: 7),
+              Text(
+                '今日状态',
+                style: TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          _ModuleHeatMap(
-            month: _visibleMonth,
-            onSelectDay: widget.onSelectHeatDay,
-          ),
-          const SizedBox(height: 16),
-          Row(
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Expanded(
-                child: _ModuleStat(value: '$recordedDays', label: '天\n坚持记录'),
-              ),
-              Expanded(
-                child: _ModuleStat(value: '$totalRecords', label: '条\n总记录'),
-              ),
-              const Expanded(child: _ModuleStat(value: '联动', label: '热力图')),
+              _ModuleSummaryChip(text: '待办 $pendingTodos 项'),
+              _ModuleSummaryChip(text: '饮食 $foodCalories kcal'),
+              _ModuleSummaryChip(text: '锻炼 $workoutGroups 组'),
             ],
           ),
         ],
       ),
     );
   }
+}
 
-  int _recordedDaysInMonth(DateTime month) {
-    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
-    var count = 0;
-    for (var day = 1; day <= daysInMonth; day++) {
-      if (_heatValueForDay(month, day) > 0) {
-        count++;
-      }
-    }
-    return count;
-  }
+class _ModuleSummaryChip extends StatelessWidget {
+  const _ModuleSummaryChip({required this.text});
 
-  int _totalRecordsInMonth(DateTime month) {
-    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
-    var total = 0;
-    for (var day = 1; day <= daysInMonth; day++) {
-      total += _heatValueForDay(month, day);
-    }
-    return total;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AppColors.ink,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
   }
+}
+
+class _ModuleCenterGrid extends StatelessWidget {
+  const _ModuleCenterGrid({
+    required this.selected,
+    required this.pendingTodos,
+    required this.foodCalories,
+    required this.workoutGroups,
+    required this.todayExpense,
+    required this.onSelect,
+    required this.onOpenSettings,
+  });
+
+  final LifeModule selected;
+  final int pendingTodos;
+  final int foodCalories;
+  final int workoutGroups;
+  final double todayExpense;
+  final ValueChanged<LifeModule> onSelect;
+  final VoidCallback onOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final financeText =
+        todayExpense > 0 ? '今日支出 ¥${_formatModuleMoney(todayExpense)}' : '查看账本';
+    final healthText = foodCalories > 0 || workoutGroups > 0 ? '今日有记录' : '未记录';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _ModuleSectionTitle(
+          icon: Icons.grid_view_rounded,
+          title: '模块状态',
+        ),
+        const SizedBox(height: 10),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final tileWidth = (constraints.maxWidth - 10) / 2;
+            Widget tile(Widget child) {
+              return SizedBox(width: tileWidth, child: child);
+            }
+
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                tile(
+                  _ModuleCenterTile(
+                    tileKey: const ValueKey('module_sheet_plan'),
+                    icon: Icons.event_available_rounded,
+                    title: '计划',
+                    status: '$pendingTodos 项待办',
+                    selected: selected == LifeModule.plan,
+                    onTap: () => onSelect(LifeModule.plan),
+                  ),
+                ),
+                tile(
+                  _ModuleCenterTile(
+                    tileKey: const ValueKey('module_sheet_finance'),
+                    icon: Icons.account_balance_wallet_rounded,
+                    title: '财务',
+                    status: financeText,
+                    selected: selected == LifeModule.finance,
+                    onTap: () => onSelect(LifeModule.finance),
+                  ),
+                ),
+                tile(
+                  _ModuleCenterTile(
+                    tileKey: const ValueKey('module_sheet_food'),
+                    icon: Icons.restaurant_rounded,
+                    title: '饮食',
+                    status: '$foodCalories kcal',
+                    selected: selected == LifeModule.food,
+                    onTap: () => onSelect(LifeModule.food),
+                  ),
+                ),
+                tile(
+                  _ModuleCenterTile(
+                    tileKey: const ValueKey('module_sheet_workout'),
+                    icon: Icons.fitness_center_rounded,
+                    title: '锻炼',
+                    status: '$workoutGroups 组训练',
+                    selected: selected == LifeModule.workout,
+                    onTap: () => onSelect(LifeModule.workout),
+                  ),
+                ),
+                tile(
+                  _ModuleCenterTile(
+                    tileKey: const ValueKey('module_sheet_health'),
+                    icon: Icons.monitor_heart_rounded,
+                    title: '健康',
+                    status: healthText,
+                    selected: selected == LifeModule.health,
+                    onTap: () => onSelect(LifeModule.health),
+                  ),
+                ),
+                tile(
+                  _ModuleCenterTile(
+                    tileKey: const ValueKey('module_sheet_settings'),
+                    icon: Icons.settings_rounded,
+                    title: '设置',
+                    status: '账号与偏好',
+                    selected: false,
+                    onTap: onOpenSettings,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _ModuleCenterTile extends StatelessWidget {
+  const _ModuleCenterTile({
+    required this.tileKey,
+    required this.icon,
+    required this.title,
+    required this.status,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Key tileKey;
+  final IconData icon;
+  final String title;
+  final String status;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: tileKey,
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.all(12),
+        decoration: _airyCardDecoration(
+          color: selected
+              ? AppColors.primarySoft.withValues(alpha: 0.9)
+              : AppColors.surface.withValues(alpha: 0.96),
+          borderColor: selected
+              ? AppColors.primary.withValues(alpha: 0.55)
+              : AppColors.line,
+          shadows: [_airyShadow(selected ? AppColors.primary : AppColors.sky)],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: selected
+                    ? AppColors.primary.withValues(alpha: 0.12)
+                    : AppColors.background,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                color: selected ? AppColors.primary : AppColors.muted,
+                size: 19,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    status,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ModuleRecentEventsCard extends StatelessWidget {
+  const _ModuleRecentEventsCard({required this.events});
+
+  final List<LifeEvent> events;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.timeline_rounded, color: AppColors.primary, size: 19),
+              SizedBox(width: 8),
+              Text(
+                '最近动态',
+                style: TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (events.isEmpty)
+            const Text(
+              '今天还没有新记录',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontSize: 13,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            for (var index = 0; index < events.length; index++)
+              _ModuleRecentEventRow(
+                event: events[index],
+                showDivider: index != events.length - 1,
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModuleRecentEventRow extends StatelessWidget {
+  const _ModuleRecentEventRow({
+    required this.event,
+    required this.showDivider,
+  });
+
+  final LifeEvent event;
+  final bool showDivider;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(bottom: showDivider ? 10 : 0),
+      margin: EdgeInsets.only(bottom: showDivider ? 10 : 0),
+      decoration: BoxDecoration(
+        border: showDivider
+            ? const Border(bottom: BorderSide(color: AppColors.line))
+            : null,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: event.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(event.icon, color: event.color, size: 17),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  event.detail,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatModuleMoney(double amount) {
+  if (amount == amount.roundToDouble()) {
+    return amount.toStringAsFixed(0);
+  }
+  return amount.toStringAsFixed(2);
 }
 
 class _AppIconMark extends StatelessWidget {
@@ -514,249 +691,6 @@ class _AppIconMark extends StatelessWidget {
         ),
       ),
       child: Icon(Icons.waves_rounded, color: Colors.white, size: size * 0.66),
-    );
-  }
-}
-
-class _ModuleHeatMap extends StatelessWidget {
-  const _ModuleHeatMap({
-    required this.month,
-    required this.onSelectDay,
-  });
-
-  final DateTime month;
-  final ValueChanged<DateTime> onSelectDay;
-
-  @override
-  Widget build(BuildContext context) {
-    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
-    final values = List.generate(daysInMonth, (index) {
-      final day = index + 1;
-      return _heatValueForDay(month, day);
-    });
-
-    return SizedBox(
-      height: 132,
-      child: Column(
-        children: [
-          Expanded(
-            child: GridView.count(
-              crossAxisCount: 7,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 5,
-              mainAxisSpacing: 5,
-              childAspectRatio: 2.25,
-              children: List.generate(values.length, (index) {
-                final value = values[index];
-                final day = index + 1;
-                final label =
-                    day == 15 ? '15' : (day == daysInMonth ? '$day' : '');
-                // 热力图每个日期格都可点击，避免模块中心出现只可看的“死图”。
-                return InkWell(
-                  key: ValueKey(
-                    'module_heat_day_${month.year}_${month.month}_$day',
-                  ),
-                  borderRadius: BorderRadius.circular(5),
-                  onTap: () => onSelectDay(DateTime(
-                    month.year,
-                    month.month,
-                    day,
-                  )),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: value == 0
-                          ? const Color(0xFFF2F4FA)
-                          : Color.lerp(
-                              const Color(0xFFBBC8FF),
-                              AppColors.primary,
-                              value / 4,
-                            ),
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: Center(
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          color: value > 2 ? Colors.white : AppColors.muted,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-int _heatValueForDay(DateTime month, int day) {
-  final current = DateUtils.dateOnly(DateTime.now());
-  final date = DateTime(month.year, month.month, day);
-  if (date.isAfter(current)) {
-    return 0;
-  }
-  return switch (day % 7) {
-    1 || 4 => 3,
-    2 || 5 => 2,
-    3 => 1,
-    _ => 0,
-  };
-}
-
-class _HeatMapDaySheet extends StatelessWidget {
-  const _HeatMapDaySheet({required this.date});
-
-  final DateTime date;
-
-  @override
-  Widget build(BuildContext context) {
-    final level = switch (date.day % 5) {
-      0 => '高活跃',
-      1 || 2 => '轻记录',
-      3 => '稳定记录',
-      _ => '待补充',
-    };
-    final recordCount = date.day % 5;
-
-    return _InfoSheetFrame(
-      title: '${date.year}年${date.month}月${date.day}日',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _EmptyCard(
-            title: level,
-            subtitle: recordCount == 0
-                ? '这一天还没有本地联动记录，可以从待办、饮食、锻炼或健康模块补齐。'
-                : '这一天有 $recordCount 条模块记录，可继续进入对应模块查看细节。',
-          ),
-          const SizedBox(height: 14),
-          const _ModuleSectionTitle(
-            icon: Icons.link_rounded,
-            title: '关联模块',
-          ),
-          const SizedBox(height: 10),
-          const _HeatMapActionTile(
-            icon: Icons.event_available_rounded,
-            title: '计划待办',
-            subtitle: '查看当天事项和完成状态',
-          ),
-          const _HeatMapActionTile(
-            icon: Icons.restaurant_rounded,
-            title: '饮食记录',
-            subtitle: '查看当天摄入和食物选择',
-          ),
-          const _HeatMapActionTile(
-            icon: Icons.fitness_center_rounded,
-            title: '锻炼记录',
-            subtitle: '查看训练组数和动作进度',
-          ),
-          const _HeatMapActionTile(
-            icon: Icons.monitor_heart_rounded,
-            title: '健康总览',
-            subtitle: '查看系统健康数据状态',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeatMapActionTile extends StatelessWidget {
-  const _HeatMapActionTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Row(
-        children: [
-          _SettingsIcon(icon: icon),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ModuleStat extends StatelessWidget {
-  const _ModuleStat({
-    required this.value,
-    required this.label,
-  });
-
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: AppColors.ink,
-            fontSize: 21,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.muted,
-            fontSize: 12,
-            height: 1.2,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -1731,65 +1665,6 @@ class _ModuleSectionTitle extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ModuleTile extends StatelessWidget {
-  const _ModuleTile({
-    this.tileKey,
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final Key? tileKey;
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      key: tileKey,
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.all(12),
-        decoration: _airyCardDecoration(
-          color: selected
-              ? AppColors.primarySoft.withValues(alpha: 0.92)
-              : AppColors.surface.withValues(alpha: 0.96),
-          borderColor: selected
-              ? AppColors.primary.withValues(alpha: 0.55)
-              : AppColors.line,
-          shadows: [_airyShadow(selected ? AppColors.primary : AppColors.sky)],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: selected ? AppColors.primary : AppColors.muted,
-              size: 30,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.ink,
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
