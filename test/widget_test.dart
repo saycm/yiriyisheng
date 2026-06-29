@@ -1493,6 +1493,59 @@ void main() {
     expect(find.textContaining('快练 10 分钟'), findsWidgets);
   });
 
+  testWidgets('workout history detail can restart same plan', (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+    final planCard = find.byKey(const ValueKey('workout_plan_plan-quick-ten'));
+    await tester.scrollUntilVisible(
+      planCard,
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(planCard);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('开始训练'));
+    await tester.pumpAndSettle();
+
+    for (final actionName in ['登山跑', '俄罗斯转体', '波比跳']) {
+      for (var index = 0; index < 3; index++) {
+        final action = find.text(actionName).first;
+        await tester.ensureVisible(action);
+        await tester.pumpAndSettle();
+        await tester.tap(action);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('开始动作'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
+        await tester.pumpAndSettle();
+      }
+    }
+    await tester.tap(find.text('完成训练'));
+    await tester.pumpAndSettle();
+
+    final historyTitle = find.text('快练 10 分钟').last;
+    await tester.ensureVisible(historyTitle);
+    await tester.pumpAndSettle();
+    await tester.tap(historyTitle);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout_history_detail_sheet')),
+        findsOneWidget);
+    expect(find.text('再次训练'), findsOneWidget);
+
+    await tester.tap(find.text('再次训练'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout_active_plan_banner')),
+        findsOneWidget);
+    expect(find.textContaining('快练 10 分钟'), findsWidgets);
+  });
+
   testWidgets('workout quick action respects active plan scope',
       (tester) async {
     final plans = [

@@ -693,7 +693,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     if (_selectedTopTab == 3) {
       return _WorkoutHistoryView(
         history: widget.workoutHistory,
-        onOpenHistory: (_) {},
+        onOpenHistory: _openHistoryDetail,
       );
     }
     final session = widget.activeWorkoutSession;
@@ -852,6 +852,42 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         return _WorkoutMetricDetailSheet(detail: detail);
       },
     );
+  }
+
+  Future<void> _openHistoryDetail(WorkoutHistoryEntry entry) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _WorkoutHistoryDetailSheet(
+          entry: entry,
+          onRestart: () {
+            Navigator.of(context).pop();
+            _restartPlanFromHistory(entry);
+          },
+        );
+      },
+    );
+  }
+
+  void _restartPlanFromHistory(WorkoutHistoryEntry entry) {
+    final plan = widget.workoutPlans.firstWhere(
+      (plan) => plan.id == entry.planId,
+      orElse: () => WorkoutPlan(
+        id: entry.planId,
+        name: entry.planName,
+        target: '再次训练',
+        bodyParts: entry.actionResults
+            .map((result) => _bodyPartLabel(result.bodyPart))
+            .toSet()
+            .toList(),
+        actionNames:
+            entry.actionResults.map((result) => result.actionName).toList(),
+        estimatedMinutes: entry.durationMinutes,
+      ),
+    );
+    _startPlanTraining(plan);
   }
 
   void _startPlanTraining(WorkoutPlan plan) {
@@ -2180,6 +2216,104 @@ class _WorkoutMetricDetailSheet extends StatelessWidget {
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutHistoryDetailSheet extends StatelessWidget {
+  const _WorkoutHistoryDetailSheet({
+    required this.entry,
+    required this.onRestart,
+  });
+
+  final WorkoutHistoryEntry entry;
+  final VoidCallback onRestart;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        key: const ValueKey('workout_history_detail_sheet'),
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    entry.planName,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            Text(
+              '${entry.totalGroups} 组 · ${entry.durationMinutes} min',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 14),
+            ...entry.actionResults.map(
+              (result) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded,
+                        color: AppColors.success, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${result.actionName} ${result.finishedGroups}/${result.targetGroups} 组',
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: FilledButton.icon(
+                onPressed: onRestart,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: const Icon(Icons.replay_rounded),
+                label: const Text(
+                  '再次训练',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
           ],
         ),
       ),
