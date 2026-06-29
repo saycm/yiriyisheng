@@ -1334,7 +1334,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('workout_top_tab_2')));
     await tester.pumpAndSettle();
-    expect(find.text('已完成组数'), findsOneWidget);
+    expect(find.text('今日完成组数'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('workout_top_tab_3')));
     await tester.pumpAndSettle();
