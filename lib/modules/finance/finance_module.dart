@@ -99,12 +99,15 @@ class _FinanceModulePageState extends State<FinanceModulePage> {
               children: [
                 _FinanceHeader(
                   onOpenModules: widget.onOpenModules,
-                  onAddRecord: _openRecordSheet,
                   onAiRecord: _openAiRecordSheet,
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: widget.moduleNav,
+                ),
+                _FinanceHeaderActions(
+                  onAiRecord: _openAiRecordSheet,
+                  onAddRecord: () => _openRecordSheet(),
                 ),
                 Expanded(child: _buildContent()),
               ],
@@ -136,7 +139,7 @@ class _FinanceModulePageState extends State<FinanceModulePage> {
       );
     }
     if (_selectedTab == 2) {
-      return const _FinanceAssetsView();
+      return _FinanceAssetsView(records: widget.records);
     }
     return _FinanceOverviewView(
       showExpense: _showExpense,
@@ -176,26 +179,24 @@ class _FinanceModulePageState extends State<FinanceModulePage> {
   }
 
   void _openAiRecordSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return _AiFinanceRecordSheet(
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _FinanceAiAssistantPage(
           endpoint: widget.aiEndpoint,
           model: widget.aiModel,
           apiKey: widget.aiApiKey,
           onConfigChanged: widget.onAiConfigChanged,
           onSaveAll: (records) {
-            Navigator.of(context).pop();
-            setState(() => _selectedTab = 1);
+            if (mounted) {
+              setState(() => _selectedTab = 1);
+            }
             // 父级插入逻辑是 insert(0)，这里反向写入能保持 AI 返回顺序。
             for (final record in records.reversed) {
               widget.onAddRecord(record);
             }
           },
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -203,47 +204,54 @@ class _FinanceModulePageState extends State<FinanceModulePage> {
 class _FinanceHeader extends StatelessWidget {
   const _FinanceHeader({
     required this.onOpenModules,
-    required this.onAddRecord,
     required this.onAiRecord,
   });
 
   final VoidCallback onOpenModules;
-  final VoidCallback onAddRecord;
   final VoidCallback onAiRecord;
 
   @override
   Widget build(BuildContext context) {
+    return _ModuleGlassHeader(
+      module: LifeModule.finance,
+      title: '财务',
+      onOpenModules: onOpenModules,
+      onOpenMore: onAiRecord,
+    );
+  }
+}
+
+class _FinanceHeaderActions extends StatelessWidget {
+  const _FinanceHeaderActions({
+    required this.onAiRecord,
+    required this.onAddRecord,
+  });
+
+  final VoidCallback onAiRecord;
+  final VoidCallback onAddRecord;
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
+      padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
       child: Row(
         children: [
-          _IconBubble(
-            icon: Icons.view_sidebar_rounded,
-            color: const Color(0xFF91A3FF),
-            onTap: onOpenModules,
-          ),
-          const Expanded(
-            child: Center(
-              child: Text(
-                '财务',
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+          Expanded(
+            child: _HeaderActionPill(
+              icon: Icons.auto_awesome_rounded,
+              label: 'AI 记账',
+              color: AppColors.accent,
+              onTap: onAiRecord,
             ),
           ),
-          _IconBubble(
-            icon: Icons.auto_awesome_rounded,
-            color: AppColors.primary,
-            onTap: onAiRecord,
-          ),
-          const SizedBox(width: 8),
-          _IconBubble(
-            icon: Icons.add_card_rounded,
-            color: AppColors.success,
-            onTap: onAddRecord,
+          const SizedBox(width: 10),
+          Expanded(
+            child: _HeaderActionPill(
+              icon: Icons.add_card_rounded,
+              label: '记一笔',
+              color: AppColors.primary,
+              onTap: onAddRecord,
+            ),
           ),
         ],
       ),
@@ -282,22 +290,29 @@ class _FinanceOverviewView extends StatelessWidget {
   Widget build(BuildContext context) {
     final income = _financeTotal(records, '收入');
     final expense = _financeTotal(records, '支出');
+    final accounts = _financeAccounts(records);
     return ListView(
       padding: const EdgeInsets.fromLTRB(
           18, 0, 18, _moduleSwitchBarReservedHeight + 24),
       children: [
         _NetAssetCard(
+          accounts: accounts,
           income: income,
           expense: expense,
           onOpenAssets: onOpenAssets,
           onAddRecord: onAddRecord,
         ),
         const SizedBox(height: 14),
-        _FinanceAiRecordCard(onTap: onAiRecord),
-        const SizedBox(height: 14),
-        _FinanceBudgetCard(
+        _FinanceControlPanel(
           expense: expense,
           recordCount: records.length,
+          onAiRecord: onAiRecord,
+          onAddRecord: onAddRecord,
+        ),
+        const SizedBox(height: 14),
+        _FinanceAccountSummaryCard(
+          accounts: accounts,
+          onOpenAssets: onOpenAssets,
         ),
         const SizedBox(height: 14),
         _ModuleLinkedSummaryCard(
@@ -376,12 +391,14 @@ class _FinanceOverviewView extends StatelessWidget {
 
 class _NetAssetCard extends StatelessWidget {
   const _NetAssetCard({
+    required this.accounts,
     required this.income,
     required this.expense,
     required this.onOpenAssets,
     required this.onAddRecord,
   });
 
+  final List<_FinanceAccountSnapshot> accounts;
   final double income;
   final double expense;
   final VoidCallback onOpenAssets;
@@ -390,139 +407,173 @@ class _NetAssetCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cashflow = income - expense;
+    final netAsset = accounts.fold<double>(
+      0,
+      (total, account) => total + account.balance,
+    );
+    final visibleAccounts = accounts.take(3).toList();
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      key: const ValueKey('finance_workspace_card'),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFFFFFFF),
-            Color(0xFFE9EDFF),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.line),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Positioned(
-            right: 0,
-            top: 0,
-            child: _FinanceIllustration(),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              const Text(
-                '净资产',
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: AppColors.primary,
+                  size: 20,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                '¥1,555.00',
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 31,
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '资产工作台',
+                      style: TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      '账户、收支、预算一起看',
+                      style: TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${accounts.length} 个账户',
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 12,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _FinanceHeroPill(
-                    label: '收入',
-                    value: _formatMoney(income),
-                    color: AppColors.success,
-                  ),
-                  const SizedBox(width: 8),
-                  _FinanceHeroPill(
-                    label: '支出',
-                    value: _formatMoney(expense),
-                    color: AppColors.financeRed,
-                  ),
-                ],
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF172033), Color(0xFF2C3D73)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              const SizedBox(height: 8),
-              _FinanceHeroPill(
-                label: '现金流',
-                value: _formatMoney(cashflow),
-                color: cashflow >= 0 ? AppColors.primary : AppColors.financeRed,
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onOpenAssets,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        minimumSize: const Size(0, 38),
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        side: BorderSide(
-                          color: AppColors.primary.withValues(alpha: 0.35),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: const Icon(Icons.account_balance_rounded, size: 17),
-                      label: const Text(
-                        '查看资产详情',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                        ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '净资产',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _signedMoney(netAsset),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _FinanceWorkspaceMetric(
+                        label: '收入',
+                        value: _formatMoney(income),
+                        color: AppColors.success,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: onAddRecord,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        minimumSize: const Size(0, 38),
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: const Icon(Icons.add_rounded, size: 18),
-                      label: const Text(
-                        '记一笔',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                        ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _FinanceWorkspaceMetric(
+                        label: '支出',
+                        value: _formatMoney(expense),
+                        color: AppColors.financeRed,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _FinanceWorkspaceMetric(
+                        label: '现金流',
+                        value: _formatMoney(cashflow),
+                        color: cashflow >= 0
+                            ? AppColors.primary
+                            : AppColors.financeRed,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _FinanceWorkspaceAction(
+                  icon: Icons.add_card_rounded,
+                  title: '记一笔',
+                  subtitle: '收入 / 支出',
+                  color: AppColors.primary,
+                  onTap: onAddRecord,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _FinanceWorkspaceAction(
+                  icon: Icons.account_balance_rounded,
+                  title: '查看资产详情',
+                  subtitle: '账户余额',
+                  color: AppColors.success,
+                  onTap: onOpenAssets,
+                ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          for (final account in visibleAccounts)
+            _FinanceWorkspaceAccountRow(account: account),
         ],
       ),
     );
   }
 }
 
-class _FinanceHeroPill extends StatelessWidget {
-  const _FinanceHeroPill({
+class _FinanceWorkspaceMetric extends StatelessWidget {
+  const _FinanceWorkspaceMetric({
     required this.label,
     required this.value,
     required this.color,
@@ -534,28 +585,154 @@ class _FinanceHeroPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayColor = color == AppColors.primary ? Colors.white : color;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.11),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 10,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(height: 3),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: color,
+              color: displayColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FinanceWorkspaceAction extends StatelessWidget {
+  const _FinanceWorkspaceAction({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleColor = color == AppColors.success
+        ? const Color(0xFF16865E)
+        : AppColors.primary;
+    return Material(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
+          child: Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(icon, color: color, size: 17),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: titleColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FinanceWorkspaceAccountRow extends StatelessWidget {
+  const _FinanceWorkspaceAccountRow({required this.account});
+
+  final _FinanceAccountSnapshot account;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: account.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(account.icon, color: account.color, size: 16),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              account.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          Text(
+            _signedMoney(account.balance),
+            style: TextStyle(
+              color: account.balance < 0 ? AppColors.financeRed : AppColors.ink,
               fontSize: 12,
               fontWeight: FontWeight.w900,
             ),
@@ -566,14 +743,18 @@ class _FinanceHeroPill extends StatelessWidget {
   }
 }
 
-class _FinanceBudgetCard extends StatelessWidget {
-  const _FinanceBudgetCard({
+class _FinanceControlPanel extends StatelessWidget {
+  const _FinanceControlPanel({
     required this.expense,
     required this.recordCount,
+    required this.onAiRecord,
+    required this.onAddRecord,
   });
 
   final double expense;
   final int recordCount;
+  final VoidCallback onAiRecord;
+  final VoidCallback onAddRecord;
 
   @override
   Widget build(BuildContext context) {
@@ -593,17 +774,31 @@ class _FinanceBudgetCard extends StatelessWidget {
           Row(
             children: [
               const Expanded(
-                child: Text(
-                  '本月预算',
-                  style: TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '本月管控',
+                      style: TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      '预算、复核、AI 记账合在一处',
+                      style: TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Text(
-                '剩余 ${_formatMoney(remaining)}',
+                '$recordCount 笔',
                 style: const TextStyle(
                   color: AppColors.primary,
                   fontSize: 12,
@@ -612,11 +807,41 @@ class _FinanceBudgetCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _FinanceControlStat(
+                  label: '本月预算',
+                  value: _formatMoney(budget),
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _FinanceControlStat(
+                  label: '已用',
+                  value: _formatMoney(expense),
+                  color: progress > 0.82
+                      ? AppColors.financeRed
+                      : AppColors.success,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _FinanceControlStat(
+                  label: '剩余',
+                  value: _formatMoney(remaining),
+                  color: AppColors.ink,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(99),
             child: LinearProgressIndicator(
-              minHeight: 10,
+              minHeight: 8,
               value: progress,
               backgroundColor: AppColors.primarySoft,
               color: progress > 0.82 ? AppColors.financeRed : AppColors.primary,
@@ -625,9 +850,26 @@ class _FinanceBudgetCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              _BudgetMiniStat(label: '预算', value: _formatMoney(budget)),
-              _BudgetMiniStat(label: '已用', value: _formatMoney(expense)),
-              _BudgetMiniStat(label: '记录', value: '$recordCount 笔'),
+              Expanded(
+                child: _FinanceControlAction(
+                  key: const ValueKey('finance_ai_record'),
+                  icon: Icons.auto_awesome_rounded,
+                  title: 'AI 记账',
+                  subtitle: '一句话拆账',
+                  color: AppColors.accent,
+                  onTap: onAiRecord,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _FinanceControlAction(
+                  icon: Icons.edit_note_rounded,
+                  title: '手动补记',
+                  subtitle: '快速记一笔',
+                  color: AppColors.primary,
+                  onTap: onAddRecord,
+                ),
+              ),
             ],
           ),
         ],
@@ -636,18 +878,25 @@ class _FinanceBudgetCard extends StatelessWidget {
   }
 }
 
-class _BudgetMiniStat extends StatelessWidget {
-  const _BudgetMiniStat({
+class _FinanceControlStat extends StatelessWidget {
+  const _FinanceControlStat({
     required this.label,
     required this.value,
+    required this.color,
   });
 
   final String label;
   final String value;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -655,7 +904,7 @@ class _BudgetMiniStat extends StatelessWidget {
             label,
             style: const TextStyle(
               color: AppColors.muted,
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -664,10 +913,165 @@ class _BudgetMiniStat extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppColors.ink,
-              fontSize: 13,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
               fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FinanceControlAction extends StatelessWidget {
+  const _FinanceControlAction({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FinanceAccountSummaryCard extends StatelessWidget {
+  const _FinanceAccountSummaryCard({
+    required this.accounts,
+    required this.onOpenAssets,
+  });
+
+  final List<_FinanceAccountSnapshot> accounts;
+  final VoidCallback onOpenAssets;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleAccounts = accounts.take(3).toList();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '账户余额',
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: onOpenAssets,
+                child: const Text(
+                  '全部账户',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...visibleAccounts.map(
+            (account) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: account.color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(account.icon, color: account.color, size: 17),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      account.name,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    _signedMoney(account.balance),
+                    style: TextStyle(
+                      color: account.balance < 0
+                          ? AppColors.financeRed
+                          : AppColors.ink,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -1225,7 +1629,7 @@ class _CompactFinanceRecordTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  record.subtitle,
+                  '${record.account} · ${record.subtitle}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -1243,56 +1647,6 @@ class _CompactFinanceRecordTile extends StatelessWidget {
               color: record.color,
               fontSize: 13,
               fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FinanceIllustration extends StatelessWidget {
-  const _FinanceIllustration();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 126,
-      height: 106,
-      child: Stack(
-        children: [
-          Positioned(
-            right: 12,
-            top: 0,
-            child: Container(
-              width: 74,
-              height: 92,
-              decoration: BoxDecoration(
-                color: AppColors.primarySoft,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.query_stats_rounded,
-                color: AppColors.primary,
-                size: 35,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 12,
-            bottom: 6,
-            child: Container(
-              width: 44,
-              height: 30,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFE8B8),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(
-                Icons.monetization_on_rounded,
-                color: Color(0xFFF6B63E),
-                size: 24,
-              ),
             ),
           ),
         ],
@@ -1515,6 +1869,7 @@ class _SegmentButton extends StatelessWidget {
 
 class _RangeChip extends StatelessWidget {
   const _RangeChip({
+    super.key,
     required this.label,
     required this.selected,
     required this.onTap,
@@ -1668,6 +2023,88 @@ double _financeTotal(List<FinanceRecord> records, String type) {
   return records
       .where((record) => record.type == type)
       .fold<double>(0, (total, record) => total + record.amount);
+}
+
+class _FinanceAccountSnapshot {
+  const _FinanceAccountSnapshot({
+    required this.name,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.openingBalance,
+    required this.balance,
+  });
+
+  final String name;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final double openingBalance;
+  final double balance;
+}
+
+List<_FinanceAccountSnapshot> _financeAccounts(List<FinanceRecord> records) {
+  // 先用开账余额承接旧版演示数据；后续账户管理会把它改为用户可编辑。
+  final specs = [
+    (
+      name: '银行卡',
+      subtitle: '招商储蓄卡',
+      icon: Icons.account_balance_rounded,
+      color: AppColors.primary,
+      openingBalance: -1800.0,
+    ),
+    (
+      name: '微信',
+      subtitle: '微信支付',
+      icon: Icons.chat_bubble_rounded,
+      color: AppColors.success,
+      openingBalance: 1000.0,
+    ),
+    (
+      name: '支付宝',
+      subtitle: '日常消费',
+      icon: Icons.account_balance_wallet_rounded,
+      color: const Color(0xFF4B8BFF),
+      openingBalance: 600.0,
+    ),
+    (
+      name: '现金',
+      subtitle: '零钱与备用金',
+      icon: Icons.payments_rounded,
+      color: const Color(0xFFB88955),
+      openingBalance: 373.0,
+    ),
+    (
+      name: '信用卡',
+      subtitle: '本月待还',
+      icon: Icons.credit_card_rounded,
+      color: AppColors.financeRed,
+      openingBalance: 452.0,
+    ),
+  ];
+
+  return specs.map((spec) {
+    final delta = records
+        .where((record) => record.account == spec.name)
+        .fold<double>(0, (total, record) {
+      if (record.type == '收入') {
+        return total + record.amount;
+      }
+      return total - record.amount;
+    });
+    return _FinanceAccountSnapshot(
+      name: spec.name,
+      subtitle: spec.subtitle,
+      icon: spec.icon,
+      color: spec.color,
+      openingBalance: spec.openingBalance,
+      balance: spec.openingBalance + delta,
+    );
+  }).toList();
+}
+
+String _signedMoney(double value) {
+  return value < 0 ? '-${_formatMoney(value)}' : _formatMoney(value);
 }
 
 List<_CategoryBudget> _categoryBudgets(List<FinanceRecord> records) {
@@ -2032,7 +2469,7 @@ class AiFinancePromptBuilder {
     final ts = now ?? DateTime.now();
     final currentDate = '${ts.year}-${_pad(ts.month)}-${_pad(ts.day)}';
     final currentTime = '$currentDate ${_pad(ts.hour)}:${_pad(ts.minute)}';
-    return '''从以下自然语言中提取记账信息，返回 JSON 数组。
+    return '''从以下自然语言中提取记账信息，返回JSON数组。
 
 当前时间：$currentTime
 
@@ -2045,19 +2482,33 @@ $text
 账户列表：现金、支付宝、微信、银行卡、信用卡
 
 输出要求：
+- 始终返回 JSON 数组，即使只有一笔，也包成 [{...}]
 - 只返回 JSON 数组，不要解释
-- 即使只有一笔，也包成 [{...}]
-- 多笔消费/收入拆成多条记录
-- amount：支出为负数，收入为正数，转账为正数
-- time：ISO8601 格式；“昨天/前天/早上/中午/晚上”等相对时间按当前时间推断
-- note：15 字以内，优先商户/商品/用途
-- category：从分类列表中选择最接近的一项
-- type：income、expense 或 transfer
-- account/from_account/to_account/tag/tags 可选
+- 识别到多笔独立消费/收入/转账时，数组中每笔一个对象，按时间先后顺序排列
+- “拆开 AA”“拆开报销”“拼单”等场景，每个独立支付/收款都算一笔
+- 同一商家的多件商品如果是一次性支付，合并为一笔
+
+字段说明：
+1. amount: 金额（支出负数，收入正数，转账正数）
+2. time: ISO8601格式，尽量推断时间：
+   - 明确时间（如“14:30”“2026-06-05”）→ 直接使用
+   - 相对日期（昨天、前天、上周）→ 推算具体日期
+   - 时间段（早上、中午、晚上）→ 使用合理时刻（早上09:00、中午12:00、晚上19:00）
+   - 完全没提时间 → 使用当前时间
+3. note: 备注（必须≤15字，超过则精简），优先商户/商品/用途
+4. category: 从分类列表选择（转账填“转账”）
+5. type: income、expense 或 transfer
+6. account: 支付账户（收入/支出可用）
+7. from_account: 转出账户（仅转账可用）
+8. to_account: 转入账户（仅转账可用）
+9. tag/tags: 标签（可选，单个字符串或字符串数组）
 
 示例：
 "昨天中午吃饭50，晚上奶茶12" → [{"amount":-50,"time":"${currentDate}T12:00:00","note":"吃饭","category":"三餐","type":"expense"},{"amount":-12,"time":"${currentDate}T19:00:00","note":"奶茶","category":"咖啡","type":"expense"}]
-"工资到账3000" → [{"amount":3000,"time":"${currentDate}T09:00:00","note":"工资到账","category":"工资","type":"income"}]''';
+"工资到账3000" → [{"amount":3000,"time":"${currentDate}T09:00:00","note":"工资到账","category":"工资","type":"income"}]
+"从建行转800到零钱包" → [{"amount":800,"time":"${currentDate}T09:00:00","category":"转账","type":"transfer","from_account":"银行卡","to_account":"微信","tag":"自己"}]
+
+注意：只返回 JSON 数组，note 必须≤15字。''';
   }
 
   static String _pad(int value) => value.toString().padLeft(2, '0');
@@ -2209,7 +2660,60 @@ class AiFinanceRecordDraft {
   bool selected;
 }
 
-FinanceRecord _financeRecordFromAiBill(AiFinanceBillInfo bill) {
+class _AiFinanceQuickCommand {
+  const _AiFinanceQuickCommand({
+    required this.key,
+    required this.icon,
+    required this.label,
+    required this.prompt,
+  });
+
+  final String key;
+  final IconData icon;
+  final String label;
+  final String prompt;
+}
+
+const _aiFinanceQuickCommands = [
+  _AiFinanceQuickCommand(
+    key: 'lunch',
+    icon: Icons.restaurant_rounded,
+    label: '午餐',
+    prompt: '今天中午午餐花了 28 元，用微信支付',
+  ),
+  _AiFinanceQuickCommand(
+    key: 'coffee',
+    icon: Icons.local_cafe_rounded,
+    label: '咖啡',
+    prompt: '今天下午买咖啡花了 18 元，用支付宝支付',
+  ),
+  _AiFinanceQuickCommand(
+    key: 'transport',
+    icon: Icons.directions_bus_rounded,
+    label: '交通',
+    prompt: '今天早上地铁花了 5 元，用交通卡支付',
+  ),
+  _AiFinanceQuickCommand(
+    key: 'income',
+    icon: Icons.account_balance_wallet_rounded,
+    label: '收入',
+    prompt: '今天工资到账 3000 元，入银行卡',
+  ),
+  _AiFinanceQuickCommand(
+    key: 'transfer',
+    icon: Icons.swap_horiz_rounded,
+    label: '转账',
+    prompt: '从银行卡转 800 元到微信零钱',
+  ),
+  _AiFinanceQuickCommand(
+    key: 'multi',
+    icon: Icons.receipt_long_rounded,
+    label: '多笔',
+    prompt: '昨天中午吃饭 50 元，晚上奶茶 12 元，都用微信支付',
+  ),
+];
+
+FinanceRecord financeRecordFromAiBill(AiFinanceBillInfo bill) {
   final type = _financeTypeFromAiBill(bill);
   final title = _financeTitleFromAiBill(bill, type);
   final noteParts = [
@@ -2225,10 +2729,16 @@ FinanceRecord _financeRecordFromAiBill(AiFinanceBillInfo bill) {
     subtitle: noteParts.isEmpty ? 'AI 记账' : 'AI · ${noteParts.join(' · ')}',
     amount: bill.amount?.abs() ?? 0,
     type: type,
+    date: bill.time == null ? null : DateUtils.dateOnly(bill.time!),
+    account: _financeAccountFromAiBill(bill),
+    tags: bill.tags ?? const [],
   );
 }
 
 String _financeTypeFromAiBill(AiFinanceBillInfo bill) {
+  if (bill.type == AiFinanceBillType.transfer) {
+    return '支出';
+  }
   if (bill.type == AiFinanceBillType.income || (bill.amount ?? 0) > 0) {
     return '收入';
   }
@@ -2267,6 +2777,22 @@ String _financeTitleFromAiBill(AiFinanceBillInfo bill, String type) {
     return bill.category!.trim();
   }
   return '三餐';
+}
+
+String _financeAccountFromAiBill(AiFinanceBillInfo bill) {
+  final raw = (bill.type == AiFinanceBillType.transfer
+          ? bill.fromAccount ?? bill.account ?? bill.toAccount ?? ''
+          : bill.account ?? bill.toAccount ?? bill.fromAccount ?? '')
+      .trim();
+  const accounts = ['银行卡', '微信', '支付宝', '现金', '信用卡'];
+  if (accounts.contains(raw)) {
+    return raw;
+  }
+  if (raw.contains('微信')) return '微信';
+  if (raw.contains('支付宝')) return '支付宝';
+  if (raw.contains('现金')) return '现金';
+  if (raw.contains('信用')) return '信用卡';
+  return '银行卡';
 }
 
 class _FinanceRecordsView extends StatefulWidget {
@@ -2311,18 +2837,21 @@ class _FinanceRecordsViewState extends State<_FinanceRecordsView> {
         Row(
           children: [
             _RangeChip(
+              key: const ValueKey('finance_filter_all'),
               label: '全部',
               selected: _filter == '全部',
               onTap: () => setState(() => _filter = '全部'),
             ),
             const SizedBox(width: 8),
             _RangeChip(
+              key: const ValueKey('finance_filter_expense'),
               label: '支出',
               selected: _filter == '支出',
               onTap: () => setState(() => _filter = '支出'),
             ),
             const SizedBox(width: 8),
             _RangeChip(
+              key: const ValueKey('finance_filter_income'),
               label: '收入',
               selected: _filter == '收入',
               onTap: () => setState(() => _filter = '收入'),
@@ -2363,38 +2892,38 @@ class _FinanceRecordsViewState extends State<_FinanceRecordsView> {
 }
 
 class _FinanceAssetsView extends StatelessWidget {
-  const _FinanceAssetsView();
+  const _FinanceAssetsView({required this.records});
+
+  final List<FinanceRecord> records;
 
   @override
   Widget build(BuildContext context) {
+    final accounts = _financeAccounts(records);
     return ListView(
       padding: const EdgeInsets.fromLTRB(
           18, 0, 18, _moduleSwitchBarReservedHeight + 24),
-      children: const [
-        _AssetTotalCard(),
-        SizedBox(height: 14),
-        _AssetRatioCard(),
-        SizedBox(height: 14),
-        _AssetAccountTile(
-          icon: Icons.account_balance_rounded,
-          title: '银行卡',
-          subtitle: '招商储蓄卡',
-          amount: '¥1,200.00',
-          color: AppColors.primary,
+      children: [
+        _AssetTotalCard(accounts: accounts),
+        const SizedBox(height: 14),
+        _AssetRatioCard(accounts: accounts),
+        const SizedBox(height: 14),
+        const Text(
+          '账户余额',
+          style: TextStyle(
+            color: AppColors.ink,
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+          ),
         ),
-        _AssetAccountTile(
-          icon: Icons.payments_rounded,
-          title: '现金',
-          subtitle: '零钱与备用金',
-          amount: '¥355.00',
-          color: AppColors.success,
-        ),
-        _AssetAccountTile(
-          icon: Icons.credit_card_rounded,
-          title: '信用卡',
-          subtitle: '本月待还',
-          amount: '-¥48.00',
-          color: AppColors.financeRed,
+        const SizedBox(height: 10),
+        ...accounts.map(
+          (account) => _AssetAccountTile(
+            icon: account.icon,
+            title: account.name,
+            subtitle: account.subtitle,
+            amount: _signedMoney(account.balance),
+            color: account.color,
+          ),
         ),
       ],
     );
@@ -2664,6 +3193,10 @@ class _AiFinanceRecordSheetState extends State<_AiFinanceRecordSheet> {
             child: ListView(
               shrinkWrap: true,
               children: [
+                _AiFinanceQuickCommandBar(
+                  onSelected: _applyQuickCommand,
+                ),
+                const SizedBox(height: 10),
                 _FinanceTextField(
                   keyValue: 'ai_finance_input',
                   controller: _inputController,
@@ -2795,7 +3328,7 @@ class _AiFinanceRecordSheetState extends State<_AiFinanceRecordSheet> {
             bills.map(
               (bill) => AiFinanceRecordDraft(
                 bill: bill,
-                record: _financeRecordFromAiBill(bill),
+                record: financeRecordFromAiBill(bill),
               ),
             ),
           );
@@ -2809,6 +3342,13 @@ class _AiFinanceRecordSheetState extends State<_AiFinanceRecordSheet> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  void _applyQuickCommand(_AiFinanceQuickCommand command) {
+    _inputController.text = command.prompt;
+    _inputController.selection = TextSelection.collapsed(
+      offset: _inputController.text.length,
+    );
   }
 
   void _saveSelected() {
@@ -2863,6 +3403,56 @@ class _AiFinanceMessageCard extends StatelessWidget {
   }
 }
 
+class _AiFinanceQuickCommandBar extends StatelessWidget {
+  const _AiFinanceQuickCommandBar({
+    required this.onSelected,
+  });
+
+  final ValueChanged<_AiFinanceQuickCommand> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _aiFinanceQuickCommands.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final command = _aiFinanceQuickCommands[index];
+          return Material(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(8),
+            child: InkWell(
+              key: ValueKey('ai_finance_quick_${command.key}'),
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => onSelected(command),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(command.icon, size: 16, color: AppColors.primary),
+                    const SizedBox(width: 5),
+                    Text(
+                      command.label,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _AiFinanceDraftTile extends StatelessWidget {
   const _AiFinanceDraftTile({
     required this.draft,
@@ -2875,6 +3465,28 @@ class _AiFinanceDraftTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final record = draft.record;
+    final bill = draft.bill;
+    final chips = [
+      _AiFinanceInfoChip(
+        icon: Icons.account_balance_wallet_rounded,
+        text: record.account,
+      ),
+      if (bill.type == AiFinanceBillType.transfer)
+        _AiFinanceInfoChip(
+          icon: Icons.swap_horiz_rounded,
+          text: '${bill.fromAccount ?? '转出'} → ${bill.toAccount ?? '转入'}',
+        ),
+      if ((bill.tags ?? const []).isNotEmpty)
+        _AiFinanceInfoChip(
+          icon: Icons.sell_rounded,
+          text: bill.tags!.join('、'),
+        ),
+      if (bill.confidence > 0)
+        _AiFinanceInfoChip(
+          icon: Icons.verified_rounded,
+          text: '置信度 ${(bill.confidence * 100).round()}%',
+        ),
+    ];
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -2916,13 +3528,19 @@ class _AiFinanceDraftTile extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   record.subtitle,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: AppColors.muted,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: chips,
                 ),
               ],
             ),
@@ -2933,6 +3551,42 @@ class _AiFinanceDraftTile extends StatelessWidget {
               color: record.color,
               fontSize: 14,
               fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiFinanceInfoChip extends StatelessWidget {
+  const _AiFinanceInfoChip({
+    required this.icon,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: AppColors.muted),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -2965,6 +3619,7 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
   late final TextEditingController _subtitleController;
   late String _type;
   late _FinanceCategorySpec _category;
+  late String _account;
   late String _amountText;
   late DateTime _date;
   double _accumulator = 0;
@@ -2992,12 +3647,15 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
     _FinanceCategorySpec(Icons.work_history_rounded, '兼职'),
   ];
 
+  static const _accounts = ['银行卡', '微信', '支付宝', '现金', '信用卡'];
+
   @override
   void initState() {
     super.initState();
     final record = widget.record;
     _type = record?.type ?? '支出';
     _category = _categoryForRecord(record);
+    _account = record?.account ?? '银行卡';
     _subtitleController = TextEditingController(
         text: record?.subtitle == '手动记录' ? '' : record?.subtitle ?? '');
     _amountText = record == null ? '0' : _formatAmountInput(record.amount);
@@ -3015,9 +3673,9 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.96,
+        maxHeight: MediaQuery.sizeOf(context).height * 0.92,
       ),
-      padding: EdgeInsets.fromLTRB(18, 8, 18, bottomInset + 10),
+      padding: EdgeInsets.fromLTRB(16, 6, 16, bottomInset + 8),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -3028,7 +3686,7 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const _SheetHandle(),
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             Row(
               children: [
                 Expanded(
@@ -3036,7 +3694,7 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
                     widget.record == null ? '记一笔' : '编辑记录',
                     style: const TextStyle(
                       color: AppColors.ink,
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -3047,7 +3705,7 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Flexible(
               child: SingleChildScrollView(
                 child: Column(
@@ -3055,18 +3713,20 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildTypeTabs(),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     _buildCategoryStrip(),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
+                    _buildAccountStrip(),
+                    const SizedBox(height: 6),
                     _buildAmountDisplay(),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     _FinanceTextField(
                       keyValue: 'finance_record_subtitle',
                       controller: _subtitleController,
                       label: '备注',
                       keyboardType: TextInputType.text,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     _buildAmountKeyboard(),
                   ],
                 ),
@@ -3110,11 +3770,11 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
 
   Widget _buildCategoryStrip() {
     return SizedBox(
-      height: 72,
+      height: 58,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _visibleCategories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final category = _visibleCategories[index];
           final selected = category.title == _category.title;
@@ -3129,11 +3789,32 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
     );
   }
 
+  Widget _buildAccountStrip() {
+    return SizedBox(
+      height: 34,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _accounts.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final account = _accounts[index];
+          final selected = account == _account;
+          return _RangeChip(
+            key: ValueKey('finance_account_$account'),
+            label: account,
+            selected: selected,
+            onTap: () => setState(() => _account = account),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildAmountDisplay() {
     final total = _currentTotal();
     return Container(
       key: const ValueKey('finance_record_amount'),
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.fromLTRB(10, 8, 6, 8),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(10),
@@ -3148,16 +3829,7 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${_category.title} · $_type',
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '金额',
+                  '${_category.title} · $_type · $_account',
                   style: const TextStyle(
                     color: AppColors.muted,
                     fontSize: 12,
@@ -3165,13 +3837,30 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  _formatMoney(total),
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                  ),
+                Row(
+                  children: [
+                    const Text(
+                      '金额',
+                      style: TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _formatMoney(total),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -3306,6 +3995,7 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
         amount: amount,
         type: _type,
         date: _date,
+        account: _account,
       ),
     );
   }
@@ -3506,8 +4196,8 @@ class _FinanceCategoryButton extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        width: 68,
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+        width: 62,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
         decoration: BoxDecoration(
           color: selected ? AppColors.primarySoft : AppColors.background,
           borderRadius: BorderRadius.circular(12),
@@ -3521,16 +4211,16 @@ class _FinanceCategoryButton extends StatelessWidget {
             Icon(
               category.icon,
               color: selected ? AppColors.primary : AppColors.muted,
-              size: 21,
+              size: 18,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Text(
               category.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: selected ? AppColors.primary : AppColors.ink,
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -3573,7 +4263,7 @@ class _FinanceAmountKey extends StatelessWidget {
             ? AppColors.primary
             : AppColors.ink;
     return Padding(
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(2),
       child: Material(
         color: background,
         borderRadius: BorderRadius.circular(10),
@@ -3582,14 +4272,14 @@ class _FinanceAmountKey extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           onTap: onTap,
           child: SizedBox(
-            height: 38,
+            height: 34,
             child: Center(
               child: icon == null
                   ? Text(
                       label!,
                       style: TextStyle(
                         color: foreground,
-                        fontSize: dense ? 13 : 18,
+                        fontSize: dense ? 12 : 17,
                         fontWeight: FontWeight.w900,
                       ),
                     )
@@ -3683,15 +4373,23 @@ class _FinanceRecordTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    record.subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  Row(
+                    children: [
+                      _FinanceAccountBadge(account: record.account),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          record.subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -3711,11 +4409,42 @@ class _FinanceRecordTile extends StatelessWidget {
   }
 }
 
-class _AssetTotalCard extends StatelessWidget {
-  const _AssetTotalCard();
+class _FinanceAccountBadge extends StatelessWidget {
+  const _FinanceAccountBadge({required this.account});
+
+  final String account;
 
   @override
   Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.primarySoft,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        account,
+        style: const TextStyle(
+          color: AppColors.primary,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _AssetTotalCard extends StatelessWidget {
+  const _AssetTotalCard({required this.accounts});
+
+  final List<_FinanceAccountSnapshot> accounts;
+
+  @override
+  Widget build(BuildContext context) {
+    final netAsset = accounts.fold<double>(
+      0,
+      (total, account) => total + account.balance,
+    );
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -3723,24 +4452,24 @@ class _AssetTotalCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
-        children: const [
-          _AppIconMark(),
-          SizedBox(width: 14),
+        children: [
+          const _AppIconMark(),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   '净资产',
                   style: TextStyle(
                     color: AppColors.muted,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  '¥1,555.00',
-                  style: TextStyle(
+                  _signedMoney(netAsset),
+                  style: const TextStyle(
                     color: AppColors.ink,
                     fontSize: 26,
                     fontWeight: FontWeight.w900,
@@ -3756,10 +4485,19 @@ class _AssetTotalCard extends StatelessWidget {
 }
 
 class _AssetRatioCard extends StatelessWidget {
-  const _AssetRatioCard();
+  const _AssetRatioCard({required this.accounts});
+
+  final List<_FinanceAccountSnapshot> accounts;
 
   @override
   Widget build(BuildContext context) {
+    final positiveAccounts =
+        accounts.where((account) => account.balance > 0).toList();
+    final total = positiveAccounts.fold<double>(
+      0,
+      (sum, account) => sum + account.balance,
+    );
+    final hasPositiveAssets = total > 0;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -3781,30 +4519,38 @@ class _AssetRatioCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(99),
             child: Row(
-              children: const [
-                Expanded(
-                  flex: 77,
-                  child: ColoredBox(
-                    color: AppColors.primary,
-                    child: SizedBox(height: 14),
+              children: [
+                for (final account in positiveAccounts)
+                  Expanded(
+                    flex: hasPositiveAssets
+                        ? math.max(1, (account.balance / total * 100).round())
+                        : 1,
+                    child: ColoredBox(
+                      color: account.color,
+                      child: const SizedBox(height: 14),
+                    ),
                   ),
-                ),
-                Expanded(
-                  flex: 23,
-                  child: ColoredBox(
-                    color: AppColors.success,
-                    child: SizedBox(height: 14),
+                if (positiveAccounts.isEmpty)
+                  const Expanded(
+                    child: ColoredBox(
+                      color: AppColors.line,
+                      child: SizedBox(height: 14),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          const Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 8,
             children: [
-              _LegendDot(color: AppColors.primary, label: '银行卡 77%'),
-              SizedBox(width: 16),
-              _LegendDot(color: AppColors.success, label: '现金 23%'),
+              for (final account in positiveAccounts.take(3))
+                _LegendDot(
+                  color: account.color,
+                  label: '${account.name}账户',
+                  detail: _signedMoney(account.balance),
+                ),
             ],
           ),
         ],
@@ -3817,10 +4563,12 @@ class _LegendDot extends StatelessWidget {
   const _LegendDot({
     required this.color,
     required this.label,
+    required this.detail,
   });
 
   final Color color;
   final String label;
+  final String detail;
 
   @override
   Widget build(BuildContext context) {
@@ -3834,6 +4582,15 @@ class _LegendDot extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
+          style: const TextStyle(
+            color: AppColors.muted,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(width: 3),
+        Text(
+          detail,
           style: const TextStyle(
             color: AppColors.muted,
             fontSize: 12,

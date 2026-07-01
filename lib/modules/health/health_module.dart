@@ -159,13 +159,9 @@ class _HealthModulePageState extends State<HealthModulePage> {
           children: [
             Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
-                  child: _HealthHeader(
-                    title: selectedDay.title,
-                    onOpenModules: widget.onOpenModules,
-                    onOpenSummary: _openSummarySheet,
-                  ),
+                _HealthHeader(
+                  onOpenModules: widget.onOpenModules,
+                  onOpenSummary: _openSummarySheet,
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
@@ -548,42 +544,20 @@ class _HealthModulePageState extends State<HealthModulePage> {
 
 class _HealthHeader extends StatelessWidget {
   const _HealthHeader({
-    required this.title,
     required this.onOpenModules,
     required this.onOpenSummary,
   });
 
-  final String title;
   final VoidCallback onOpenModules;
   final VoidCallback onOpenSummary;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _IconBubble(
-          icon: Icons.view_sidebar_rounded,
-          color: const Color(0xFF91A3FF),
-          onTap: onOpenModules,
-        ),
-        Expanded(
-          child: Center(
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: AppColors.ink,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-        ),
-        _IconBubble(
-          icon: Icons.grid_view_rounded,
-          color: AppColors.primary,
-          onTap: onOpenSummary,
-        ),
-      ],
+    return _ModuleGlassHeader(
+      module: LifeModule.health,
+      title: '健康',
+      onOpenModules: onOpenModules,
+      onOpenMore: onOpenSummary,
     );
   }
 }

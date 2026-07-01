@@ -4,7 +4,7 @@ class _AppDataStore {
   const _AppDataStore();
 
   static const _databaseName = 'pingsheng_life.db';
-  static const _databaseVersion = 4;
+  static const _databaseVersion = 5;
   static Future<void> _pendingSave = Future<void>.value();
 
   Future<LifeSummarySnapshot?> load() async {
@@ -184,6 +184,8 @@ class _AppDataStore {
             'amount': record.amount,
             'type': record.type,
             'date': record.date?.toIso8601String(),
+            'account': record.account,
+            'tagsJson': jsonEncode(record.tags),
           });
         }
 
@@ -285,7 +287,9 @@ class _AppDataStore {
             subtitle TEXT NOT NULL,
             amount REAL NOT NULL,
             type TEXT NOT NULL,
-            date TEXT
+            date TEXT,
+            account TEXT,
+            tagsJson TEXT
           )
         ''');
         await db.execute('''
@@ -314,6 +318,10 @@ class _AppDataStore {
         }
         if (oldVersion < 4) {
           await _createWorkoutTrainingTables(db);
+        }
+        if (oldVersion < 5) {
+          await _addColumnIfMissing(db, 'finance_records', 'account TEXT');
+          await _addColumnIfMissing(db, 'finance_records', 'tagsJson TEXT');
         }
       },
     );
@@ -455,6 +463,12 @@ class _AppDataStore {
       amount: (row['amount'] as num?)?.toDouble() ?? 0,
       type: row['type'] as String? ?? '支出',
       date: DateTime.tryParse(row['date'] as String? ?? ''),
+      account: (row['account'] as String?)?.trim().isEmpty == false
+          ? (row['account'] as String).trim()
+          : '银行卡',
+      tags: _financeStringListFromJson(
+        jsonDecode(row['tagsJson'] as String? ?? '[]'),
+      ),
     );
   }
 

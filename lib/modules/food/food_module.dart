@@ -62,14 +62,29 @@ class _FoodMealTemplate {
 enum _FoodMacro { protein, carbs, fat }
 
 const _foodCategories = ['常用', '主食', '蛋白', '蔬果', '饮品', '零食', '外卖', '自定义'];
+const _customFoodCategoryLabels = ['主食', '蛋白', '蔬果', '饮品', '零食', '外卖', '自定义'];
+
+String _foodCategoryForGroup(String group) {
+  return switch (_normalizeFoodGroup(group)) {
+    '常用' => '常用',
+    '主食' => '主食',
+    '蛋白' => '蛋白',
+    '蔬果' => '蔬果',
+    '饮品' => '饮品',
+    '零食' => '零食',
+    '外卖' => '外卖',
+    '自定义' => '自定义',
+    _ => '常用',
+  };
+}
 
 String _normalizeFoodGroup(String group) {
   return switch (group) {
-    '常用' || '常见' || '收藏' || '早餐' || '汤粥' || '家常菜' => '常用',
+    '常用' || '常见' || '早餐' || '汤粥' || '家常菜' => '常用',
     '主食' || '主食杂粮' => '主食',
     '蛋白' || '肉蛋奶' || '低脂高蛋白' || '海鲜水产' => '蛋白',
     '蔬果' || '蔬菜水果' => '蔬果',
-    '饮品' => '饮品',
+    '收藏' || '饮品' => '饮品',
     '零食' || '坚果种子' || '烘焙甜品' || '调味酱料' => '零食',
     '外卖' || '外卖快餐' => '外卖',
     '自定义' => '自定义',
@@ -296,7 +311,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
   final List<FoodItem> _selectedFoods = [];
   final List<FoodLogEntry> _foodLogs = [];
   final TextEditingController _foodSearchController = TextEditingController();
-  String _activeGroup = '常用';
+  String _activeFoodCategory = '常用';
   String _category = '三餐';
   String _activeMeal = '午餐';
   String _foodQuery = '';
@@ -373,7 +388,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
         return;
       }
       // 小组件“记饮食”打开自定义食物表单，用户可以马上补名称、热量和份量。
-      setState(() => _activeGroup = _normalizeFoodGroup('自定义'));
+      setState(() => _activeFoodCategory = '自定义');
       _openCustomFoodSheet();
       widget.onQuickActionHandled();
     });
@@ -383,10 +398,10 @@ class _FoodModulePageState extends State<FoodModulePage> {
   Widget build(BuildContext context) {
     final query = _foodQuery.trim();
     final visibleFoods = _foods.where((food) {
-      final groupMatches =
-          query.isNotEmpty || _normalizeFoodGroup(food.group) == _activeGroup;
+      final categoryMatches = query.isNotEmpty ||
+          _foodCategoryForGroup(food.group) == _activeFoodCategory;
       final queryMatches = query.isEmpty || food.name.contains(query);
-      return groupMatches && queryMatches;
+      return categoryMatches && queryMatches;
     }).toList();
 
     return Scaffold(
@@ -397,7 +412,6 @@ class _FoodModulePageState extends State<FoodModulePage> {
             Column(
               children: [
                 _FoodHeader(
-                  category: _category,
                   onOpenModules: widget.onOpenModules,
                   onOpenCategories: _openCategorySheet,
                 ),
@@ -406,7 +420,6 @@ class _FoodModulePageState extends State<FoodModulePage> {
                   child: widget.moduleNav,
                 ),
                 _FoodSearchBar(
-                  category: _category,
                   controller: _foodSearchController,
                   onChanged: (value) => setState(() => _foodQuery = value),
                   onClear: _clearFoodSearch,
@@ -431,11 +444,17 @@ class _FoodModulePageState extends State<FoodModulePage> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      if (_activeGroup == '自定义')
+                      _FoodCategoryScroller(
+                        activeCategory: _activeFoodCategory,
+                        onChanged: (category) =>
+                            setState(() => _activeFoodCategory = category),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_activeFoodCategory == '自定义')
                         _FoodAddCustomCard(onTap: _openCustomFoodSheet),
                       if (visibleFoods.isEmpty)
                         _FoodEmptyState(
-                          group: _activeGroup,
+                          category: _activeFoodCategory,
                           query: query,
                           onAddCustom: _openCustomFoodSheet,
                         )
@@ -481,10 +500,6 @@ class _FoodModulePageState extends State<FoodModulePage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _FoodTabs(
-                    active: _activeGroup,
-                    onChanged: (group) => setState(() => _activeGroup = group),
-                  ),
                   _FoodSelectedBar(
                     count: _selectedFoods.length,
                     calories: _totalCalories,
@@ -627,6 +642,8 @@ class _FoodModulePageState extends State<FoodModulePage> {
       builder: (context) {
         return _CustomFoodSheet(
           initialName: _foodQuery.trim(),
+          initialCategory:
+              _activeFoodCategory == '常用' ? '自定义' : _activeFoodCategory,
           onSave: (name, calorie, unit, group) {
             Navigator.of(context).pop();
             setState(() {
@@ -640,7 +657,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
                   group: normalizedGroup,
                 ),
               );
-              _activeGroup = normalizedGroup;
+              _activeFoodCategory = _foodCategoryForGroup(normalizedGroup);
               _foodSearchController.clear();
               _foodQuery = '';
             });
@@ -1314,12 +1331,10 @@ class _FoodTrendBlock extends StatelessWidget {
 
 class _FoodHeader extends StatelessWidget {
   const _FoodHeader({
-    required this.category,
     required this.onOpenModules,
     required this.onOpenCategories,
   });
 
-  final String category;
   final VoidCallback onOpenModules;
   final VoidCallback onOpenCategories;
 
@@ -1336,13 +1351,11 @@ class _FoodHeader extends StatelessWidget {
 
 class _FoodSearchBar extends StatelessWidget {
   const _FoodSearchBar({
-    required this.category,
     required this.controller,
     required this.onChanged,
     required this.onClear,
   });
 
-  final String category;
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
@@ -1394,22 +1407,6 @@ class _FoodSearchBar extends StatelessWidget {
                     size: 18,
                   ),
                 ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft.withValues(alpha: 0.82),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Text(
-                  category,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -1418,52 +1415,76 @@ class _FoodSearchBar extends StatelessWidget {
   }
 }
 
-class _FoodTabs extends StatelessWidget {
-  const _FoodTabs({
-    required this.active,
+class _FoodCategoryScroller extends StatelessWidget {
+  const _FoodCategoryScroller({
+    required this.activeCategory,
     required this.onChanged,
   });
 
-  final String active;
+  final String activeCategory;
   final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    const quickGroups = _foodCategories;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: quickGroups.map((group) {
-        final selected = active == group;
-        return InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: () => onChanged(group),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-            child: Column(
-              children: [
-                Text(
-                  group,
-                  style: TextStyle(
-                    color: selected ? AppColors.ink : AppColors.muted,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
+    return SizedBox(
+      height: 42,
+      child: Scrollable(
+        key: const ValueKey('food_category_scroller'),
+        axisDirection: AxisDirection.right,
+        physics: const BouncingScrollPhysics(),
+        viewportBuilder: (context, position) {
+          return Viewport(
+            axisDirection: AxisDirection.right,
+            offset: position,
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                sliver: SliverToBoxAdapter(
+                  child: Row(
+                    children: _foodCategories.map((category) {
+                      final selected = activeCategory == category;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: InkWell(
+                          key: ValueKey('food_category_$category'),
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () => onChanged(category),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 160),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 9),
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? AppColors.primarySoft
+                                  : AppColors.surface.withValues(alpha: 0.86),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: selected
+                                    ? AppColors.primary.withValues(alpha: 0.25)
+                                    : AppColors.line,
+                              ),
+                            ),
+                            child: Text(
+                              category,
+                              style: TextStyle(
+                                color: selected
+                                    ? AppColors.primary
+                                    : AppColors.ink,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
-                const SizedBox(height: 6),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  width: selected ? 20 : 0,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -1511,18 +1532,18 @@ class _FoodAddCustomCard extends StatelessWidget {
 
 class _FoodEmptyState extends StatelessWidget {
   const _FoodEmptyState({
-    required this.group,
+    required this.category,
     required this.query,
     required this.onAddCustom,
   });
 
-  final String group;
+  final String category;
   final String query;
   final VoidCallback onAddCustom;
 
   @override
   Widget build(BuildContext context) {
-    final isCustom = group == '自定义';
+    final showAddCustom = category == '自定义';
     final title = query.isEmpty ? '这里还没有食物' : '没有匹配的食物';
     final subtitle = query.isEmpty ? '添加常吃项后会出现在这里' : '换个关键词试试，或添加为自定义食物';
 
@@ -1555,7 +1576,7 @@ class _FoodEmptyState extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          if (isCustom) ...[
+          if (showAddCustom) ...[
             const SizedBox(height: 14),
             FilledButton(
               onPressed: onAddCustom,
@@ -1662,10 +1683,12 @@ class _FoodCard extends StatelessWidget {
 class _CustomFoodSheet extends StatefulWidget {
   const _CustomFoodSheet({
     required this.initialName,
+    required this.initialCategory,
     required this.onSave,
   });
 
   final String initialName;
+  final String initialCategory;
   final void Function(String name, int calorie, String unit, String group)
       onSave;
 
@@ -1677,8 +1700,7 @@ class _CustomFoodSheetState extends State<_CustomFoodSheet> {
   late final TextEditingController _nameController;
   late final TextEditingController _calorieController;
   late final TextEditingController _unitController;
-  String _group = '自定义';
-  static const _groups = ['自定义', '常用', '主食', '蛋白', '蔬果', '饮品', '零食', '外卖'];
+  late String _group;
 
   @override
   void initState() {
@@ -1686,6 +1708,9 @@ class _CustomFoodSheetState extends State<_CustomFoodSheet> {
     _nameController = TextEditingController(text: widget.initialName);
     _calorieController = TextEditingController(text: '120');
     _unitController = TextEditingController(text: '1 份');
+    _group = _customFoodCategoryLabels.contains(widget.initialCategory)
+        ? widget.initialCategory
+        : '自定义';
   }
 
   @override
@@ -1774,7 +1799,7 @@ class _CustomFoodSheetState extends State<_CustomFoodSheet> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _groups.map((group) {
+                children: _customFoodCategoryLabels.map((group) {
                   final selected = _group == group;
                   return ChoiceChip(
                     key: ValueKey('custom_food_group_$group'),

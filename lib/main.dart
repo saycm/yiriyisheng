@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -40,6 +41,7 @@ part 'modules/plan/widgets/todo_card.dart';
 part 'modules/plan/widgets/todo_list.dart';
 part 'modules/plan/widgets/week_plan_view.dart';
 part 'modules/finance/finance_module.dart';
+part 'modules/finance/finance_ai_assistant.dart';
 part 'modules/food/food_module.dart';
 part 'modules/workout/workout_models.dart';
 part 'modules/workout/workout_module.dart';

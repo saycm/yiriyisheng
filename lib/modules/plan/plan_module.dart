@@ -52,7 +52,6 @@ class PlanModulePage extends StatefulWidget {
 
 class _PlanModulePageState extends State<PlanModulePage>
     with _PlanModuleState, _PlanModuleActions {
-
   @override
   void initState() {
     super.initState();
@@ -91,17 +90,19 @@ class _PlanModulePageState extends State<PlanModulePage>
             Column(
               children: [
                 _PlanHeader(
-                  selectedDate: _selectedDate,
-                  onDateChanged: (date) => setState(() {
-                    _selectedDate = date;
-                    _selectedTab = 2;
-                  }),
                   onOpenModules: widget.onOpenModules,
                   onOpenMore: _openMoreSheet,
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: widget.moduleNav,
+                ),
+                _PlanDateToolbar(
+                  selectedDate: _selectedDate,
+                  onDateChanged: (date) => setState(() {
+                    _selectedDate = date;
+                    _selectedTab = 2;
+                  }),
                 ),
                 Expanded(
                   child: _PlanBody(

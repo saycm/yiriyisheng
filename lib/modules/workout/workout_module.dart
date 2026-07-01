@@ -523,7 +523,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
   static const _bodyParts = ['全部', '胸背部', '肩颈', '核心', '腿臀', '有氧', '拉伸'];
 
   int _selectedTopTab = 0;
-  int _selectedBottomTab = 1;
+  int _selectedBottomTab = 0;
   WorkoutAction? _activeAction;
   int _handledQuickActionToken = 0;
   String _activeBodyPart = '全部';
@@ -1005,10 +1005,6 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
   }
 
   void _handleBottomNav(int index) {
-    if (index == 0) {
-      widget.onSwitchModule(LifeModule.health);
-      return;
-    }
     setState(() => _selectedBottomTab = index);
   }
 }
@@ -1020,34 +1016,11 @@ class _WorkoutHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
-      child: Row(
-        children: [
-          _IconBubble(
-            icon: Icons.view_sidebar_rounded,
-            color: const Color(0xFF91A3FF),
-            onTap: onOpenModules,
-          ),
-          const Expanded(
-            child: Center(
-              child: Text(
-                '锻炼',
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-          _IconBubble(
-            icon: Icons.more_horiz_rounded,
-            color: AppColors.primary,
-            onTap: () {},
-          ),
-        ],
-      ),
+    return _ModuleGlassHeader(
+      module: LifeModule.workout,
+      title: '锻炼',
+      onOpenModules: onOpenModules,
+      onOpenMore: () {},
     );
   }
 }
@@ -3748,7 +3721,6 @@ class _WorkoutBottomNav extends StatelessWidget {
     required this.onChanged,
     required this.keyPrefix,
     this.items = const [
-      (Icons.monitor_heart_rounded, '总览'),
       (Icons.fitness_center_rounded, '锻炼'),
     ],
   });

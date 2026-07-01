@@ -1729,11 +1729,13 @@ class _ModuleQuickNav extends StatelessWidget {
     required this.selected,
     required this.onSwitchModule,
     this.keyPrefix,
+    this.glass = false,
   });
 
   final LifeModule selected;
   final ValueChanged<LifeModule> onSwitchModule;
   final String? keyPrefix;
+  final bool glass;
 
   @override
   Widget build(BuildContext context) {
@@ -1753,6 +1755,7 @@ class _ModuleQuickNav extends StatelessWidget {
         (Icons.monitor_heart_rounded, '健康'),
       ],
       compact: true,
+      glass: glass,
       keyPrefix: keyPrefix,
       onChanged: (index) {
         final modules = [
@@ -1771,6 +1774,192 @@ class _ModuleQuickNav extends StatelessWidget {
 const double _moduleSwitchBarBottomGap = 8;
 const double _moduleSwitchBarReservedHeight = 76;
 
+class _GlassSurface extends StatelessWidget {
+  const _GlassSurface({
+    required this.child,
+    this.padding = EdgeInsets.zero,
+    this.borderRadius = 18,
+    this.color,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final double borderRadius;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: color ?? AppColors.surface.withValues(alpha: 0.68),
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.82),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.10),
+                blurRadius: 22,
+                offset: const Offset(0, 10),
+              ),
+              BoxShadow(
+                color: AppColors.sky.withValues(alpha: 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _ModuleGlassHeader extends StatelessWidget {
+  const _ModuleGlassHeader({
+    required this.module,
+    required this.title,
+    required this.onOpenModules,
+    required this.onOpenMore,
+  });
+
+  final LifeModule module;
+  final String title;
+  final VoidCallback onOpenModules;
+  final VoidCallback onOpenMore;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
+      child: _GlassSurface(
+        borderRadius: 18,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          key: const ValueKey('module_glass_header'),
+          children: [
+            _GlassIconButton(
+              icon: Icons.view_sidebar_rounded,
+              color: AppColors.primary,
+              onTap: onOpenModules,
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  title,
+                  key: ValueKey('module_glass_header_title_${module.name}'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+            _GlassIconButton(
+              icon: Icons.more_horiz_rounded,
+              color: AppColors.primary,
+              onTap: onOpenMore,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassIconButton extends StatelessWidget {
+  const _GlassIconButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: AppColors.surface.withValues(alpha: 0.58),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.88)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.14),
+              blurRadius: 14,
+              offset: const Offset(0, 7),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: color, size: 22),
+      ),
+    );
+  }
+}
+
+class _HeaderActionPill extends StatelessWidget {
+  const _HeaderActionPill({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: _GlassSurface(
+        borderRadius: 16,
+        color: AppColors.surface.withValues(alpha: 0.52),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ModuleLinkStrip extends StatelessWidget {
   const _ModuleLinkStrip({
     required this.selected,
@@ -1786,12 +1975,19 @@ class _ModuleLinkStrip extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Center(
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: _ModuleQuickNav(
-            selected: selected,
-            onSwitchModule: onSwitchModule,
-            keyPrefix: 'module_link',
+        child: _GlassSurface(
+          borderRadius: 18,
+          padding: const EdgeInsets.all(4),
+          color: AppColors.surface.withValues(alpha: 0.58),
+          child: FittedBox(
+            key: const ValueKey('module_link_glass_container'),
+            fit: BoxFit.scaleDown,
+            child: _ModuleQuickNav(
+              selected: selected,
+              onSwitchModule: onSwitchModule,
+              keyPrefix: 'module_link',
+              glass: true,
+            ),
           ),
         ),
       ),
@@ -1806,6 +2002,7 @@ class _CapsuleNav extends StatelessWidget {
     required this.onChanged,
     this.compact = false,
     this.softCompact = false,
+    this.glass = false,
     this.keyPrefix,
   });
 
@@ -1814,6 +2011,7 @@ class _CapsuleNav extends StatelessWidget {
   final ValueChanged<int> onChanged;
   final bool compact;
   final bool softCompact;
+  final bool glass;
   final String? keyPrefix;
 
   @override
@@ -1863,12 +2061,18 @@ class _CapsuleNav extends StatelessWidget {
       key: keyPrefix == null ? null : ValueKey('${keyPrefix}_container'),
       padding: EdgeInsets.all(outerPadding),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.94),
+        color: glass
+            ? Colors.transparent
+            : AppColors.surface.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(outerRadius),
-        border: Border.all(color: AppColors.line.withValues(alpha: 0.88)),
-        boxShadow: [
-          _airyShadow(AppColors.primary),
-        ],
+        border: glass
+            ? null
+            : Border.all(color: AppColors.line.withValues(alpha: 0.88)),
+        boxShadow: glass
+            ? null
+            : [
+                _airyShadow(AppColors.primary),
+              ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

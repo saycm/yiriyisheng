@@ -62,6 +62,7 @@ List<FinanceRecord> _createSeedFinanceRecords() {
       subtitle: '原味板烧鸡腿麦满分',
       amount: 18,
       type: '支出',
+      account: '现金',
     ),
     FinanceRecord(
       icon: Icons.phone_iphone_rounded,
@@ -69,6 +70,7 @@ List<FinanceRecord> _createSeedFinanceRecords() {
       subtitle: '手机分期还款',
       amount: 500,
       type: '支出',
+      account: '信用卡',
     ),
     FinanceRecord(
       icon: Icons.account_balance_wallet_rounded,
@@ -76,6 +78,7 @@ List<FinanceRecord> _createSeedFinanceRecords() {
       subtitle: '本月收入',
       amount: 3000,
       type: '收入',
+      account: '银行卡',
     ),
     FinanceRecord(
       icon: Icons.local_cafe_rounded,
@@ -83,6 +86,7 @@ List<FinanceRecord> _createSeedFinanceRecords() {
       subtitle: '优品豆浆（小杯）',
       amount: 6,
       type: '支出',
+      account: '支付宝',
     ),
   ];
 }
