@@ -4,7 +4,7 @@ class _AppDataStore {
   const _AppDataStore();
 
   static const _databaseName = 'pingsheng_life.db';
-  static const _databaseVersion = 3;
+  static const _databaseVersion = 5;
   static Future<void> _pendingSave = Future<void>.value();
 
   Future<LifeSummarySnapshot?> load() async {
@@ -32,6 +32,18 @@ class _AppDataStore {
         orderBy: 'position ASC, id ASC',
       );
       final workoutRows = await db.query('workout_groups');
+      final workoutPlanRows = await db.query(
+        'workout_plans',
+        orderBy: 'position ASC, id ASC',
+      );
+      final activeSessionRows = await db.query(
+        'active_workout_session',
+        limit: 1,
+      );
+      final workoutHistoryRows = await db.query(
+        'workout_history',
+        orderBy: 'position ASC, id ASC',
+      );
       final workoutGroups = <String, int>{};
       for (final row in workoutRows) {
         final action = row['actionName'] as String? ?? '';
@@ -46,6 +58,11 @@ class _AppDataStore {
         workoutGroupsByAction: workoutGroups,
         todos: todos.map(_todoFromRow).toList(),
         financeRecords: financeRecords.map(_financeRecordFromRow).toList(),
+        workoutPlans: workoutPlanRows.map(_workoutPlanFromRow).toList(),
+        activeWorkoutSession: activeSessionRows.isEmpty
+            ? null
+            : _activeWorkoutSessionFromRow(activeSessionRows.first),
+        workoutHistory: workoutHistoryRows.map(_workoutHistoryFromRow).toList(),
         aiFinanceEndpoint: await _readStringMeta(
           db,
           'aiFinanceEndpoint',
@@ -68,6 +85,9 @@ class _AppDataStore {
     required Map<String, int> workoutGroupsByAction,
     required List<TodoItem> todos,
     required List<FinanceRecord> financeRecords,
+    required List<WorkoutPlan> workoutPlans,
+    required ActiveWorkoutSession? activeWorkoutSession,
+    required List<WorkoutHistoryEntry> workoutHistory,
     required String aiFinanceEndpoint,
     required String aiFinanceModel,
     required String aiFinanceApiKey,
@@ -81,6 +101,9 @@ class _AppDataStore {
         workoutGroupsByAction: workoutGroupsByAction,
         todos: todos,
         financeRecords: financeRecords,
+        workoutPlans: workoutPlans,
+        activeWorkoutSession: activeWorkoutSession,
+        workoutHistory: workoutHistory,
         aiFinanceEndpoint: aiFinanceEndpoint,
         aiFinanceModel: aiFinanceModel,
         aiFinanceApiKey: aiFinanceApiKey,
@@ -94,6 +117,9 @@ class _AppDataStore {
     required Map<String, int> workoutGroupsByAction,
     required List<TodoItem> todos,
     required List<FinanceRecord> financeRecords,
+    required List<WorkoutPlan> workoutPlans,
+    required ActiveWorkoutSession? activeWorkoutSession,
+    required List<WorkoutHistoryEntry> workoutHistory,
     required String aiFinanceEndpoint,
     required String aiFinanceModel,
     required String aiFinanceApiKey,
@@ -105,6 +131,9 @@ class _AppDataStore {
         await txn.delete('todos');
         await txn.delete('finance_records');
         await txn.delete('workout_groups');
+        await txn.delete('workout_plans');
+        await txn.delete('active_workout_session');
+        await txn.delete('workout_history');
 
         await txn.insert('app_meta', {'key': 'initialized', 'value': '1'});
         await txn.insert('app_meta', {
@@ -155,6 +184,8 @@ class _AppDataStore {
             'amount': record.amount,
             'type': record.type,
             'date': record.date?.toIso8601String(),
+            'account': record.account,
+            'tagsJson': jsonEncode(record.tags),
           });
         }
 
@@ -162,6 +193,53 @@ class _AppDataStore {
           await txn.insert('workout_groups', {
             'actionName': entry.key,
             'groups': entry.value,
+          });
+        }
+
+        for (var index = 0; index < workoutPlans.length; index++) {
+          final plan = workoutPlans[index];
+          await txn.insert('workout_plans', {
+            'position': index,
+            'planId': plan.id,
+            'name': plan.name,
+            'target': plan.target,
+            'bodyPartsJson': jsonEncode(plan.bodyParts),
+            'actionNamesJson': jsonEncode(plan.actionNames),
+            'estimatedMinutes': plan.estimatedMinutes,
+            'createdAt': plan.createdAt.toIso8601String(),
+            'updatedAt': plan.updatedAt.toIso8601String(),
+          });
+        }
+
+        final session = activeWorkoutSession;
+        if (session != null) {
+          await txn.insert('active_workout_session', {
+            'id': 1,
+            'sessionId': session.id,
+            'planId': session.planId,
+            'planName': session.planName,
+            'startedAt': session.startedAt.toIso8601String(),
+            'actionProgressJson': jsonEncode(session.actionProgress),
+            'feedback': session.feedback,
+          });
+        }
+
+        for (var index = 0; index < workoutHistory.length; index++) {
+          final entry = workoutHistory[index];
+          await txn.insert('workout_history', {
+            'position': index,
+            'entryId': entry.id,
+            'planId': entry.planId,
+            'planName': entry.planName,
+            'startedAt': entry.startedAt.toIso8601String(),
+            'finishedAt': entry.finishedAt.toIso8601String(),
+            'durationMinutes': entry.durationMinutes,
+            'totalGroups': entry.totalGroups,
+            'estimatedCalories': entry.estimatedCalories,
+            'actionResultsJson': jsonEncode(
+              entry.actionResults.map((item) => item.toJson()).toList(),
+            ),
+            'feedback': entry.feedback,
           });
         }
       });
@@ -209,7 +287,9 @@ class _AppDataStore {
             subtitle TEXT NOT NULL,
             amount REAL NOT NULL,
             type TEXT NOT NULL,
-            date TEXT
+            date TEXT,
+            account TEXT,
+            tagsJson TEXT
           )
         ''');
         await db.execute('''
@@ -218,6 +298,7 @@ class _AppDataStore {
             groups INTEGER NOT NULL
           )
         ''');
+        await _createWorkoutTrainingTables(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -235,8 +316,59 @@ class _AppDataStore {
         if (oldVersion < 3) {
           await _addColumnIfMissing(db, 'finance_records', 'date TEXT');
         }
+        if (oldVersion < 4) {
+          await _createWorkoutTrainingTables(db);
+        }
+        if (oldVersion < 5) {
+          await _addColumnIfMissing(db, 'finance_records', 'account TEXT');
+          await _addColumnIfMissing(db, 'finance_records', 'tagsJson TEXT');
+        }
       },
     );
+  }
+
+  Future<void> _createWorkoutTrainingTables(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS workout_plans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        position INTEGER NOT NULL,
+        planId TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        target TEXT NOT NULL,
+        bodyPartsJson TEXT NOT NULL,
+        actionNamesJson TEXT NOT NULL,
+        estimatedMinutes INTEGER NOT NULL,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS active_workout_session (
+        id INTEGER PRIMARY KEY,
+        sessionId TEXT NOT NULL,
+        planId TEXT NOT NULL,
+        planName TEXT NOT NULL,
+        startedAt TEXT NOT NULL,
+        actionProgressJson TEXT NOT NULL,
+        feedback TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS workout_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        position INTEGER NOT NULL,
+        entryId TEXT NOT NULL UNIQUE,
+        planId TEXT NOT NULL,
+        planName TEXT NOT NULL,
+        startedAt TEXT NOT NULL,
+        finishedAt TEXT NOT NULL,
+        durationMinutes INTEGER NOT NULL,
+        totalGroups INTEGER NOT NULL,
+        estimatedCalories INTEGER NOT NULL,
+        actionResultsJson TEXT NOT NULL,
+        feedback TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> _addColumnIfMissing(
@@ -288,10 +420,9 @@ class _AppDataStore {
 
   TodoItem _todoFromRow(Map<String, Object?> row) {
     final category = row['category'] as String? ?? '生活';
-    final rawLinkedModules = row['linkedModulesJson'] as String?;
-    final linkedModules = rawLinkedModules == null
-        ? const <TodoLinkedModule>[]
-        : _linkedModulesFromJson(jsonDecode(rawLinkedModules));
+    final linkedModules = _linkedModulesFromJson(
+      _decodeJsonList(row['linkedModulesJson']),
+    );
     return TodoItem(
       id: row['todoId'] as String?,
       title: row['title'] as String? ?? '未命名待办',
@@ -332,6 +463,92 @@ class _AppDataStore {
       amount: (row['amount'] as num?)?.toDouble() ?? 0,
       type: row['type'] as String? ?? '支出',
       date: DateTime.tryParse(row['date'] as String? ?? ''),
+      account: (row['account'] as String?)?.trim().isEmpty == false
+          ? (row['account'] as String).trim()
+          : '银行卡',
+      tags: _financeStringListFromJson(
+        jsonDecode(row['tagsJson'] as String? ?? '[]'),
+      ),
     );
+  }
+
+  WorkoutPlan _workoutPlanFromRow(Map<String, Object?> row) {
+    return WorkoutPlan.fromJson({
+      'id': row['planId'],
+      'name': row['name'],
+      'target': row['target'],
+      'bodyParts': _decodeJsonList(row['bodyPartsJson']),
+      'actionNames': _decodeJsonList(row['actionNamesJson']),
+      'estimatedMinutes': row['estimatedMinutes'],
+      'createdAt': row['createdAt'],
+      'updatedAt': row['updatedAt'],
+    });
+  }
+
+  ActiveWorkoutSession _activeWorkoutSessionFromRow(
+    Map<String, Object?> row,
+  ) {
+    return ActiveWorkoutSession.fromJson({
+      'id': row['sessionId'],
+      'planId': row['planId'],
+      'planName': row['planName'],
+      'startedAt': row['startedAt'],
+      'actionProgress': _decodeJsonMap(row['actionProgressJson']),
+      'feedback': row['feedback'],
+    });
+  }
+
+  WorkoutHistoryEntry _workoutHistoryFromRow(Map<String, Object?> row) {
+    return WorkoutHistoryEntry.fromJson({
+      'id': row['entryId'],
+      'planId': row['planId'],
+      'planName': row['planName'],
+      'startedAt': row['startedAt'],
+      'finishedAt': row['finishedAt'],
+      'durationMinutes': row['durationMinutes'],
+      'totalGroups': row['totalGroups'],
+      'estimatedCalories': row['estimatedCalories'],
+      'actionResults': _decodeJsonList(row['actionResultsJson']),
+      'feedback': row['feedback'],
+    });
+  }
+
+  List<Object?> _decodeJsonList(Object? source) {
+    final decoded = _decodeJson(source);
+    if (decoded is List) {
+      return List<Object?>.from(decoded);
+    }
+    return [];
+  }
+
+  Map<String, Object?> _decodeJsonMap(Object? source) {
+    final decoded = _decodeJson(source);
+    if (decoded is Map) {
+      final result = <String, Object?>{};
+      for (final entry in decoded.entries) {
+        final key = entry.key;
+        if (key is String) {
+          result[key] = entry.value;
+        }
+      }
+      return result;
+    }
+    return {};
+  }
+
+  Object? _decodeJson(Object? source) {
+    if (source is String) {
+      if (source.trim().isEmpty) {
+        return null;
+      }
+      try {
+        return jsonDecode(source);
+      } on FormatException {
+        return null;
+      } catch (_) {
+        return null;
+      }
+    }
+    return source;
   }
 }

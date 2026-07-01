@@ -34,6 +34,13 @@ class WorkoutModulePage extends StatefulWidget {
     required this.onSwitchModule,
     required this.finishedGroupsByAction,
     required this.onUpdateActionGroups,
+    required this.workoutPlans,
+    required this.onUpdateWorkoutPlan,
+    required this.activeWorkoutSession,
+    required this.workoutHistory,
+    required this.onStartWorkoutSession,
+    required this.onUpdateWorkoutSession,
+    required this.onFinishWorkoutSession,
     required this.foodCalories,
     required this.quickAction,
     required this.quickActionToken,
@@ -46,6 +53,13 @@ class WorkoutModulePage extends StatefulWidget {
   final Map<String, int> finishedGroupsByAction;
   final void Function(String actionName, int finishedGroups)
       onUpdateActionGroups;
+  final List<WorkoutPlan> workoutPlans;
+  final ValueChanged<WorkoutPlan> onUpdateWorkoutPlan;
+  final ActiveWorkoutSession? activeWorkoutSession;
+  final List<WorkoutHistoryEntry> workoutHistory;
+  final ValueChanged<ActiveWorkoutSession> onStartWorkoutSession;
+  final ValueChanged<ActiveWorkoutSession> onUpdateWorkoutSession;
+  final ValueChanged<WorkoutHistoryEntry> onFinishWorkoutSession;
   final int foodCalories;
   final WidgetQuickAction? quickAction;
   final int quickActionToken;
@@ -509,7 +523,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
   static const _bodyParts = ['全部', '胸背部', '肩颈', '核心', '腿臀', '有氧', '拉伸'];
 
   int _selectedTopTab = 0;
-  int _selectedBottomTab = 1;
+  int _selectedBottomTab = 0;
   WorkoutAction? _activeAction;
   int _handledQuickActionToken = 0;
   String _activeBodyPart = '全部';
@@ -533,8 +547,54 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         orElse: () => _actions.last,
       );
 
-  int _finishedGroupsFor(WorkoutAction action) =>
-      widget.finishedGroupsByAction[action.name] ?? 0;
+  WorkoutPlan? get _activePlan {
+    final session = widget.activeWorkoutSession;
+    if (session == null) return null;
+    for (final plan in widget.workoutPlans) {
+      if (plan.id == session.planId) return plan;
+    }
+    return null;
+  }
+
+  WorkoutAction get _nextActionForCurrentScope {
+    final session = widget.activeWorkoutSession;
+    if (session == null) {
+      return _nextAction;
+    }
+    final scopedActions = _actions
+        .where((action) => session.actionProgress.containsKey(action.name))
+        .toList();
+    if (scopedActions.isEmpty) {
+      return _nextAction;
+    }
+    return scopedActions.firstWhere(
+      (action) => _finishedGroupsFor(action) < action.groups,
+      orElse: () => scopedActions.last,
+    );
+  }
+
+  bool get _activePlanCompleted {
+    final session = widget.activeWorkoutSession;
+    if (session == null || session.actionProgress.isEmpty) {
+      return false;
+    }
+    final plannedActions = _actions
+        .where((action) => session.actionProgress.containsKey(action.name))
+        .toList();
+    if (plannedActions.isEmpty) {
+      return false;
+    }
+    return plannedActions
+        .every((action) => session.groupsFor(action.name) >= action.groups);
+  }
+
+  int _finishedGroupsFor(WorkoutAction action) {
+    final session = widget.activeWorkoutSession;
+    if (session != null && session.actionProgress.containsKey(action.name)) {
+      return session.groupsFor(action.name);
+    }
+    return widget.finishedGroupsByAction[action.name] ?? 0;
+  }
 
   String _bodyPartLabel(String bodyPart) => bodyPart == '胸背' ? '胸背部' : bodyPart;
 
@@ -561,7 +621,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         return;
       }
       // 小组件“练一组”进入下一个待完成动作，仍由用户确认开始，避免误触直接改训练数据。
-      setState(() => _activeAction = _nextAction);
+      setState(() => _activeAction = _nextActionForCurrentScope);
       widget.onQuickActionHandled();
     });
   }
@@ -620,48 +680,80 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
 
   Widget _buildWorkoutContent() {
     if (_selectedTopTab == 1) {
-      return const _WorkoutPlanView();
+      return _WorkoutPlanView(
+        plans: widget.workoutPlans,
+        actions: _actions,
+        onOpenPlan: _openPlanDetail,
+      );
     }
     if (_selectedTopTab == 2) {
       return _WorkoutDataView(
-        totalGroups: _totalGroups,
-        finishedGroups: _finishedGroupsTotal,
+        history: widget.workoutHistory,
+        onOpenMetric: _openMetricDetail,
       );
     }
     if (_selectedTopTab == 3) {
-      return const _WorkoutHistoryView();
+      return _WorkoutHistoryView(
+        history: widget.workoutHistory,
+        onOpenHistory: _openHistoryDetail,
+      );
     }
-    final visibleActions = _activeBodyPart == '全部'
+    final session = widget.activeWorkoutSession;
+    final sourceActions = session == null
         ? _actions
         : _actions
+            .where((action) => session.actionProgress.containsKey(action.name))
+            .toList();
+    final visibleActions = _activeBodyPart == '全部'
+        ? sourceActions
+        : sourceActions
             .where(
                 (action) => _bodyPartLabel(action.bodyPart) == _activeBodyPart)
             .toList();
+    final activePlan = _activePlan;
 
     return ListView(
       key: const ValueKey('workout_main_list'),
       padding: const EdgeInsets.fromLTRB(
           18, 18, 18, _moduleSwitchBarReservedHeight + 24),
       children: [
-        _WorkoutSummaryCard(
-          finishedActions: _finishedActionCount,
-          totalActions: _actions.length,
-          finishedGroups: _finishedGroupsTotal,
-          totalGroups: _totalGroups,
-          nextActionName: _nextAction.name,
-          onStart: () => setState(() => _activeAction = _nextAction),
-        ),
-        const SizedBox(height: 12),
-        _ModuleLinkedSummaryCard(
-          title: '锻炼联动',
-          subtitle: '训练组数会同步到健康和计划，饮食摄入辅助安排强度。',
-          icon: Icons.fitness_center_rounded,
-          values: [
-            ('饮食', '${widget.foodCalories} kcal'),
-            ('已练', '$_finishedGroupsTotal 组'),
+        if (session != null) ...[
+          _WorkoutActivePlanBanner(plan: activePlan, session: session),
+          const SizedBox(height: 14),
+          if (_activePlanCompleted) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _finishActivePlan,
+                  child: const Text('完成训练'),
+                ),
+              ),
+            ),
           ],
-        ),
-        const SizedBox(height: 12),
+        ] else ...[
+          _WorkoutSummaryCard(
+            finishedActions: _finishedActionCount,
+            totalActions: _actions.length,
+            finishedGroups: _finishedGroupsTotal,
+            totalGroups: _totalGroups,
+            nextActionName: _nextActionForCurrentScope.name,
+            onStart: () =>
+                setState(() => _activeAction = _nextActionForCurrentScope),
+          ),
+          const SizedBox(height: 12),
+          _ModuleLinkedSummaryCard(
+            title: '锻炼联动',
+            subtitle: '训练组数会同步到健康和计划，饮食摄入辅助安排强度。',
+            icon: Icons.fitness_center_rounded,
+            values: [
+              ('饮食', '${widget.foodCalories} kcal'),
+              ('已练', '$_finishedGroupsTotal 组'),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
         _WorkoutBodyPartFilter(
           parts: _bodyParts,
           selected: _activeBodyPart,
@@ -709,13 +801,139 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
           totalGroups: _totalGroups,
           feedback: _lastFeedback,
         ),
-        const SizedBox(height: 12),
-        _WorkoutFoodLinkCard(
-          foodCalories: widget.foodCalories,
-          onOpenFood: () => widget.onSwitchModule(LifeModule.food),
-        ),
+        if (session == null) ...[
+          const SizedBox(height: 12),
+          _WorkoutFoodLinkCard(
+            foodCalories: widget.foodCalories,
+            onOpenFood: () => widget.onSwitchModule(LifeModule.food),
+          ),
+        ],
       ],
     );
+  }
+
+  List<WorkoutAction> _actionsForPlan(WorkoutPlan plan) {
+    return _actions
+        .where((action) => plan.actionNames.contains(action.name))
+        .toList();
+  }
+
+  WorkoutAction? _actionByName(String actionName) {
+    for (final action in _actions) {
+      if (action.name == actionName) {
+        return action;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _openPlanDetail(WorkoutPlan plan) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _WorkoutPlanDetailSheet(
+          plan: plan,
+          actions: _actionsForPlan(plan),
+          onEdit: () {
+            Navigator.of(context).pop();
+            _openPlanEdit(plan);
+          },
+          onStart: () {
+            Navigator.of(context).pop();
+            _startPlanTraining(plan);
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openMetricDetail(WorkoutMetricDetail detail) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _WorkoutMetricDetailSheet(detail: detail);
+      },
+    );
+  }
+
+  Future<void> _openPlanEdit(WorkoutPlan plan) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _WorkoutPlanEditSheet(
+          plan: _latestPlan(plan),
+          allActions: _actions,
+          onChanged: widget.onUpdateWorkoutPlan,
+        );
+      },
+    );
+  }
+
+  WorkoutPlan _latestPlan(WorkoutPlan plan) {
+    return widget.workoutPlans.firstWhere(
+      (item) => item.id == plan.id,
+      orElse: () => plan,
+    );
+  }
+
+  Future<void> _openHistoryDetail(WorkoutHistoryEntry entry) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _WorkoutHistoryDetailSheet(
+          entry: entry,
+          onRestart: () {
+            Navigator.of(context).pop();
+            _restartPlanFromHistory(entry);
+          },
+        );
+      },
+    );
+  }
+
+  void _restartPlanFromHistory(WorkoutHistoryEntry entry) {
+    final plan = widget.workoutPlans.firstWhere(
+      (plan) => plan.id == entry.planId,
+      orElse: () => WorkoutPlan(
+        id: entry.planId,
+        name: entry.planName,
+        target: '再次训练',
+        bodyParts: entry.actionResults
+            .map((result) => _bodyPartLabel(result.bodyPart))
+            .toSet()
+            .toList(),
+        actionNames:
+            entry.actionResults.map((result) => result.actionName).toList(),
+        estimatedMinutes: entry.durationMinutes,
+      ),
+    );
+    _startPlanTraining(plan);
+  }
+
+  void _startPlanTraining(WorkoutPlan plan) {
+    final planActions = _actionsForPlan(plan);
+    if (planActions.isEmpty) return;
+    final progress = {for (final action in planActions) action.name: 0};
+    final session = ActiveWorkoutSession(
+      planId: plan.id,
+      planName: plan.name,
+      startedAt: DateTime.now(),
+      actionProgress: progress,
+    );
+    widget.onStartWorkoutSession(session);
+    setState(() {
+      _selectedTopTab = 0;
+      _activeBodyPart = '全部';
+      _activeAction = null;
+    });
   }
 
   void _finishNextGroup() {
@@ -723,20 +941,70 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     if (action == null) {
       return;
     }
-    final nextCount = math.min(action.groups, _finishedGroupsFor(action) + 1);
+    final currentGroups = _finishedGroupsFor(action);
+    final nextCount = math.min(action.groups, currentGroups + 1);
+    final session = widget.activeWorkoutSession;
+    if (session != null && session.actionProgress.containsKey(action.name)) {
+      final nextProgress = Map<String, int>.of(session.actionProgress);
+      nextProgress[action.name] = nextCount;
+      widget.onUpdateWorkoutSession(
+        session.copyWith(
+          actionProgress: nextProgress,
+          feedback: _lastFeedback,
+        ),
+      );
+    }
     widget.onUpdateActionGroups(action.name, nextCount);
     setState(() => _restSecondsLeft = nextCount >= action.groups ? 0 : 120);
   }
 
+  void _finishActivePlan() {
+    final session = widget.activeWorkoutSession;
+    if (session == null) {
+      return;
+    }
+    final now = DateTime.now();
+    final actionResults = <WorkoutActionResult>[];
+    for (final actionName in session.actionProgress.keys) {
+      final action = _actionByName(actionName);
+      if (action == null) {
+        continue;
+      }
+      actionResults.add(
+        WorkoutActionResult(
+          actionName: action.name,
+          bodyPart: action.bodyPart,
+          targetGroups: action.groups,
+          finishedGroups: session.groupsFor(action.name),
+          reps: action.reps,
+          weight: action.weight,
+        ),
+      );
+    }
+    final totalGroups = actionResults.fold<int>(
+      0,
+      (total, result) => total + result.finishedGroups,
+    );
+    final entry = WorkoutHistoryEntry(
+      planId: session.planId,
+      planName: session.planName,
+      startedAt: session.startedAt,
+      finishedAt: now,
+      durationMinutes: math.max(1, now.difference(session.startedAt).inMinutes),
+      totalGroups: totalGroups,
+      estimatedCalories: 80 + totalGroups * 18,
+      actionResults: actionResults,
+      feedback: _lastFeedback,
+    );
+    widget.onFinishWorkoutSession(entry);
+    setState(() {
+      _selectedTopTab = 3;
+      _activeAction = null;
+      _restSecondsLeft = 0;
+    });
+  }
+
   void _handleBottomNav(int index) {
-    if (index == 0) {
-      widget.onSwitchModule(LifeModule.health);
-      return;
-    }
-    if (index == 2) {
-      widget.onSwitchModule(LifeModule.food);
-      return;
-    }
     setState(() => _selectedBottomTab = index);
   }
 }
@@ -748,34 +1016,11 @@ class _WorkoutHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
-      child: Row(
-        children: [
-          _IconBubble(
-            icon: Icons.view_sidebar_rounded,
-            color: const Color(0xFF91A3FF),
-            onTap: onOpenModules,
-          ),
-          const Expanded(
-            child: Center(
-              child: Text(
-                '锻炼',
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-          _IconBubble(
-            icon: Icons.more_horiz_rounded,
-            color: AppColors.primary,
-            onTap: () {},
-          ),
-        ],
-      ),
+    return _ModuleGlassHeader(
+      module: LifeModule.workout,
+      title: '锻炼',
+      onOpenModules: onOpenModules,
+      onOpenMore: () {},
     );
   }
 }
@@ -1236,39 +1481,39 @@ class _WorkoutEmptyPartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return const _EmptyCard(
       title: '这个部位今天没有动作',
-      subtitle: '可以先切回全部动作，后续再把训练模板接入自定义计划。',
+      subtitle: '可以先切回全部动作，或从训练模板选择一个计划。',
     );
   }
 }
 
 class _WorkoutPlanView extends StatelessWidget {
-  const _WorkoutPlanView();
+  const _WorkoutPlanView({
+    required this.plans,
+    required this.actions,
+    required this.onOpenPlan,
+  });
+
+  final List<WorkoutPlan> plans;
+  final List<WorkoutAction> actions;
+  final ValueChanged<WorkoutPlan> onOpenPlan;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(
           18, 18, 18, _moduleSwitchBarReservedHeight + 24),
-      children: const [
-        _WorkoutTemplateRail(),
-        SizedBox(height: 12),
-        _WorkoutPlanCard(
-          title: '胸背强化',
-          subtitle: '周一 / 周四 · 5 个动作',
-          progress: '0/19 组',
-          color: AppColors.primary,
+      children: [
+        _WorkoutTemplateRail(
+          plans: plans,
+          onOpenPlan: onOpenPlan,
         ),
-        _WorkoutPlanCard(
-          title: '腿部稳定',
-          subtitle: '周二 · 4 个动作',
-          progress: '0/16 组',
-          color: AppColors.success,
-        ),
-        _WorkoutPlanCard(
-          title: '核心恢复',
-          subtitle: '周六 · 3 个动作',
-          progress: '0/9 组',
-          color: Color(0xFFFF9559),
+        const SizedBox(height: 12),
+        ...plans.map(
+          (plan) => _WorkoutPlanCard(
+            plan: plan,
+            actions: actions,
+            onTap: () => onOpenPlan(plan),
+          ),
         ),
       ],
     );
@@ -1277,67 +1522,139 @@ class _WorkoutPlanView extends StatelessWidget {
 
 class _WorkoutPlanCard extends StatelessWidget {
   const _WorkoutPlanCard({
-    required this.title,
-    required this.subtitle,
-    required this.progress,
-    required this.color,
+    required this.plan,
+    required this.actions,
+    required this.onTap,
   });
 
-  final String title;
-  final String subtitle;
-  final String progress;
-  final Color color;
+  final WorkoutPlan plan;
+  final List<WorkoutAction> actions;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    const color = AppColors.primary;
+    final totalGroups = plan.totalGroupsFrom(actions);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
       ),
+      child: InkWell(
+        key: ValueKey('workout_plan_${plan.id}'),
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.13),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.assignment_rounded, color: color, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      plan.name,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      '${plan.target} · ${plan.actionNames.length} 个动作',
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '$totalGroups 组',
+                style: const TextStyle(
+                  color: color,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutActivePlanBanner extends StatelessWidget {
+  const _WorkoutActivePlanBanner({
+    required this.plan,
+    required this.session,
+  });
+
+  final WorkoutPlan? plan;
+  final ActiveWorkoutSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    const color = AppColors.primary;
+    final actionCount =
+        plan?.actionNames.length ?? session.actionProgress.length;
+
+    return Container(
+      key: const ValueKey('workout_active_plan_banner'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.13),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.assignment_rounded, color: color, size: 26),
-          ),
-          const SizedBox(width: 14),
+          const Icon(Icons.play_circle_fill_rounded, color: color, size: 28),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
+                const Text(
+                  '当前计划',
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 4),
                 Text(
-                  subtitle,
+                  session.planName,
                   style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ],
             ),
           ),
           Text(
-            progress,
-            style: TextStyle(
+            '$actionCount 个动作',
+            style: const TextStyle(
               color: color,
-              fontSize: 13,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -1347,21 +1664,418 @@ class _WorkoutPlanCard extends StatelessWidget {
   }
 }
 
+class _WorkoutPlanDetailSheet extends StatelessWidget {
+  const _WorkoutPlanDetailSheet({
+    required this.plan,
+    required this.actions,
+    required this.onEdit,
+    required this.onStart,
+  });
+
+  final WorkoutPlan plan;
+  final List<WorkoutAction> actions;
+  final VoidCallback onEdit;
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    const color = AppColors.primary;
+    final hasActions = actions.isNotEmpty;
+    final totalGroups = plan.totalGroupsFrom(actions);
+
+    return SafeArea(
+      child: Container(
+        key: const ValueKey('workout_plan_detail_sheet'),
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(8),
+            bottom: Radius.circular(8),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.13),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.assignment_rounded, color: color),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    plan.name,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _WorkoutPlanInfoPill(label: '${plan.actionNames.length} 个动作'),
+                _WorkoutPlanInfoPill(label: '$totalGroups 组'),
+                _WorkoutPlanInfoPill(label: plan.target),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...actions.map(
+              (action) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.fitness_center_rounded,
+                        color: color, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            action.name,
+                            style: const TextStyle(
+                              color: AppColors.ink,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            action.detail,
+                            style: const TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: onEdit,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.line),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: const Icon(Icons.edit_rounded, size: 18),
+                label: const Text(
+                  '编辑计划',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: FilledButton.icon(
+                onPressed: hasActions ? onStart : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text(
+                  '开始训练',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutPlanInfoPill extends StatelessWidget {
+  const _WorkoutPlanInfoPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.ink,
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutPlanEditSheet extends StatefulWidget {
+  const _WorkoutPlanEditSheet({
+    required this.plan,
+    required this.allActions,
+    required this.onChanged,
+  });
+
+  final WorkoutPlan plan;
+  final List<WorkoutAction> allActions;
+  final ValueChanged<WorkoutPlan> onChanged;
+
+  @override
+  State<_WorkoutPlanEditSheet> createState() => _WorkoutPlanEditSheetState();
+}
+
+class _WorkoutPlanEditSheetState extends State<_WorkoutPlanEditSheet> {
+  late WorkoutPlan _plan = widget.plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedActions = widget.allActions
+        .where((action) => _plan.actionNames.contains(action.name))
+        .toList();
+    final availableActions = widget.allActions
+        .where((action) => !_plan.actionNames.contains(action.name))
+        .toList();
+
+    return SafeArea(
+      child: Container(
+        key: const ValueKey('workout_plan_edit_sheet'),
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _plan.name,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '已选动作',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  key: const ValueKey('workout_plan_selected_actions'),
+                  children: selectedActions
+                      .map(
+                        (action) => _WorkoutPlanEditRow(
+                          action: action,
+                          icon: Icons.remove_circle_outline_rounded,
+                          color: AppColors.financeRed,
+                          keyValue: 'workout_plan_remove_${action.name}',
+                          onTap: () => _removeAction(action),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '可添加动作',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: availableActions
+                      .map(
+                        (action) => _WorkoutPlanEditRow(
+                          action: action,
+                          icon: Icons.add_circle_outline_rounded,
+                          color: AppColors.primary,
+                          keyValue: 'workout_plan_add_${action.name}',
+                          onTap: () => _addAction(action),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _removeAction(WorkoutAction action) {
+    _save(
+      _plan.copyWith(
+        actionNames: _plan.actionNames
+            .where((actionName) => actionName != action.name)
+            .toList(),
+      ),
+    );
+  }
+
+  void _addAction(WorkoutAction action) {
+    _save(_plan.copyWith(actionNames: [..._plan.actionNames, action.name]));
+  }
+
+  void _save(WorkoutPlan plan) {
+    setState(() => _plan = plan);
+    widget.onChanged(plan);
+  }
+}
+
+class _WorkoutPlanEditRow extends StatelessWidget {
+  const _WorkoutPlanEditRow({
+    required this.action,
+    required this.icon,
+    required this.color,
+    required this.keyValue,
+    required this.onTap,
+  });
+
+  final WorkoutAction action;
+  final IconData icon;
+  final Color color;
+  final String keyValue;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        key: ValueKey(keyValue),
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  action.name,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                action.reps,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _WorkoutTemplateRail extends StatelessWidget {
-  const _WorkoutTemplateRail();
+  const _WorkoutTemplateRail({
+    required this.plans,
+    required this.onOpenPlan,
+  });
+
+  final List<WorkoutPlan> plans;
+  final ValueChanged<WorkoutPlan> onOpenPlan;
 
   @override
   Widget build(BuildContext context) {
     const templates = [
       (
+        'plan-chest-back',
         '胸背日',
         Icons.accessibility_new_rounded,
         AppColors.primary,
         '5 动作 · 19 组'
       ),
-      ('核心日', Icons.self_improvement_rounded, AppColors.success, '4 动作 · 12 组'),
-      ('恢复日', Icons.spa_rounded, Color(0xFFFF9559), '拉伸 + 轻有氧'),
-      ('快练 10 分钟', Icons.flash_on_rounded, Color(0xFF43C6C8), '碎片时间可做'),
+      (
+        'plan-core-recovery',
+        '核心日',
+        Icons.self_improvement_rounded,
+        AppColors.success,
+        '4 动作 · 12 组'
+      ),
+      (
+        'plan-core-recovery',
+        '恢复日',
+        Icons.spa_rounded,
+        Color(0xFFFF9559),
+        '拉伸 + 轻有氧'
+      ),
+      (
+        'plan-quick-ten',
+        '快练 10 分钟',
+        Icons.flash_on_rounded,
+        Color(0xFF43C6C8),
+        '碎片时间可做'
+      ),
     ];
 
     return Container(
@@ -1384,68 +2098,112 @@ class _WorkoutTemplateRail extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ...templates.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: item.$3.withValues(alpha: 0.13),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(item.$2, color: item.$3, size: 22),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            (item) {
+              final plan = _planById(item.$1);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: InkWell(
+                  key: ValueKey('workout_template_${item.$1}'),
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: plan == null ? null : () => onOpenPlan(plan),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
                       children: [
-                        Text(
-                          item.$1,
-                          style: const TextStyle(
-                            color: AppColors.ink,
-                            fontWeight: FontWeight.w900,
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: item.$4.withValues(alpha: 0.13),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(item.$3, color: item.$4, size: 22),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.$2,
+                                style: const TextStyle(
+                                  color: AppColors.ink,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                item.$5,
+                                style: const TextStyle(
+                                  color: AppColors.muted,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          item.$4,
-                          style: const TextStyle(
-                            color: AppColors.muted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                        const Icon(Icons.chevron_right_rounded,
+                            color: AppColors.muted),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: AppColors.muted),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
+
+  WorkoutPlan? _planById(String id) {
+    for (final plan in plans) {
+      if (plan.id == id) {
+        return plan;
+      }
+    }
+    return null;
+  }
 }
 
 class _WorkoutDataView extends StatelessWidget {
   const _WorkoutDataView({
-    required this.totalGroups,
-    required this.finishedGroups,
+    required this.history,
+    required this.onOpenMetric,
   });
 
-  final int totalGroups;
-  final int finishedGroups;
+  final List<WorkoutHistoryEntry> history;
+  final ValueChanged<WorkoutMetricDetail> onOpenMetric;
 
   @override
   Widget build(BuildContext context) {
-    final minutes = finishedGroups * 2;
-    final calories = 520 + finishedGroups * 18;
+    final today = DateUtils.dateOnly(DateTime.now());
+    final todayRecords = history
+        .where((entry) => DateUtils.isSameDay(entry.finishedAt, today))
+        .toList();
+    final recentStart = today.subtract(const Duration(days: 6));
+    final recentRecords = history
+        .where((entry) =>
+            !DateUtils.dateOnly(entry.finishedAt).isBefore(recentStart))
+        .toList();
+    final todayGroups = todayRecords.fold<int>(
+      0,
+      (total, entry) => total + entry.totalGroups,
+    );
+    final todayMinutes = todayRecords.fold<int>(
+      0,
+      (total, entry) => total + entry.durationMinutes,
+    );
+    final todayCalories = todayRecords.fold<int>(
+      0,
+      (total, entry) => total + entry.estimatedCalories,
+    );
+    final recentGroups = recentRecords.fold<int>(
+      0,
+      (total, entry) => total + entry.totalGroups,
+    );
+    final maxWeight = _maxWeightFrom(todayRecords);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -1460,30 +2218,76 @@ class _WorkoutDataView extends StatelessWidget {
           childAspectRatio: 1.35,
           children: [
             _WorkoutDataCard(
+              key: const ValueKey('workout_metric_today_groups'),
               icon: Icons.fitness_center_rounded,
-              value: '$finishedGroups/$totalGroups',
-              label: '已完成组数',
+              value: '$todayGroups 组',
+              label: WorkoutMetricKind.todayGroups.label,
               color: AppColors.primary,
+              onTap: () => onOpenMetric(
+                WorkoutMetricDetail(
+                  kind: WorkoutMetricKind.todayGroups,
+                  value: '$todayGroups 组',
+                  records: todayRecords,
+                ),
+              ),
             ),
             _WorkoutDataCard(
               icon: Icons.timer_rounded,
-              value: '$minutes min',
-              label: '训练时长',
+              value: '$todayMinutes min',
+              label: WorkoutMetricKind.todayMinutes.label,
               color: const Color(0xFF43C6C8),
+              onTap: () => onOpenMetric(
+                WorkoutMetricDetail(
+                  kind: WorkoutMetricKind.todayMinutes,
+                  value: '$todayMinutes min',
+                  records: todayRecords,
+                ),
+              ),
             ),
             _WorkoutDataCard(
               icon: Icons.local_fire_department_rounded,
-              value: '$calories',
-              label: '预估消耗 kcal',
+              value: '$todayCalories',
+              label: WorkoutMetricKind.todayCalories.label,
               color: const Color(0xFFFF9559),
+              onTap: () => onOpenMetric(
+                WorkoutMetricDetail(
+                  kind: WorkoutMetricKind.todayCalories,
+                  value: '$todayCalories kcal',
+                  records: todayRecords,
+                ),
+              ),
             ),
-            const _WorkoutDataCard(
+            _WorkoutDataCard(
               icon: Icons.trending_up_rounded,
-              value: '30kg',
-              label: '今日最高重量',
+              value: maxWeight == 0 ? '-' : '${maxWeight}kg',
+              label: WorkoutMetricKind.maxWeight.label,
               color: AppColors.success,
+              onTap: () => onOpenMetric(
+                WorkoutMetricDetail(
+                  kind: WorkoutMetricKind.maxWeight,
+                  value: maxWeight == 0 ? '-' : '${maxWeight}kg',
+                  records: todayRecords,
+                ),
+              ),
             ),
           ],
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 118,
+          child: _WorkoutDataCard(
+            icon: Icons.history_rounded,
+            value: '${recentRecords.length} 次 · $recentGroups 组',
+            label: '最近 7 天',
+            color: AppColors.primary,
+            onTap: () => onOpenMetric(
+              WorkoutMetricDetail(
+                kind: WorkoutMetricKind.recentSessions,
+                value: '${recentRecords.length} 次',
+                records: recentRecords,
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 14),
         Container(
@@ -1504,20 +2308,339 @@ class _WorkoutDataView extends StatelessWidget {
       ],
     );
   }
+
+  int _maxWeightFrom(List<WorkoutHistoryEntry> records) {
+    var maxWeight = 0;
+    for (final entry in records) {
+      for (final result in entry.actionResults) {
+        final weight = result.weight;
+        if (weight == null) {
+          continue;
+        }
+        final match = RegExp(r'\d+').firstMatch(weight);
+        final parsed = int.tryParse(match?.group(0) ?? '');
+        if (parsed != null && parsed > maxWeight) {
+          maxWeight = parsed;
+        }
+      }
+    }
+    return maxWeight;
+  }
 }
 
 class _WorkoutDataCard extends StatelessWidget {
   const _WorkoutDataCard({
+    super.key,
     required this.icon,
     required this.value,
     required this.label,
     required this.color,
+    required this.onTap,
   });
 
   final IconData icon;
   final String value;
   final String label;
   final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 25),
+            const Spacer(),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutMetricDetailSheet extends StatelessWidget {
+  const _WorkoutMetricDetailSheet({required this.detail});
+
+  final WorkoutMetricDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        key: const ValueKey('workout_metric_detail_sheet'),
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    detail.kind.label,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            Text(
+              detail.value,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 14),
+            if (detail.records.isEmpty)
+              const Text(
+                '暂无训练记录',
+                style: TextStyle(
+                  color: AppColors.muted,
+                  fontWeight: FontWeight.w800,
+                ),
+              )
+            else
+              ...detail.records.map(
+                (entry) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.fitness_center_rounded,
+                          color: AppColors.primary, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              entry.planName,
+                              style: const TextStyle(
+                                color: AppColors.ink,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${entry.totalGroups} 组 · ${entry.durationMinutes} min · ${entry.estimatedCalories} kcal',
+                              style: const TextStyle(
+                                color: AppColors.muted,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutHistoryDetailSheet extends StatelessWidget {
+  const _WorkoutHistoryDetailSheet({
+    required this.entry,
+    required this.onRestart,
+  });
+
+  final WorkoutHistoryEntry entry;
+  final VoidCallback onRestart;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        key: const ValueKey('workout_history_detail_sheet'),
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    entry.planName,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            Text(
+              '${entry.totalGroups} 组 · ${entry.durationMinutes} min',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 14),
+            ...entry.actionResults.map(
+              (result) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded,
+                        color: AppColors.success, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${result.actionName} ${result.finishedGroups}/${result.targetGroups} 组',
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: FilledButton.icon(
+                onPressed: onRestart,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: const Icon(Icons.replay_rounded),
+                label: const Text(
+                  '再次训练',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutHistoryView extends StatelessWidget {
+  const _WorkoutHistoryView({
+    required this.history,
+    required this.onOpenHistory,
+  });
+
+  final List<WorkoutHistoryEntry> history;
+  final ValueChanged<WorkoutHistoryEntry> onOpenHistory;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      key: history.isEmpty ? null : const ValueKey('workout_history_real_list'),
+      padding: const EdgeInsets.fromLTRB(
+          18, 18, 18, _moduleSwitchBarReservedHeight + 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _WorkoutCalendarCard(),
+          const SizedBox(height: 12),
+          const _WorkoutActionTrendCard(),
+          const SizedBox(height: 12),
+          const _WorkoutProgressTrendCard(),
+          const SizedBox(height: 12),
+          if (history.isEmpty)
+            const _WorkoutEmptyHistoryCard()
+          else
+            ...history.map(
+              (entry) => _WorkoutHistoryTile(
+                title: entry.planName,
+                subtitle:
+                    '${entry.actionResults.length} 个动作 · ${entry.totalGroups} 组 · ${entry.durationMinutes} min',
+                status: _historyStatusLabel(entry.finishedAt),
+                color: AppColors.primary,
+                onTap: () => onOpenHistory(entry),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _historyStatusLabel(DateTime finishedAt) {
+    final now = DateTime.now();
+    if (DateUtils.isSameDay(finishedAt, now)) {
+      return '今天';
+    }
+    final yesterday = now.subtract(const Duration(days: 1));
+    if (DateUtils.isSameDay(finishedAt, yesterday)) {
+      return '昨天';
+    }
+    return '${finishedAt.month}/${finishedAt.day}';
+  }
+}
+
+class _WorkoutEmptyHistoryCard extends StatelessWidget {
+  const _WorkoutEmptyHistoryCard();
 
   @override
   Widget build(BuildContext context) {
@@ -1527,72 +2650,13 @@ class _WorkoutDataCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 25),
-          const Spacer(),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppColors.ink,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppColors.muted,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+      child: const Text(
+        '暂无训练记录',
+        style: TextStyle(
+          color: AppColors.muted,
+          fontWeight: FontWeight.w800,
+        ),
       ),
-    );
-  }
-}
-
-class _WorkoutHistoryView extends StatelessWidget {
-  const _WorkoutHistoryView();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-          18, 18, 18, _moduleSwitchBarReservedHeight + 24),
-      children: const [
-        _WorkoutCalendarCard(),
-        SizedBox(height: 12),
-        _WorkoutActionTrendCard(),
-        SizedBox(height: 12),
-        _WorkoutProgressTrendCard(),
-        SizedBox(height: 12),
-        _WorkoutHistoryTile(
-          title: '胸背',
-          subtitle: '5 个动作 · 19 组 · 18:05',
-          status: '今天',
-          color: AppColors.primary,
-        ),
-        _WorkoutHistoryTile(
-          title: '肩颈恢复',
-          subtitle: '3 个动作 · 9 组 · 24 min',
-          status: '周三',
-          color: AppColors.success,
-        ),
-        _WorkoutHistoryTile(
-          title: '核心训练',
-          subtitle: '4 个动作 · 12 组 · 31 min',
-          status: '周一',
-          color: Color(0xFFFF9559),
-        ),
-      ],
     );
   }
 }
@@ -1923,66 +2987,74 @@ class _WorkoutHistoryTile extends StatelessWidget {
     required this.subtitle,
     required this.status,
     required this.color,
+    this.onTap,
   });
 
   final String title;
   final String subtitle;
   final String status;
   final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
         borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.13),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.history_rounded, color: color),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(8),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.13),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
+                child: Icon(Icons.history_rounded, color: color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Text(
+                status,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
           ),
-          Text(
-            status,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -2648,21 +3720,21 @@ class _WorkoutBottomNav extends StatelessWidget {
     required this.selectedIndex,
     required this.onChanged,
     required this.keyPrefix,
+    this.items = const [
+      (Icons.fitness_center_rounded, '锻炼'),
+    ],
   });
 
   final int selectedIndex;
   final ValueChanged<int> onChanged;
   final String keyPrefix;
+  final List<(IconData, String)> items;
 
   @override
   Widget build(BuildContext context) {
     return _CapsuleNav(
       selectedIndex: selectedIndex,
-      items: const [
-        (Icons.monitor_heart_rounded, '总览'),
-        (Icons.fitness_center_rounded, '锻炼'),
-        (Icons.restaurant_rounded, '饮食'),
-      ],
+      items: items,
       onChanged: onChanged,
       softCompact: true,
       keyPrefix: keyPrefix,

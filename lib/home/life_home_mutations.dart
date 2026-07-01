@@ -36,6 +36,54 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  void _startWorkoutSession(ActiveWorkoutSession session) {
+    _updateState(() {
+      _activeWorkoutSession = session;
+      _pushLifeEvent(
+        LifeEvent(
+          title: '开始训练',
+          detail: session.planName,
+          icon: Icons.fitness_center_rounded,
+          color: AppColors.primary,
+        ),
+      );
+    });
+    _syncLinkedSummaryToWidget();
+  }
+
+  void _updateWorkoutSession(ActiveWorkoutSession session) {
+    _updateState(() => _activeWorkoutSession = session);
+    _syncLinkedSummaryToWidget();
+  }
+
+  void _finishWorkoutSession(WorkoutHistoryEntry entry) {
+    _updateState(() {
+      _workoutHistory.insert(0, entry);
+      _activeWorkoutSession = null;
+      for (final result in entry.actionResults) {
+        _workoutGroupsByAction[result.actionName] = result.finishedGroups;
+      }
+      _pushLifeEvent(
+        LifeEvent(
+          title: '完成训练',
+          detail: '${entry.planName} · ${entry.totalGroups} 组',
+          icon: Icons.fitness_center_rounded,
+          color: AppColors.primary,
+        ),
+      );
+    });
+    _syncLinkedSummaryToWidget();
+  }
+
+  void _updateWorkoutPlan(WorkoutPlan plan) {
+    final index = _workoutPlans.indexWhere((item) => item.id == plan.id);
+    if (index == -1) {
+      return;
+    }
+    _updateState(() => _workoutPlans[index] = plan);
+    _syncLinkedSummaryToWidget();
+  }
+
   void _toggleTodo(TodoItem todo) {
     final wasDone = todo.done;
     var shouldShowLinkedActions = false;

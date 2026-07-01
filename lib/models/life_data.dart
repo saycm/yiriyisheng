@@ -6,6 +6,9 @@ class LifeSummarySnapshot {
     required this.workoutGroupsByAction,
     required this.todos,
     required this.financeRecords,
+    this.workoutPlans,
+    this.activeWorkoutSession,
+    this.workoutHistory,
     this.aiFinanceEndpoint = _defaultGlmChatEndpoint,
     this.aiFinanceModel = _defaultGlmTextModel,
     this.aiFinanceApiKey = '',
@@ -15,6 +18,9 @@ class LifeSummarySnapshot {
   final Map<String, int> workoutGroupsByAction;
   final List<TodoItem>? todos;
   final List<FinanceRecord>? financeRecords;
+  final List<WorkoutPlan>? workoutPlans;
+  final ActiveWorkoutSession? activeWorkoutSession;
+  final List<WorkoutHistoryEntry>? workoutHistory;
   final String aiFinanceEndpoint;
   final String aiFinanceModel;
   final String aiFinanceApiKey;
@@ -247,6 +253,8 @@ class FinanceRecord {
     required this.amount,
     required this.type,
     this.date,
+    this.account = '银行卡',
+    this.tags = const [],
   });
 
   final IconData icon;
@@ -255,6 +263,8 @@ class FinanceRecord {
   final double amount;
   final String type;
   final DateTime? date;
+  final String account;
+  final List<String> tags;
 
   Color get color => type == '收入' ? AppColors.success : AppColors.financeRed;
 
@@ -270,11 +280,14 @@ class FinanceRecord {
       'amount': amount,
       'type': type,
       'date': date?.toIso8601String(),
+      'account': account,
+      'tags': tags,
     };
   }
 
   static FinanceRecord fromJson(Map<String, dynamic> json) {
     final title = json['title'] as String? ?? '手动记录';
+    final account = json['account'] as String?;
     return FinanceRecord(
       icon: _financeIconForTitle(title),
       title: title,
@@ -282,6 +295,9 @@ class FinanceRecord {
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       type: json['type'] as String? ?? '支出',
       date: DateTime.tryParse(json['date'] as String? ?? ''),
+      account:
+          account == null || account.trim().isEmpty ? '银行卡' : account.trim(),
+      tags: _financeStringListFromJson(json['tags']),
     );
   }
 }
@@ -323,6 +339,17 @@ List<TodoLinkedModule> _linkedModulesFromJson(Object? value) {
         ),
       )
       .toSet()
+      .toList();
+}
+
+List<String> _financeStringListFromJson(Object? value) {
+  if (value is! List<dynamic>) {
+    return [];
+  }
+  return value
+      .whereType<String>()
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
       .toList();
 }
 

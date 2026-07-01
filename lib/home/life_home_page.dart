@@ -22,6 +22,9 @@ class _LifeHomePageState extends State<LifeHomePage> {
   String _aiFinanceModel = _defaultGlmTextModel;
   String _aiFinanceApiKey = '';
   final Map<String, int> _workoutGroupsByAction = {};
+  final List<WorkoutPlan> _workoutPlans = _createDefaultWorkoutPlans();
+  ActiveWorkoutSession? _activeWorkoutSession;
+  final List<WorkoutHistoryEntry> _workoutHistory = [];
   final List<LifeEvent> _events = [];
   final List<TodoItem> _todos = _createSeedTodos();
   final List<FinanceRecord> _financeRecords = _createSeedFinanceRecords();
@@ -114,6 +117,9 @@ class _LifeHomePageState extends State<LifeHomePage> {
       foodCalories: _recordedFoodCalories,
       workoutGroups: _workoutFinishedGroups,
       workoutGroupsByAction: _workoutGroupsByAction,
+      workoutPlans: _workoutPlans,
+      activeWorkoutSession: _activeWorkoutSession,
+      workoutHistory: _workoutHistory,
       todos: _todos,
       events: _events,
       financeRecords: _financeRecords,
@@ -126,6 +132,10 @@ class _LifeHomePageState extends State<LifeHomePage> {
       onUpdateAiFinanceConfig: _updateAiFinanceConfig,
       onRecordFoodCalories: _recordFoodCalories,
       onUpdateWorkoutGroups: _updateWorkoutGroups,
+      onUpdateWorkoutPlan: _updateWorkoutPlan,
+      onStartWorkoutSession: _startWorkoutSession,
+      onUpdateWorkoutSession: _updateWorkoutSession,
+      onFinishWorkoutSession: _finishWorkoutSession,
       onToggleTodo: _toggleTodo,
       onUpdateTodo: _updateTodo,
       onPostponeTodo: _postponeTodo,
