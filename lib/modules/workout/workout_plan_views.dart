@@ -19,6 +19,7 @@ class _WorkoutPlanView extends StatelessWidget {
       children: [
         _WorkoutTemplateRail(
           plans: plans,
+          actions: actions,
           onOpenPlan: onOpenPlan,
         ),
         const SizedBox(height: 12),
@@ -553,10 +554,12 @@ class _WorkoutPlanEditRow extends StatelessWidget {
 class _WorkoutTemplateRail extends StatelessWidget {
   const _WorkoutTemplateRail({
     required this.plans,
+    required this.actions,
     required this.onOpenPlan,
   });
 
   final List<WorkoutPlan> plans;
+  final List<WorkoutAction> actions;
   final ValueChanged<WorkoutPlan> onOpenPlan;
 
   @override
@@ -567,14 +570,14 @@ class _WorkoutTemplateRail extends StatelessWidget {
         '胸背日',
         Icons.accessibility_new_rounded,
         AppColors.primary,
-        '5 动作 · 19 组'
+        ''
       ),
       (
         'plan-core-recovery',
         '核心日',
         Icons.self_improvement_rounded,
         AppColors.success,
-        '4 动作 · 12 组'
+        ''
       ),
       (
         'plan-core-recovery',
@@ -614,6 +617,8 @@ class _WorkoutTemplateRail extends StatelessWidget {
           ...templates.map(
             (item) {
               final plan = _planById(item.$1);
+              final summary =
+                  plan == null ? item.$5 : _templateSummary(plan, item.$5);
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: InkWell(
@@ -647,7 +652,7 @@ class _WorkoutTemplateRail extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                item.$5,
+                                summary,
                                 style: const TextStyle(
                                   color: AppColors.muted,
                                   fontSize: 12,
@@ -678,5 +683,15 @@ class _WorkoutTemplateRail extends StatelessWidget {
       }
     }
     return null;
+  }
+
+  String _templateSummary(WorkoutPlan plan, String fallback) {
+    if (fallback.isNotEmpty) {
+      return fallback;
+    }
+    if (plan.actionNames.isEmpty) {
+      return fallback;
+    }
+    return '${plan.actionNames.length} 动作 · ${plan.totalGroupsFrom(actions)} 组';
   }
 }

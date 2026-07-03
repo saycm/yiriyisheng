@@ -365,6 +365,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
     await tester.pumpAndSettle();
 
+    expect(find.text('6 动作 · 22 组'), findsOneWidget);
+    expect(find.text('6 动作 · 16 组'), findsOneWidget);
+
     final planList = find.byType(Scrollable).last;
     await dragUntilFound(
       tester,
