@@ -1,4 +1,30 @@
-part of '../../main.dart';
+part of '../../models/models.dart';
+
+class WorkoutAction {
+  const WorkoutAction({
+    required this.name,
+    required this.detail,
+    required this.imageAsset,
+    required this.icon,
+    required this.groups,
+    required this.status,
+    required this.bodyPart,
+    required this.reps,
+    this.weight,
+    this.note = '',
+  });
+
+  final String name;
+  final String detail;
+  final String imageAsset;
+  final IconData icon;
+  final int groups;
+  final String status;
+  final String bodyPart;
+  final String reps;
+  final String? weight;
+  final String note;
+}
 
 class WorkoutPlan {
   WorkoutPlan({
@@ -345,7 +371,7 @@ List<WorkoutActionResult> _actionResultsFromJson(Object? value) {
   return results;
 }
 
-List<WorkoutPlan> _createDefaultWorkoutPlans() {
+List<WorkoutPlan> createDefaultWorkoutPlans() {
   final now = DateTime.now();
   return [
     WorkoutPlan(
@@ -354,28 +380,31 @@ List<WorkoutPlan> _createDefaultWorkoutPlans() {
       target: '胸背力量和体态稳定',
       bodyParts: const ['胸背'],
       actionNames: const [
-        '蝴蝶机夹胸',
-        '宽握高位下拉',
         '器械推胸',
+        '宽握高位下拉',
         '坐姿绳索划船',
         '上斜哑铃卧推',
+        '弹力带拉开',
+        '俯卧 Y-T-W',
       ],
-      estimatedMinutes: 38,
+      estimatedMinutes: 42,
       createdAt: now,
       updatedAt: now,
     ),
     WorkoutPlan(
       id: 'plan-leg-stability',
-      name: '腿部稳定',
+      name: '腿臀训练',
       target: '下肢力量和髋膝稳定',
       bodyParts: const ['腿臀'],
       actionNames: const [
         '杠铃深蹲',
-        '腿举',
         '罗马尼亚硬拉',
         '保加利亚分腿蹲',
+        '臀桥',
+        '弹力带侧走',
+        '站姿提踵',
       ],
-      estimatedMinutes: 34,
+      estimatedMinutes: 40,
       createdAt: now,
       updatedAt: now,
     ),
@@ -385,9 +414,11 @@ List<WorkoutPlan> _createDefaultWorkoutPlans() {
       target: '核心控制和轻恢复',
       bodyParts: const ['核心', '拉伸'],
       actionNames: const [
-        '平板支撑',
         '死虫',
-        '猫牛式伸展',
+        '鸟狗',
+        'Pallof 抗旋转推',
+        '侧桥',
+        '胸椎旋转',
         '儿童式放松',
       ],
       estimatedMinutes: 24,
@@ -398,13 +429,64 @@ List<WorkoutPlan> _createDefaultWorkoutPlans() {
       id: 'plan-quick-ten',
       name: '快练 10 分钟',
       target: '碎片时间快速激活',
-      bodyParts: const ['核心', '有氧'],
+      bodyParts: const ['胸背', '腿臀', '核心', '有氧', '拉伸'],
       actionNames: const [
-        '登山跑',
-        '俄罗斯转体',
-        '波比跳',
+        '上斜俯卧撑',
+        '箱式深蹲',
+        '平板触肩',
+        '低冲击开合步',
+        '胸椎旋转',
       ],
       estimatedMinutes: 10,
+      createdAt: now,
+      updatedAt: now,
+    ),
+    WorkoutPlan(
+      id: 'plan-beginner-full-body',
+      name: '新手全身基础',
+      target: '用基础动作覆盖全身主要模式',
+      bodyParts: const ['胸背', '腿臀', '核心', '有氧'],
+      actionNames: const [
+        '高脚杯深蹲',
+        '哑铃地板卧推',
+        '反向划船',
+        '鸟狗',
+        '坡度快走',
+      ],
+      estimatedMinutes: 28,
+      createdAt: now,
+      updatedAt: now,
+    ),
+    WorkoutPlan(
+      id: 'plan-desk-shoulder-reset',
+      name: '久坐肩颈修复',
+      target: '肩颈放松、胸椎活动和肩胛控制',
+      bodyParts: const ['肩颈', '拉伸'],
+      actionNames: const [
+        '墙滑',
+        '下巴回收',
+        '弹力带外展拉开',
+        '胸椎旋转',
+        '胸大肌门框拉伸',
+        '肩后侧拉伸',
+      ],
+      estimatedMinutes: 20,
+      createdAt: now,
+      updatedAt: now,
+    ),
+    WorkoutPlan(
+      id: 'plan-low-impact-conditioning',
+      name: '低冲击燃脂',
+      target: '减少膝踝冲击，同时提供心肺训练',
+      bodyParts: const ['有氧', '核心', '拉伸'],
+      actionNames: const [
+        '坡度快走',
+        '空气单车间歇',
+        '农夫行走',
+        '低冲击开合步',
+        '儿童式放松',
+      ],
+      estimatedMinutes: 26,
       createdAt: now,
       updatedAt: now,
     ),
