@@ -1,4 +1,4 @@
-part of '../../../main.dart';
+part of '../plan.dart';
 
 class _InboxQuickCaptureSheet extends StatefulWidget {
   const _InboxQuickCaptureSheet({required this.onSave});
@@ -21,7 +21,7 @@ class _InboxQuickCaptureSheetState extends State<_InboxQuickCaptureSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return _InfoSheetFrame(
+    return InfoSheetFrame(
       title: '收件箱快速录入',
       child: Padding(
         padding: EdgeInsets.only(

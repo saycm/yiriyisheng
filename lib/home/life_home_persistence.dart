@@ -1,8 +1,8 @@
-part of '../main.dart';
+part of 'life_home.dart';
 
 extension _LifeHomePersistence on _LifeHomePageState {
   Future<void> _restoreAppData() async {
-    final stored = await _LifeHomePageState._appDataStore.load();
+    final stored = await _appDataStore.load();
     if (!mounted) {
       return;
     }
@@ -22,67 +22,52 @@ extension _LifeHomePersistence on _LifeHomePageState {
   }
 
   void _applyLifeSummarySnapshot(LifeSummarySnapshot snapshot) {
-    _recordedFoodCalories = snapshot.foodCalories;
-    _workoutGroupsByAction
-      ..clear()
-      ..addAll(snapshot.workoutGroupsByAction);
-    final restoredTodos = snapshot.todos;
-    if (restoredTodos != null) {
-      _todos
-        ..clear()
-        ..addAll(restoredTodos);
-    }
-    final restoredFinanceRecords = snapshot.financeRecords;
-    if (restoredFinanceRecords != null) {
-      _financeRecords
-        ..clear()
-        ..addAll(restoredFinanceRecords);
-    }
-    final restoredWorkoutPlans = snapshot.workoutPlans;
-    if (restoredWorkoutPlans != null && restoredWorkoutPlans.isNotEmpty) {
-      _workoutPlans
-        ..clear()
-        ..addAll(restoredWorkoutPlans);
-    }
-    _activeWorkoutSession = snapshot.activeWorkoutSession;
-    final restoredWorkoutHistory = snapshot.workoutHistory;
-    if (restoredWorkoutHistory != null) {
-      _workoutHistory
-        ..clear()
-        ..addAll(restoredWorkoutHistory);
-    }
-    _aiFinanceEndpoint = snapshot.aiFinanceEndpoint.trim().isEmpty
-        ? _defaultGlmChatEndpoint
-        : snapshot.aiFinanceEndpoint;
-    _aiFinanceModel = snapshot.aiFinanceModel.trim().isEmpty
-        ? _defaultGlmTextModel
-        : snapshot.aiFinanceModel;
-    _aiFinanceApiKey = snapshot.aiFinanceApiKey;
+    _foodState.applySnapshot(snapshot);
+    _workoutState.applySnapshot(snapshot);
+    _planState.applySnapshot(snapshot);
+    _financeState.applySnapshot(snapshot);
   }
 
   void _syncLinkedSummaryToWidget() {
     // App 主数据写 SQLite；桌面小组件只接收摘要和快捷入口数据。
-    unawaited(
-      _LifeHomePageState._appDataStore.save(
-        foodCalories: _recordedFoodCalories,
-        workoutGroupsByAction: _workoutGroupsByAction,
-        todos: _todos,
-        financeRecords: _financeRecords,
-        workoutPlans: _workoutPlans,
-        activeWorkoutSession: _activeWorkoutSession,
-        workoutHistory: _workoutHistory,
-        aiFinanceEndpoint: _aiFinanceEndpoint,
-        aiFinanceModel: _aiFinanceModel,
-        aiFinanceApiKey: _aiFinanceApiKey,
-      ),
-    );
+    unawaited(_saveAppData());
     unawaited(
       _LifeHomePageState._widgetStore.save(
-        foodCalories: _recordedFoodCalories,
-        workoutGroupsByAction: _workoutGroupsByAction,
-        todos: _todos,
-        financeRecords: _financeRecords,
+        foodCalories: _foodState.calories,
+        workoutGroupsByAction: _workoutState.groupsByAction,
+        todos: _planState.todos,
+        financeRecords: _financeState.records,
       ),
     );
+  }
+
+  Future<void> _saveAppData() async {
+    try {
+      await _appDataStore.save(
+        foodCalories: _foodState.calories,
+        workoutGroupsByAction: _workoutState.groupsByAction,
+        todos: _planState.todos,
+        financeRecords: _financeState.records,
+        workoutPlans: _workoutState.plans,
+        activeWorkoutSession: _workoutState.activeSession,
+        workoutHistory: _workoutState.history,
+        aiFinanceEndpoint: _financeState.aiEndpoint,
+        aiFinanceModel: _financeState.aiModel,
+        aiFinanceApiKey: _financeState.aiApiKey,
+        aiFinanceParseStrategy: _financeState.aiParseStrategy,
+      );
+      if (mounted && _appDataSaveFailed) {
+        _updateState(() => _appDataSaveFailed = false);
+      }
+    } catch (_) {
+      _showAppDataSaveFailure();
+    }
+  }
+
+  void _showAppDataSaveFailure() {
+    if (!mounted || _appDataSaveFailed) {
+      return;
+    }
+    _updateState(() => _appDataSaveFailed = true);
   }
 }

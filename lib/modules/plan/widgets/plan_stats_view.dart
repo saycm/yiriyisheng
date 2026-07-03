@@ -1,4 +1,4 @@
-part of '../../../main.dart';
+part of '../plan.dart';
 
 class _PlanStatsView extends StatelessWidget {
   const _PlanStatsView({
@@ -48,7 +48,7 @@ class _PlanStatsView extends StatelessWidget {
         18,
         0,
         18,
-        _moduleSwitchBarReservedHeight + 88,
+        moduleSwitchBarReservedHeight + 88,
       ),
       children: [
         _WeeklyProgressCard(
@@ -171,7 +171,7 @@ class _PlanLinkedReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _ModuleLinkedSummaryCard(
+    return ModuleLinkedSummaryCard(
       title: '计划联动',
       subtitle: '把饮食、锻炼和待办合成同一个本周复盘入口。',
       icon: Icons.hub_rounded,
@@ -308,86 +308,6 @@ class _PlanMetricPill extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ModuleLinkedSummaryCard extends StatelessWidget {
-  const _ModuleLinkedSummaryCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.values,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final List<(String label, String value)> values;
-
-  @override
-  Widget build(BuildContext context) {
-    // 所有模块共用这个摘要卡片，保证跨模块数据的展示口径一致。
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primarySoft,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: AppColors.primary, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Wrap(
-              alignment: WrapAlignment.end,
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                for (final entry in values)
-                  _LinkedValue(label: entry.$1, value: entry.$2),
               ],
             ),
           ),

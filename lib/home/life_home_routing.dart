@@ -1,4 +1,4 @@
-part of '../main.dart';
+part of 'life_home.dart';
 
 LifeModule _lifeModuleFromRoute(String route) {
   final path = _lifeHomeRoutePath(route);

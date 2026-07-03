@@ -1,12 +1,69 @@
-part of '../main.dart';
+part of 'storage.dart';
 
-class _AppDataStore {
-  const _AppDataStore();
+abstract class LifeSummaryStore {
+  Future<LifeSummarySnapshot?> load();
+
+  Future<void> save({
+    required int foodCalories,
+    required Map<String, int> workoutGroupsByAction,
+    required List<TodoItem> todos,
+    required List<FinanceRecord> financeRecords,
+    required List<WorkoutPlan> workoutPlans,
+    required ActiveWorkoutSession? activeWorkoutSession,
+    required List<WorkoutHistoryEntry> workoutHistory,
+    required String aiFinanceEndpoint,
+    required String aiFinanceModel,
+    required String aiFinanceApiKey,
+    required AiFinanceParseStrategy aiFinanceParseStrategy,
+  });
+}
+
+class AppDataStoreRows {
+  const AppDataStoreRows._();
+
+  static Map<String, Object?> financeRecordToRow(
+    FinanceRecord record,
+    int position,
+  ) {
+    return {
+      'position': position,
+      'title': record.title,
+      'subtitle': record.subtitle,
+      'amount': record.amount,
+      'type': record.type,
+      'date': record.date?.toIso8601String(),
+      'account': record.account,
+      'tagsJson': jsonEncode(record.tags),
+    };
+  }
+
+  static FinanceRecord financeRecordFromRow(Map<String, Object?> row) {
+    final title = row['title'] as String? ?? '手动记录';
+    return FinanceRecord(
+      icon: financeIconForTitle(title),
+      title: title,
+      subtitle: row['subtitle'] as String? ?? '手动记录',
+      amount: (row['amount'] as num?)?.toDouble() ?? 0,
+      type: row['type'] as String? ?? '支出',
+      date: DateTime.tryParse(row['date'] as String? ?? ''),
+      account: (row['account'] as String?)?.trim().isEmpty == false
+          ? (row['account'] as String).trim()
+          : '银行卡',
+      tags: financeStringListFromJson(
+        jsonDecode(row['tagsJson'] as String? ?? '[]'),
+      ),
+    );
+  }
+}
+
+class AppDataStore implements LifeSummaryStore {
+  const AppDataStore();
 
   static const _databaseName = 'pingsheng_life.db';
   static const _databaseVersion = 5;
   static Future<void> _pendingSave = Future<void>.value();
 
+  @override
   Future<LifeSummarySnapshot?> load() async {
     if (!_isSupportedPlatform) {
       return null;
@@ -66,20 +123,24 @@ class _AppDataStore {
         aiFinanceEndpoint: await _readStringMeta(
           db,
           'aiFinanceEndpoint',
-          _defaultGlmChatEndpoint,
+          defaultGlmChatEndpoint,
         ),
         aiFinanceModel: await _readStringMeta(
           db,
           'aiFinanceModel',
-          _defaultGlmTextModel,
+          defaultGlmTextModel,
         ),
         aiFinanceApiKey: await _readStringMeta(db, 'aiFinanceApiKey', ''),
+        aiFinanceParseStrategy: await _readAiFinanceParseStrategy(db),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('App data restore failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
       return null;
     }
   }
 
+  @override
   Future<void> save({
     required int foodCalories,
     required Map<String, int> workoutGroupsByAction,
@@ -91,11 +152,13 @@ class _AppDataStore {
     required String aiFinanceEndpoint,
     required String aiFinanceModel,
     required String aiFinanceApiKey,
+    required AiFinanceParseStrategy aiFinanceParseStrategy,
   }) async {
     if (!_isSupportedPlatform) {
       return;
     }
-    _pendingSave = _pendingSave.then(
+    final previousSave = _pendingSave.catchError((Object _) {});
+    _pendingSave = previousSave.then(
       (_) => _saveNow(
         foodCalories: foodCalories,
         workoutGroupsByAction: workoutGroupsByAction,
@@ -107,6 +170,7 @@ class _AppDataStore {
         aiFinanceEndpoint: aiFinanceEndpoint,
         aiFinanceModel: aiFinanceModel,
         aiFinanceApiKey: aiFinanceApiKey,
+        aiFinanceParseStrategy: aiFinanceParseStrategy,
       ),
     );
     await _pendingSave;
@@ -123,39 +187,27 @@ class _AppDataStore {
     required String aiFinanceEndpoint,
     required String aiFinanceModel,
     required String aiFinanceApiKey,
+    required AiFinanceParseStrategy aiFinanceParseStrategy,
   }) async {
     try {
       final db = await _open();
       await db.transaction((txn) async {
-        await txn.delete('app_meta');
-        await txn.delete('todos');
-        await txn.delete('finance_records');
-        await txn.delete('workout_groups');
-        await txn.delete('workout_plans');
-        await txn.delete('active_workout_session');
-        await txn.delete('workout_history');
-
-        await txn.insert('app_meta', {'key': 'initialized', 'value': '1'});
-        await txn.insert('app_meta', {
-          'key': 'foodCalories',
-          'value': foodCalories.toString(),
-        });
-        await txn.insert('app_meta', {
-          'key': 'aiFinanceEndpoint',
-          'value': aiFinanceEndpoint,
-        });
-        await txn.insert('app_meta', {
-          'key': 'aiFinanceModel',
-          'value': aiFinanceModel,
-        });
-        await txn.insert('app_meta', {
-          'key': 'aiFinanceApiKey',
-          'value': aiFinanceApiKey,
+        await _saveMeta(txn, {
+          'initialized': '1',
+          'foodCalories': foodCalories.toString(),
+          'aiFinanceEndpoint': aiFinanceEndpoint,
+          'aiFinanceModel': aiFinanceModel,
+          'aiFinanceApiKey': aiFinanceApiKey,
+          'aiFinanceParseStrategy': jsonEncode(
+            aiFinanceParseStrategy.toJson(),
+          ),
         });
 
+        final todoIds = <String>[];
         for (var index = 0; index < todos.length; index++) {
           final todo = todos[index];
-          await txn.insert('todos', {
+          todoIds.add(todo.id);
+          final row = {
             'position': index,
             'todoId': todo.id,
             'title': todo.title,
@@ -163,7 +215,7 @@ class _AppDataStore {
             'done': todo.done ? 1 : 0,
             'priority': todo.priority.name,
             'status': todo.status.name,
-            'dueDate': _dateToJson(todo.dueDate),
+            'dueDate': dateToJson(todo.dueDate),
             'note': todo.note,
             'repeatRule': todo.repeatRule.name,
             'linkedModulesJson': jsonEncode(
@@ -172,80 +224,190 @@ class _AppDataStore {
             'postponedCount': todo.postponedCount,
             'createdAt': todo.createdAt.toIso8601String(),
             'completedAt': todo.completedAt?.toIso8601String(),
-          });
+          };
+          await _upsertByTextKey(txn, 'todos', 'todoId', todo.id, row);
         }
+        await _deleteMissingTextKeys(txn, 'todos', 'todoId', todoIds);
 
         for (var index = 0; index < financeRecords.length; index++) {
           final record = financeRecords[index];
-          await txn.insert('finance_records', {
-            'position': index,
-            'title': record.title,
-            'subtitle': record.subtitle,
-            'amount': record.amount,
-            'type': record.type,
-            'date': record.date?.toIso8601String(),
-            'account': record.account,
-            'tagsJson': jsonEncode(record.tags),
-          });
+          await _upsertByPosition(
+            txn,
+            'finance_records',
+            index,
+            AppDataStoreRows.financeRecordToRow(record, index),
+          );
         }
+        await txn.delete(
+          'finance_records',
+          where: 'position >= ?',
+          whereArgs: [financeRecords.length],
+        );
 
+        final workoutActionNames = <String>[];
         for (final entry in workoutGroupsByAction.entries) {
-          await txn.insert('workout_groups', {
-            'actionName': entry.key,
-            'groups': entry.value,
-          });
+          workoutActionNames.add(entry.key);
+          await txn.insert(
+              'workout_groups',
+              {
+                'actionName': entry.key,
+                'groups': entry.value,
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace);
         }
+        await _deleteMissingTextKeys(
+          txn,
+          'workout_groups',
+          'actionName',
+          workoutActionNames,
+        );
 
+        final workoutPlanIds = <String>[];
         for (var index = 0; index < workoutPlans.length; index++) {
           final plan = workoutPlans[index];
-          await txn.insert('workout_plans', {
-            'position': index,
-            'planId': plan.id,
-            'name': plan.name,
-            'target': plan.target,
-            'bodyPartsJson': jsonEncode(plan.bodyParts),
-            'actionNamesJson': jsonEncode(plan.actionNames),
-            'estimatedMinutes': plan.estimatedMinutes,
-            'createdAt': plan.createdAt.toIso8601String(),
-            'updatedAt': plan.updatedAt.toIso8601String(),
-          });
+          workoutPlanIds.add(plan.id);
+          await txn.insert(
+              'workout_plans',
+              {
+                'position': index,
+                'planId': plan.id,
+                'name': plan.name,
+                'target': plan.target,
+                'bodyPartsJson': jsonEncode(plan.bodyParts),
+                'actionNamesJson': jsonEncode(plan.actionNames),
+                'estimatedMinutes': plan.estimatedMinutes,
+                'createdAt': plan.createdAt.toIso8601String(),
+                'updatedAt': plan.updatedAt.toIso8601String(),
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace);
         }
+        await _deleteMissingTextKeys(
+          txn,
+          'workout_plans',
+          'planId',
+          workoutPlanIds,
+        );
 
         final session = activeWorkoutSession;
         if (session != null) {
-          await txn.insert('active_workout_session', {
-            'id': 1,
-            'sessionId': session.id,
-            'planId': session.planId,
-            'planName': session.planName,
-            'startedAt': session.startedAt.toIso8601String(),
-            'actionProgressJson': jsonEncode(session.actionProgress),
-            'feedback': session.feedback,
-          });
+          await txn.insert(
+              'active_workout_session',
+              {
+                'id': 1,
+                'sessionId': session.id,
+                'planId': session.planId,
+                'planName': session.planName,
+                'startedAt': session.startedAt.toIso8601String(),
+                'actionProgressJson': jsonEncode(session.actionProgress),
+                'feedback': session.feedback,
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        } else {
+          await txn.delete('active_workout_session');
         }
 
+        final workoutHistoryIds = <String>[];
         for (var index = 0; index < workoutHistory.length; index++) {
           final entry = workoutHistory[index];
-          await txn.insert('workout_history', {
-            'position': index,
-            'entryId': entry.id,
-            'planId': entry.planId,
-            'planName': entry.planName,
-            'startedAt': entry.startedAt.toIso8601String(),
-            'finishedAt': entry.finishedAt.toIso8601String(),
-            'durationMinutes': entry.durationMinutes,
-            'totalGroups': entry.totalGroups,
-            'estimatedCalories': entry.estimatedCalories,
-            'actionResultsJson': jsonEncode(
-              entry.actionResults.map((item) => item.toJson()).toList(),
-            ),
-            'feedback': entry.feedback,
-          });
+          workoutHistoryIds.add(entry.id);
+          await txn.insert(
+              'workout_history',
+              {
+                'position': index,
+                'entryId': entry.id,
+                'planId': entry.planId,
+                'planName': entry.planName,
+                'startedAt': entry.startedAt.toIso8601String(),
+                'finishedAt': entry.finishedAt.toIso8601String(),
+                'durationMinutes': entry.durationMinutes,
+                'totalGroups': entry.totalGroups,
+                'estimatedCalories': entry.estimatedCalories,
+                'actionResultsJson': jsonEncode(
+                  entry.actionResults.map((item) => item.toJson()).toList(),
+                ),
+                'feedback': entry.feedback,
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace);
         }
+        await _deleteMissingTextKeys(
+          txn,
+          'workout_history',
+          'entryId',
+          workoutHistoryIds,
+        );
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
       // 非 Android 测试环境可能没有 sqflite 插件；主流程继续使用内存状态。
+      debugPrint('App data save failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      Error.throwWithStackTrace(error, stackTrace);
     }
+  }
+
+  Future<void> _saveMeta(
+    Transaction txn,
+    Map<String, String> values,
+  ) async {
+    for (final entry in values.entries) {
+      await txn.insert(
+        'app_meta',
+        {'key': entry.key, 'value': entry.value},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<void> _upsertByTextKey(
+    Transaction txn,
+    String table,
+    String keyColumn,
+    String key,
+    Map<String, Object?> row,
+  ) async {
+    final updated = await txn.update(
+      table,
+      row,
+      where: '$keyColumn = ?',
+      whereArgs: [key],
+    );
+    if (updated == 0) {
+      await txn.insert(table, row);
+    }
+  }
+
+  Future<void> _upsertByPosition(
+    Transaction txn,
+    String table,
+    int position,
+    Map<String, Object?> row,
+  ) async {
+    final updated = await txn.update(
+      table,
+      row,
+      where: 'position = ?',
+      whereArgs: [position],
+    );
+    if (updated == 0) {
+      await txn.insert(table, row);
+    }
+  }
+
+  Future<void> _deleteMissingTextKeys(
+    Transaction txn,
+    String table,
+    String keyColumn,
+    List<String> keys,
+  ) async {
+    if (keys.isEmpty) {
+      await txn.delete(table);
+      return;
+    }
+    final placeholders = List.filled(keys.length, '?').join(',');
+    await txn.delete(
+      table,
+      where: '$keyColumn NOT IN ($placeholders)',
+      whereArgs: keys,
+    );
   }
 
   Future<Database> _open() async {
@@ -418,30 +580,44 @@ class _AppDataStore {
     return rows.first['value'] as String? ?? fallback;
   }
 
+  Future<AiFinanceParseStrategy> _readAiFinanceParseStrategy(
+    Database db,
+  ) async {
+    final raw = await _readStringMeta(db, 'aiFinanceParseStrategy', '');
+    if (raw.trim().isEmpty) {
+      return AiFinanceParseStrategy.defaults;
+    }
+    try {
+      return AiFinanceParseStrategy.fromJson(jsonDecode(raw));
+    } on FormatException {
+      return AiFinanceParseStrategy.defaults;
+    }
+  }
+
   TodoItem _todoFromRow(Map<String, Object?> row) {
     final category = row['category'] as String? ?? '生活';
-    final linkedModules = _linkedModulesFromJson(
+    final linkedModules = linkedModulesFromJson(
       _decodeJsonList(row['linkedModulesJson']),
     );
     return TodoItem(
       id: row['todoId'] as String?,
       title: row['title'] as String? ?? '未命名待办',
       category: category,
-      color: _todoColorForCategory(category),
-      priority: _enumByName(
+      color: todoColorForCategory(category),
+      priority: enumByName(
         TodoPriority.values,
         row['priority'] as String?,
         fallback: TodoPriority.shouldDo,
       ),
-      status: _enumByName(
+      status: enumByName(
         TodoStatus.values,
         row['status'] as String?,
         fallback:
             row['done'] == 1 ? TodoStatus.completed : TodoStatus.notStarted,
       ),
-      dueDate: _dateFromJson(row['dueDate'] as String?),
+      dueDate: dateFromJson(row['dueDate'] as String?),
       note: row['note'] as String? ?? '',
-      repeatRule: _enumByName(
+      repeatRule: enumByName(
         TodoRepeatRule.values,
         row['repeatRule'] as String?,
         fallback: TodoRepeatRule.none,
@@ -455,21 +631,7 @@ class _AppDataStore {
   }
 
   FinanceRecord _financeRecordFromRow(Map<String, Object?> row) {
-    final title = row['title'] as String? ?? '手动记录';
-    return FinanceRecord(
-      icon: _financeIconForTitle(title),
-      title: title,
-      subtitle: row['subtitle'] as String? ?? '手动记录',
-      amount: (row['amount'] as num?)?.toDouble() ?? 0,
-      type: row['type'] as String? ?? '支出',
-      date: DateTime.tryParse(row['date'] as String? ?? ''),
-      account: (row['account'] as String?)?.trim().isEmpty == false
-          ? (row['account'] as String).trim()
-          : '银行卡',
-      tags: _financeStringListFromJson(
-        jsonDecode(row['tagsJson'] as String? ?? '[]'),
-      ),
-    );
+    return AppDataStoreRows.financeRecordFromRow(row);
   }
 
   WorkoutPlan _workoutPlanFromRow(Map<String, Object?> row) {

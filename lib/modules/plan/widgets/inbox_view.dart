@@ -1,4 +1,4 @@
-part of '../../../main.dart';
+part of '../plan.dart';
 
 class _InboxView extends StatelessWidget {
   const _InboxView({
@@ -28,7 +28,7 @@ class _InboxView extends StatelessWidget {
         18,
         0,
         18,
-        _moduleSwitchBarReservedHeight + 88,
+        moduleSwitchBarReservedHeight + 88,
       ),
       children: [
         _InboxQuickCaptureCard(
@@ -45,7 +45,7 @@ class _InboxView extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         if (inboxTodos.isEmpty)
-          const _EmptyCard(
+          const EmptyCard(
             title: '待办箱是空的',
             subtitle: '没有日期的任务会先收集在这里，想清楚后再安排到今天或本周。',
           )

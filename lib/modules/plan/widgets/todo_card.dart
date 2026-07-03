@@ -1,4 +1,4 @@
-part of '../../../main.dart';
+part of '../plan.dart';
 
 class _TodoCard extends StatelessWidget {
   const _TodoCard({
@@ -19,9 +19,9 @@ class _TodoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      decoration: _airyCardDecoration(
+      decoration: airyCardDecoration(
         color: AppColors.surface.withValues(alpha: 0.97),
-        shadows: [_airyShadow(todo.color)],
+        shadows: [airyShadow(todo.color)],
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
@@ -140,7 +140,7 @@ class _TodoCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   todo.done
-                      ? _linkedTodoPrompt(todo, todo.linkedModules.first)
+                      ? linkedTodoPrompt(todo, todo.linkedModules.first)
                       : _pendingLinkedHint(todo),
                   style: const TextStyle(
                     color: AppColors.muted,

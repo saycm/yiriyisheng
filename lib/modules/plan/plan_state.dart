@@ -1,4 +1,4 @@
-part of '../../main.dart';
+part of 'plan.dart';
 
 mixin _PlanModuleState on State<PlanModulePage> {
   DateTime _selectedDate = DateUtils.dateOnly(DateTime.now());

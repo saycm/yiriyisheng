@@ -1,4 +1,4 @@
-part of '../main.dart';
+part of 'life_home.dart';
 
 Widget _buildLifeHomeModulePage({
   required LifeModule module,
@@ -18,6 +18,7 @@ Widget _buildLifeHomeModulePage({
   required String aiFinanceEndpoint,
   required String aiFinanceModel,
   required String aiFinanceApiKey,
+  required AiFinanceParseStrategy aiFinanceParseStrategy,
   required ValueChanged<FinanceRecord> onAddFinanceRecord,
   required void Function(FinanceRecord oldRecord, FinanceRecord newRecord)
       onEditFinanceRecord,
@@ -25,6 +26,7 @@ Widget _buildLifeHomeModulePage({
     required String endpoint,
     required String model,
     required String apiKey,
+    AiFinanceParseStrategy? parseStrategy,
   }) onUpdateAiFinanceConfig,
   required ValueChanged<int> onRecordFoodCalories,
   required void Function(String actionName, int finishedGroups)
@@ -44,7 +46,7 @@ Widget _buildLifeHomeModulePage({
   required int quickActionToken,
   required VoidCallback onQuickActionHandled,
 }) {
-  final moduleNav = _ModuleLinkStrip(
+  final moduleNav = ModuleLinkStrip(
     selected: module,
     onSwitchModule: onSwitchModule,
   );
@@ -61,6 +63,7 @@ Widget _buildLifeHomeModulePage({
         aiEndpoint: aiFinanceEndpoint,
         aiModel: aiFinanceModel,
         aiApiKey: aiFinanceApiKey,
+        aiParseStrategy: aiFinanceParseStrategy,
         onAiConfigChanged: onUpdateAiFinanceConfig,
         quickAction: quickAction,
         quickActionToken: quickActionToken,

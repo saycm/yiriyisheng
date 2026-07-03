@@ -1,10 +1,11 @@
-part of '../../main.dart';
+part of 'finance.dart';
 
 class _FinanceAiAssistantPage extends StatefulWidget {
   const _FinanceAiAssistantPage({
     required this.endpoint,
     required this.model,
     required this.apiKey,
+    required this.parseStrategy,
     required this.onConfigChanged,
     required this.onSaveAll,
   });
@@ -12,10 +13,12 @@ class _FinanceAiAssistantPage extends StatefulWidget {
   final String endpoint;
   final String model;
   final String apiKey;
+  final AiFinanceParseStrategy parseStrategy;
   final void Function({
     required String endpoint,
     required String model,
     required String apiKey,
+    AiFinanceParseStrategy? parseStrategy,
   }) onConfigChanged;
   final ValueChanged<List<FinanceRecord>> onSaveAll;
 
@@ -26,24 +29,31 @@ class _FinanceAiAssistantPage extends StatefulWidget {
 
 class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
   final _client = AiFinanceClient();
+  final _imagePicker = ImagePicker();
   late final TextEditingController _inputController;
+  late final stt.SpeechToText _speech;
   final List<_FinanceAiAssistantMessage> _messages = [];
   late String _endpoint;
   late String _model;
   late String _apiKey;
+  late AiFinanceParseStrategy _parseStrategy;
   bool _loading = false;
+  bool _listening = false;
 
   @override
   void initState() {
     super.initState();
     _inputController = TextEditingController();
+    _speech = stt.SpeechToText();
     _endpoint = widget.endpoint;
     _model = widget.model;
     _apiKey = widget.apiKey;
+    _parseStrategy = widget.parseStrategy;
   }
 
   @override
   void dispose() {
+    _speech.cancel();
     _inputController.dispose();
     super.dispose();
   }
@@ -82,7 +92,10 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
             _FinanceAiComposer(
               controller: _inputController,
               loading: _loading,
+              listening: _listening,
               onQuickCommand: _applyQuickCommand,
+              onPickImage: _pickBillImage,
+              onVoiceInput: _toggleVoiceInput,
               onSend: _sendMessage,
             ),
           ],
@@ -98,6 +111,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
           endpoint: _endpoint,
           model: _model,
           apiKey: _apiKey,
+          parseStrategy: _parseStrategy,
           onConfigChanged: _updateConfig,
         ),
       ),
@@ -108,21 +122,24 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     required String endpoint,
     required String model,
     required String apiKey,
+    AiFinanceParseStrategy? parseStrategy,
   }) {
     final nextEndpoint =
-        endpoint.trim().isEmpty ? _defaultGlmChatEndpoint : endpoint.trim();
-    final nextModel =
-        model.trim().isEmpty ? _defaultGlmTextModel : model.trim();
+        endpoint.trim().isEmpty ? defaultGlmChatEndpoint : endpoint.trim();
+    final nextModel = model.trim().isEmpty ? defaultGlmTextModel : model.trim();
     final nextApiKey = apiKey.trim();
+    final nextParseStrategy = parseStrategy ?? _parseStrategy;
     setState(() {
       _endpoint = nextEndpoint;
       _model = nextModel;
       _apiKey = nextApiKey;
+      _parseStrategy = nextParseStrategy;
     });
     widget.onConfigChanged(
       endpoint: nextEndpoint,
       model: nextModel,
       apiKey: nextApiKey,
+      parseStrategy: nextParseStrategy,
     );
   }
 
@@ -154,16 +171,10 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
         apiKey: _apiKey,
         endpoint: _endpoint,
         model: _model,
+        strategy: _parseStrategy,
       );
-      final records = bills.map(financeRecordFromAiBill).toList();
-      widget.onSaveAll(records);
-      if (!mounted) {
-        return;
-      }
+      _saveBills(bills);
       _inputController.clear();
-      _appendAssistantMessage(
-        '已生成 ${records.length} 笔财务记录，可在记录页查看。',
-      );
     } on AiFinanceException catch (error) {
       if (mounted) {
         _appendAssistantMessage(error.message, isError: true);
@@ -177,6 +188,141 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  Future<void> _pickBillImage() async {
+    if (_loading) {
+      return;
+    }
+    if (_apiKey.trim().isEmpty) {
+      _appendAssistantMessage('请先填写 AI 接口 Key，再使用图片理解', isError: true);
+      return;
+    }
+
+    try {
+      final image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 88,
+      );
+      if (image == null) {
+        return;
+      }
+
+      setState(() {
+        _messages.add(_FinanceAiAssistantMessage.user('已选择图片：${image.name}'));
+        _loading = true;
+      });
+      final bills = await _client.parseImage(
+        imageBytes: await image.readAsBytes(),
+        mimeType: _mimeTypeForImageName(image.name),
+        apiKey: _apiKey,
+        endpoint: _endpoint,
+        model: '',
+        strategy: _parseStrategy,
+      );
+      _saveBills(bills);
+    } on PlatformException catch (error) {
+      if (mounted) {
+        _appendAssistantMessage(
+          '图片权限或相册读取失败：${error.message ?? error.code}',
+          isError: true,
+        );
+      }
+    } on AiFinanceException catch (error) {
+      if (mounted) {
+        _appendAssistantMessage(error.message, isError: true);
+      }
+    } catch (error) {
+      if (mounted) {
+        _appendAssistantMessage('图片理解失败：$error', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _toggleVoiceInput() async {
+    if (_listening) {
+      await _speech.stop();
+      if (mounted) {
+        setState(() => _listening = false);
+      }
+      return;
+    }
+
+    try {
+      final available = await _speech.initialize(
+        onStatus: (status) {
+          if (!mounted) {
+            return;
+          }
+          if (status == 'done' || status == 'notListening') {
+            setState(() => _listening = false);
+          }
+        },
+        onError: (error) {
+          if (mounted) {
+            setState(() => _listening = false);
+            _appendAssistantMessage(
+              '语音识别失败：${error.errorMsg}',
+              isError: true,
+            );
+          }
+        },
+      );
+      if (!available) {
+        _appendAssistantMessage('未获得麦克风权限，请在系统设置中开启', isError: true);
+        return;
+      }
+      setState(() => _listening = true);
+      await _speech.listen(
+        onResult: (result) {
+          if (!mounted) {
+            return;
+          }
+          _inputController.text = result.recognizedWords;
+          _inputController.selection = TextSelection.collapsed(
+            offset: _inputController.text.length,
+          );
+          if (result.finalResult) {
+            setState(() => _listening = false);
+          }
+        },
+        listenOptions: stt.SpeechListenOptions(
+          localeId: 'zh_CN',
+          listenFor: const Duration(seconds: 12),
+          pauseFor: const Duration(seconds: 3),
+          listenMode: stt.ListenMode.dictation,
+          partialResults: true,
+        ),
+      );
+    } on PlatformException catch (error) {
+      if (mounted) {
+        setState(() => _listening = false);
+        _appendAssistantMessage(
+          '麦克风权限申请失败：${error.message ?? error.code}',
+          isError: true,
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _listening = false);
+        _appendAssistantMessage('语音转文字失败：$error', isError: true);
+      }
+    }
+  }
+
+  void _saveBills(List<AiFinanceBillInfo> bills) {
+    final records = bills.map(financeRecordFromAiBill).toList();
+    widget.onSaveAll(records);
+    if (!mounted) {
+      return;
+    }
+    _appendAssistantMessage(
+      '已生成 ${records.length} 笔财务记录，可在记录页查看。',
+    );
   }
 
   void _appendAssistantMessage(String text, {bool isError = false}) {
@@ -323,13 +469,19 @@ class _FinanceAiComposer extends StatelessWidget {
   const _FinanceAiComposer({
     required this.controller,
     required this.loading,
+    required this.listening,
     required this.onQuickCommand,
+    required this.onPickImage,
+    required this.onVoiceInput,
     required this.onSend,
   });
 
   final TextEditingController controller;
   final bool loading;
+  final bool listening;
   final ValueChanged<_AiFinanceQuickCommand> onQuickCommand;
+  final VoidCallback onPickImage;
+  final VoidCallback onVoiceInput;
   final VoidCallback onSend;
 
   @override
@@ -377,6 +529,21 @@ class _FinanceAiComposer extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
+              _FinanceAiIconButton(
+                keyValue: 'ai_finance_pick_image',
+                tooltip: '图片理解',
+                icon: Icons.image_search_rounded,
+                onPressed: loading ? null : onPickImage,
+              ),
+              const SizedBox(width: 8),
+              _FinanceAiIconButton(
+                keyValue: 'ai_finance_voice_input',
+                tooltip: listening ? '停止识别' : '语音转文字',
+                icon: listening ? Icons.graphic_eq_rounded : Icons.mic_rounded,
+                active: listening,
+                onPressed: loading ? null : onVoiceInput,
+              ),
+              const SizedBox(width: 8),
               SizedBox(
                 width: 44,
                 height: 44,
@@ -407,6 +574,55 @@ class _FinanceAiComposer extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FinanceAiIconButton extends StatelessWidget {
+  const _FinanceAiIconButton({
+    required this.keyValue,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+    this.active = false,
+  });
+
+  final String keyValue;
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 40,
+      height: 44,
+      child: IconButton(
+        key: ValueKey(keyValue),
+        tooltip: tooltip,
+        onPressed: onPressed,
+        style: IconButton.styleFrom(
+          backgroundColor: active ? AppColors.primary : AppColors.background,
+          foregroundColor: active ? Colors.white : AppColors.primary,
+          disabledForegroundColor: AppColors.muted,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        icon: Icon(icon, size: 19),
+      ),
+    );
+  }
+}
+
+String _mimeTypeForImageName(String name) {
+  final lower = name.toLowerCase();
+  if (lower.endsWith('.png')) {
+    return 'image/png';
+  }
+  if (lower.endsWith('.webp')) {
+    return 'image/webp';
+  }
+  return 'image/jpeg';
 }
 
 class _FinanceAiQuickCommandBar extends StatelessWidget {
@@ -533,514 +749,4 @@ class _FinanceAiMessageBubble extends StatelessWidget {
       ],
     );
   }
-}
-
-class _FinanceAiSettingsPage extends StatefulWidget {
-  const _FinanceAiSettingsPage({
-    required this.endpoint,
-    required this.model,
-    required this.apiKey,
-    required this.onConfigChanged,
-  });
-
-  final String endpoint;
-  final String model;
-  final String apiKey;
-  final void Function({
-    required String endpoint,
-    required String model,
-    required String apiKey,
-  }) onConfigChanged;
-
-  @override
-  State<_FinanceAiSettingsPage> createState() => _FinanceAiSettingsPageState();
-}
-
-class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
-  bool _enabled = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _FinanceAiPageHeader(
-              title: 'AI小助手',
-              onBack: () => Navigator.of(context).pop(),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 22),
-                children: [
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-                    decoration: _financeAiCardDecoration(),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.auto_awesome_rounded,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '启用AI小助手',
-                                style: TextStyle(
-                                  color: AppColors.ink,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              SizedBox(height: 3),
-                              Text(
-                                '用于文字记账、识别建议和后续扩展能力。',
-                                style: TextStyle(
-                                  color: AppColors.muted,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch(
-                          value: _enabled,
-                          onChanged: (value) {
-                            setState(() => _enabled = value);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _FinanceAiSettingsTile(
-                    icon: Icons.hub_rounded,
-                    title: '服务商管理',
-                    subtitle: _providerSubtitle(widget.apiKey),
-                    onTap: _openProviderManage,
-                  ),
-                  const SizedBox(height: 16),
-                  const _ModuleSectionTitle(
-                    icon: Icons.link_rounded,
-                    title: '能力绑定',
-                  ),
-                  const SizedBox(height: 10),
-                  const _FinanceAiCapabilityTile(
-                    icon: Icons.chat_bubble_rounded,
-                    title: '文本对话',
-                    subtitle: '智谱GLM',
-                    active: true,
-                  ),
-                  const _FinanceAiCapabilityTile(
-                    icon: Icons.image_search_rounded,
-                    title: '图片理解',
-                    subtitle: '暂未绑定',
-                    active: false,
-                  ),
-                  const _FinanceAiCapabilityTile(
-                    icon: Icons.graphic_eq_rounded,
-                    title: '语音转文字',
-                    subtitle: '暂未绑定',
-                    active: false,
-                  ),
-                  const SizedBox(height: 16),
-                  const _ModuleSectionTitle(
-                    icon: Icons.tune_rounded,
-                    title: '高级设置',
-                  ),
-                  const SizedBox(height: 10),
-                  _FinanceAiSettingsTile(
-                    icon: Icons.receipt_long_rounded,
-                    title: '记账解析策略',
-                    subtitle: '多笔账单、转账、账户和标签自动提取',
-                    onTap: () {},
-                    showArrow: false,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _openProviderManage() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => _FinanceAiProviderManagePage(
-          endpoint: widget.endpoint,
-          model: widget.model,
-          apiKey: widget.apiKey,
-          onConfigChanged: widget.onConfigChanged,
-        ),
-      ),
-    );
-  }
-
-  static String _providerSubtitle(String apiKey) {
-    return apiKey.trim().isEmpty ? '智谱GLM未配置' : '智谱GLM已配置';
-  }
-}
-
-class _FinanceAiProviderManagePage extends StatelessWidget {
-  const _FinanceAiProviderManagePage({
-    required this.endpoint,
-    required this.model,
-    required this.apiKey,
-    required this.onConfigChanged,
-  });
-
-  final String endpoint;
-  final String model;
-  final String apiKey;
-  final void Function({
-    required String endpoint,
-    required String model,
-    required String apiKey,
-  }) onConfigChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _FinanceAiPageHeader(
-              title: '服务商管理',
-              onBack: () => Navigator.of(context).pop(),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 22),
-                children: [
-                  _FinanceAiSettingsTile(
-                    icon: Icons.psychology_alt_rounded,
-                    title: '智谱GLM',
-                    subtitle: apiKey.trim().isEmpty
-                        ? '内置服务商，请填写 API Key'
-                        : '文本模型 $model',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (context) => _FinanceAiProviderEditPage(
-                          endpoint: endpoint,
-                          model: model,
-                          apiKey: apiKey,
-                          onConfigChanged: onConfigChanged,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FinanceAiProviderEditPage extends StatefulWidget {
-  const _FinanceAiProviderEditPage({
-    required this.endpoint,
-    required this.model,
-    required this.apiKey,
-    required this.onConfigChanged,
-  });
-
-  final String endpoint;
-  final String model;
-  final String apiKey;
-  final void Function({
-    required String endpoint,
-    required String model,
-    required String apiKey,
-  }) onConfigChanged;
-
-  @override
-  State<_FinanceAiProviderEditPage> createState() =>
-      _FinanceAiProviderEditPageState();
-}
-
-class _FinanceAiProviderEditPageState
-    extends State<_FinanceAiProviderEditPage> {
-  late final TextEditingController _endpointController;
-  late final TextEditingController _modelController;
-  late final TextEditingController _apiKeyController;
-
-  @override
-  void initState() {
-    super.initState();
-    _endpointController = TextEditingController(
-      text: widget.endpoint.trim().isEmpty
-          ? _defaultGlmChatEndpoint
-          : widget.endpoint,
-    );
-    _modelController = TextEditingController(
-      text: widget.model.trim().isEmpty ? _defaultGlmTextModel : widget.model,
-    );
-    _apiKeyController = TextEditingController(text: widget.apiKey);
-  }
-
-  @override
-  void dispose() {
-    _endpointController.dispose();
-    _modelController.dispose();
-    _apiKeyController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _FinanceAiPageHeader(
-              title: '智谱GLM',
-              onBack: () => Navigator.of(context).pop(),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 22),
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: _financeAiCardDecoration(),
-                    child: Column(
-                      children: [
-                        _FinanceTextField(
-                          keyValue: 'ai_provider_endpoint',
-                          controller: _endpointController,
-                          label: 'API 地址',
-                          keyboardType: TextInputType.url,
-                        ),
-                        const SizedBox(height: 10),
-                        _FinanceTextField(
-                          keyValue: 'ai_provider_text_model',
-                          controller: _modelController,
-                          label: '文本模型',
-                          keyboardType: TextInputType.text,
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          key: const ValueKey('ai_provider_api_key'),
-                          controller: _apiKeyController,
-                          obscureText: true,
-                          decoration: InputDecoration(
-                            labelText: 'API Key',
-                            filled: true,
-                            fillColor: AppColors.background,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 46,
-                    child: FilledButton(
-                      onPressed: _save,
-                      child: const Text('保存'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _save() {
-    widget.onConfigChanged(
-      endpoint: _endpointController.text,
-      model: _modelController.text,
-      apiKey: _apiKeyController.text,
-    );
-    final navigator = Navigator.of(context);
-    navigator.pop();
-    if (navigator.canPop()) {
-      navigator.pop();
-    }
-  }
-}
-
-class _FinanceAiPageHeader extends StatelessWidget {
-  const _FinanceAiPageHeader({
-    required this.title,
-    required this.onBack,
-  });
-
-  final String title;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-      child: Row(
-        children: [
-          IconButton(
-            tooltip: '返回',
-            onPressed: onBack,
-            icon: const Icon(Icons.arrow_back_rounded),
-          ),
-          Expanded(
-            child: Center(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 48),
-        ],
-      ),
-    );
-  }
-}
-
-class _FinanceAiSettingsTile extends StatelessWidget {
-  const _FinanceAiSettingsTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.showArrow = true,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  final bool showArrow;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-        decoration: _financeAiCardDecoration(),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.primarySoft,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: AppColors.primary, size: 20),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (showArrow)
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.muted,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FinanceAiCapabilityTile extends StatelessWidget {
-  const _FinanceAiCapabilityTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.active,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = active ? AppColors.primary : AppColors.muted;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-      decoration: _financeAiCardDecoration(),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: AppColors.ink,
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          Text(
-            subtitle,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-BoxDecoration _financeAiCardDecoration() {
-  return BoxDecoration(
-    color: AppColors.surface,
-    borderRadius: BorderRadius.circular(8),
-    border: Border.all(color: AppColors.line),
-  );
 }

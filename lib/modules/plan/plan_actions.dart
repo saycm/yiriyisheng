@@ -1,7 +1,6 @@
-part of '../../main.dart';
+part of 'plan.dart';
 
 mixin _PlanModuleActions on _PlanModuleState {
-
   void _toggleTodo(TodoItem todo) {
     widget.onToggleTodo(todo);
   }
@@ -11,7 +10,7 @@ mixin _PlanModuleActions on _PlanModuleState {
       TodoItem(
         title: title,
         category: '生活',
-        color: _todoColorForCategory('生活'),
+        color: todoColorForCategory('生活'),
         priority: TodoPriority.shouldDo,
       ),
     );

@@ -1,4 +1,4 @@
-part of '../main.dart';
+part of 'models.dart';
 
 enum SystemHealthStatus {
   loading,
@@ -161,8 +161,8 @@ class HealthSystemSnapshot {
   }
 }
 
-class _SystemHealthStore {
-  const _SystemHealthStore();
+class SystemHealthStore {
+  const SystemHealthStore();
 
   static const _channel = MethodChannel('pingsheng_life/system_health');
 

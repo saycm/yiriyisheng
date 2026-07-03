@@ -1,7 +1,7 @@
-part of '../main.dart';
+part of 'storage.dart';
 
-class _LifeWidgetStore {
-  const _LifeWidgetStore();
+class LifeWidgetStore {
+  const LifeWidgetStore();
 
   static const _channel = MethodChannel('pingsheng_life/widget_summary');
 

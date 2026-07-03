@@ -1,4 +1,4 @@
-part of '../../../main.dart';
+part of '../plan.dart';
 
 class _PlanBody extends StatelessWidget {
   const _PlanBody({
@@ -57,10 +57,9 @@ class _PlanBody extends StatelessWidget {
           ..sort(_sortPlanTodos),
         completedTodos: todos.where((todo) => todo.done).toList()
           ..sort(_sortPlanTodos),
-        archivedTodos: todos
-            .where((todo) => todo.status == TodoStatus.archived)
-            .toList()
-          ..sort(_sortPlanTodos),
+        archivedTodos:
+            todos.where((todo) => todo.status == TodoStatus.archived).toList()
+              ..sort(_sortPlanTodos),
         onToggle: onToggleTodo,
         onPostpone: onPostponeTodo,
         onArchive: onArchiveTodo,

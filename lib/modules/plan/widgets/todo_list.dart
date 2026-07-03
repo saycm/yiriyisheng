@@ -1,4 +1,4 @@
-part of '../../../main.dart';
+part of '../plan.dart';
 
 class _TodoList extends StatelessWidget {
   const _TodoList({
@@ -34,7 +34,7 @@ class _TodoList extends StatelessWidget {
         18,
         0,
         18,
-        _moduleSwitchBarReservedHeight + 88,
+        moduleSwitchBarReservedHeight + 88,
       ),
       children: [
         if (header != null) ...[
@@ -53,7 +53,7 @@ class _TodoList extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         if (todos.isEmpty)
-          _EmptyCard(
+          EmptyCard(
             title: filtered ? '这个类别没有待办' : emptyTitle,
             subtitle: filtered ? '切回全部或添加新的$activeFilter事项' : emptySubtitle,
           )

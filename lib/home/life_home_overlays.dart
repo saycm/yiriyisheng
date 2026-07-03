@@ -1,4 +1,4 @@
-part of '../main.dart';
+part of 'life_home.dart';
 
 extension _LifeHomeOverlays on _LifeHomePageState {
   void _openModuleSheet() {
@@ -7,13 +7,13 @@ extension _LifeHomeOverlays on _LifeHomePageState {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return _ModuleSheet(
+        return ModuleSheet(
           selected: _module,
           pendingTodos: _pendingTodoCount,
-          foodCalories: _recordedFoodCalories,
-          workoutGroups: _workoutFinishedGroups,
-          todayExpense: _todayExpense,
-          events: _events,
+          foodCalories: _foodState.calories,
+          workoutGroups: _workoutState.finishedGroups,
+          todayExpense: _financeState.todayExpense,
+          events: _planState.events,
           onSelect: (module) {
             Navigator.of(context).pop();
             _setModule(module);

@@ -1,4 +1,4 @@
-part of '../../../main.dart';
+part of '../plan.dart';
 
 class _PlanMoreSheet extends StatelessWidget {
   const _PlanMoreSheet({
@@ -20,7 +20,7 @@ class _PlanMoreSheet extends StatelessWidget {
       ..._todoCategoryOptions().map((category) => category.$1),
     ];
 
-    return _InfoSheetFrame(
+    return InfoSheetFrame(
       title: '待办选项',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

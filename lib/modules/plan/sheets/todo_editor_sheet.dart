@@ -1,4 +1,4 @@
-part of '../../../main.dart';
+part of '../plan.dart';
 
 void _showPlanTodoEditorSheet({
   required BuildContext context,
@@ -64,7 +64,7 @@ void _showPlanTodoEditorSheet({
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _SheetHandle(),
+                      const SheetHandle(),
                       const SizedBox(height: 14),
                       const Text(
                         '新增待办',
@@ -355,7 +355,7 @@ void _showPlanTodoEditorSheet({
                               TodoItem(
                                 title: title,
                                 category: category,
-                                color: _todoColorForCategory(category),
+                                color: todoColorForCategory(category),
                                 priority: selectedPriority,
                                 status: selectedStatus,
                                 dueDate: selectedDate,

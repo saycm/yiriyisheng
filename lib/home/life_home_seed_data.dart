@@ -1,4 +1,4 @@
-part of '../main.dart';
+part of 'life_home.dart';
 
 List<TodoItem> _createSeedTodos() {
   final today = DateUtils.dateOnly(DateTime.now());

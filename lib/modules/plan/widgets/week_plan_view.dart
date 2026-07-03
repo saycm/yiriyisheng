@@ -1,4 +1,4 @@
-part of '../../../main.dart';
+part of '../plan.dart';
 
 class _WeekPlanView extends StatelessWidget {
   const _WeekPlanView({
@@ -48,7 +48,7 @@ class _WeekPlanView extends StatelessWidget {
         18,
         0,
         18,
-        _moduleSwitchBarReservedHeight + 88,
+        moduleSwitchBarReservedHeight + 88,
       ),
       children: [
         _WeekOverviewCard(
@@ -422,7 +422,7 @@ class _WeekSelectedTasksPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (todos.isEmpty)
-            const _EmptyCard(
+            const EmptyCard(
               title: '这天还没有安排',
               subtitle: '周计划会把每天的任务密度摊开，避免都挤到今天。',
             )

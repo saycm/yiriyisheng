@@ -1,4 +1,4 @@
-part of '../../../main.dart';
+part of '../plan.dart';
 
 class _TodayOverviewCard extends StatelessWidget {
   const _TodayOverviewCard({
@@ -26,7 +26,7 @@ class _TodayOverviewCard extends StatelessWidget {
       ),
       (
         label: '支出',
-        value: _formatMoney(todayExpense),
+        value: formatMoney(todayExpense),
         icon: Icons.receipt_long_rounded,
         color: AppColors.financeRed,
       ),
@@ -42,19 +42,23 @@ class _TodayOverviewCard extends StatelessWidget {
         icon: Icons.fitness_center_rounded,
         color: const Color(0xFF9278F7),
       ),
-      (
-        label: '健康',
-        value: healthStatusText,
-        icon: Icons.favorite_rounded,
-        color: const Color(0xFFFF6F9D),
-      ),
     ];
+    final metricTiles = metrics
+        .map(
+          (metric) => _TodayOverviewMetric(
+            label: metric.label,
+            value: metric.value,
+            icon: metric.icon,
+            color: metric.color,
+          ),
+        )
+        .toList();
 
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: _airyCardDecoration(
+      decoration: airyCardDecoration(
         color: AppColors.surface.withValues(alpha: 0.96),
-        shadows: [_airyShadow(AppColors.primary)],
+        shadows: [airyShadow(AppColors.primary)],
       ),
       key: const ValueKey('today_overview_card'),
       child: Column(
@@ -69,19 +73,19 @@ class _TodayOverviewCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: metrics
-                .map(
-                  (metric) => _TodayOverviewMetric(
-                    label: metric.label,
-                    value: metric.value,
-                    icon: metric.icon,
-                    color: metric.color,
-                  ),
-                )
-                .toList(),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: metricTiles,
+                ),
+              ),
+              const SizedBox(width: 8),
+              _TodayOverviewHealthPanel(statusText: healthStatusText),
+            ],
           ),
         ],
       ),
@@ -107,6 +111,7 @@ class _TodayOverviewMetric extends StatelessWidget {
     return SizedBox(
       width: 96,
       child: Container(
+        key: ValueKey('today_overview_metric_$label'),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.11),
@@ -139,6 +144,54 @@ class _TodayOverviewMetric extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TodayOverviewHealthPanel extends StatelessWidget {
+  const _TodayOverviewHealthPanel({required this.statusText});
+
+  final String statusText;
+
+  @override
+  Widget build(BuildContext context) {
+    const color = Color(0xFFFF6F9D);
+    return Container(
+      key: const ValueKey('today_overview_health_panel'),
+      width: 116,
+      height: 146,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.favorite_rounded, color: color, size: 21),
+          const Spacer(),
+          Text(
+            statusText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: color,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            '健康',
+            style: TextStyle(
+              color: AppColors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }

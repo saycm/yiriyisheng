@@ -1,4 +1,4 @@
-part of '../main.dart';
+part of '../auth/auth.dart';
 
 class _PingShengApi {
   const _PingShengApi();
@@ -9,8 +9,8 @@ class _PingShengApi {
       '/v1/app/update',
       query: {
         'platform': 'android',
-        'versionCode': _appVersionCode.toString(),
-        'versionName': _appVersionName,
+        'versionCode': appVersionCode.toString(),
+        'versionName': appVersionName,
       },
     );
     return _UpdateInfo.fromJson(json);
@@ -85,7 +85,7 @@ class _PingShengApi {
     Map<String, Object?>? body,
     String? accessToken,
   }) async {
-    final base = Uri.parse(_apiBaseUrl);
+    final base = Uri.parse(apiBaseUrl);
     final uri = base.replace(
       path: '${base.path}$path',
       queryParameters: query,

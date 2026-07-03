@@ -1,0 +1,12 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../core/app_core.dart';
+import '../modules/finance/finance_ai_core.dart';
+
+part '../modules/workout/workout_models.dart';
+part 'life_data.dart';
+part 'life_event.dart';
+part 'system_health.dart';
