@@ -72,7 +72,7 @@ void main() {
     expect(find.text('手机传感器'), findsNothing);
   });
 
-  testWidgets('health date switch opens metric detail and summary',
+  testWidgets('status center opens summary and shows external source entry',
       (tester) async {
     mockSystemHealthSnapshot();
 
@@ -170,6 +170,30 @@ void main() {
     expect(find.text('颈肩不适'), findsWidgets);
     expect(find.text('焦虑'), findsWidgets);
     expect(find.text('身体有不适'), findsOneWidget);
+  });
+
+  testWidgets('saving unchanged health record keeps default stress feeling',
+      (tester) async {
+    mockSystemHealthSnapshot();
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    addTearDown(
+      () => tester.binding.platformDispatcher.defaultRouteNameTestValue = '/',
+    );
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('记录状态'));
+    await tester.pumpAndSettle();
+    final saveHealthRecord =
+        find.byKey(const ValueKey('save_health_manual_record'));
+    await tester.ensureVisible(saveHealthRecord);
+    await tester.pumpAndSettle();
+    await tester.tap(saveHealthRecord);
+    await tester.pumpAndSettle();
+
+    expect(find.text('压力中等'), findsWidgets);
+    expect(find.text('压力较低'), findsNothing);
   });
 
   testWidgets('health connect status stays behind optional source entry',

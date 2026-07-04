@@ -84,7 +84,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
   String _bodyTag = '正常';
   double _energyLevel = 3;
   double _fatigueLevel = 2;
-  double _stressLevel = 2;
+  double _stressLevel = 3;
   String _painNote = '';
   String _moodNote = '平稳';
   HealthSleepFeeling _sleepFeeling = HealthSleepFeeling.normal;
