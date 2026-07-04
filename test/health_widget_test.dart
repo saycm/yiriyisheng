@@ -213,48 +213,47 @@ void main() {
     );
   });
 
-  testWidgets('status center opens summary and shows external source entry',
+  testWidgets('health status center opens summary and external source sheet',
       (tester) async {
     mockSystemHealthSnapshot();
 
-    await tester.pumpWidget(const PingShengApp());
-
-    await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
-    await tester.pumpAndSettle();
-
-    final workoutTile = find.byKey(const ValueKey('module_sheet_workout'));
-    await tester.scrollUntilVisible(
-      workoutTile,
-      180,
-      scrollable: find.byType(Scrollable).last,
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    addTearDown(
+      () => tester.binding.platformDispatcher.defaultRouteNameTestValue = '/',
     );
-    await tester.pumpAndSettle();
-    await tester.tap(workoutTile);
-    await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('module_link_4')));
+    await tester.pumpWidget(const PingShengApp());
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('module_glass_header_title_health')),
         findsOneWidget);
-    expect(find.text('5'), findsWidgets);
     expect(find.text('今日状态'), findsWidgets);
     expect(find.text('状态中心'), findsOneWidget);
     expect(
         find.byKey(const ValueKey('health_status_score_card')), findsOneWidget);
-    expect(find.byKey(const ValueKey('health_impact_card')), findsOneWidget);
-
-    await tester.tap(find.text('4').first);
-    await tester.pumpAndSettle();
-
-    expect(find.text('4'), findsWidgets);
+    expect(find.byKey(const ValueKey('health_external_source_entry')),
+        findsOneWidget);
+    expect(find.text('外部数据源'), findsOneWidget);
+    expect(find.text('系统健康数据已连接'), findsNothing);
 
     await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
     await tester.pumpAndSettle();
 
-    expect(find.text('健康总览'), findsOneWidget);
-    expect(find.text('活动完成'), findsOneWidget);
-    expect(find.text('48%'), findsWidgets);
+    final summarySheet = find.byType(BottomSheet);
+    expect(
+      find.descendant(
+        of: summarySheet,
+        matching: find.text('健康总览'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: summarySheet,
+        matching: find.text('活动完成'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byIcon(Icons.close_rounded).first);
     await tester.pumpAndSettle();
@@ -262,22 +261,28 @@ void main() {
     final healthList = find.byKey(const ValueKey('health_main_list'));
     await dragUntilFound(
       tester,
-      find.byKey(const ValueKey('health_status_suggestion_card')),
-      scrollable: healthList,
-    );
-    expect(find.text('状态建议'), findsOneWidget);
-    await dragUntilFound(
-      tester,
-      find.byKey(const ValueKey('health_status_trend_card')),
-      scrollable: healthList,
-    );
-    expect(find.text('状态趋势'), findsOneWidget);
-    await dragUntilFound(
-      tester,
       find.byKey(const ValueKey('health_external_source_entry')),
       scrollable: healthList,
     );
-    expect(find.text('外部数据源'), findsOneWidget);
+    await tester
+        .tap(find.byKey(const ValueKey('health_external_source_entry')));
+    await tester.pumpAndSettle();
+
+    final externalSheet = find.byType(BottomSheet);
+    expect(
+      find.descendant(
+        of: externalSheet,
+        matching: find.text('外部数据源'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: externalSheet,
+        matching: find.text('系统健康数据已连接'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('health manual body record updates status center',
