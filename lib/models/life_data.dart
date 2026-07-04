@@ -1,4 +1,6 @@
-part of '../main.dart';
+// 中文注释：业务数据模型，负责 App 内状态、序列化和恢复。
+
+part of 'models.dart';
 
 class LifeSummarySnapshot {
   const LifeSummarySnapshot({
@@ -9,9 +11,11 @@ class LifeSummarySnapshot {
     this.workoutPlans,
     this.activeWorkoutSession,
     this.workoutHistory,
-    this.aiFinanceEndpoint = _defaultGlmChatEndpoint,
-    this.aiFinanceModel = _defaultGlmTextModel,
+    this.aiFinanceEndpoint = defaultGlmChatEndpoint,
+    this.aiFinanceModel = defaultGlmTextModel,
     this.aiFinanceApiKey = '',
+    this.aiFinanceParseStrategy = AiFinanceParseStrategy.defaults,
+    this.aiFinanceCustomPrompt = '',
   });
 
   final int foodCalories;
@@ -24,6 +28,8 @@ class LifeSummarySnapshot {
   final String aiFinanceEndpoint;
   final String aiFinanceModel;
   final String aiFinanceApiKey;
+  final AiFinanceParseStrategy aiFinanceParseStrategy;
+  final String aiFinanceCustomPrompt;
 }
 
 class TodoItem {
@@ -122,7 +128,7 @@ class TodoItem {
       'category': category,
       'priority': priority.name,
       'status': status.name,
-      'dueDate': _dateToJson(dueDate),
+      'dueDate': dateToJson(dueDate),
       'note': note,
       'repeatRule': repeatRule.name,
       'linkedModules': linkedModules.map((module) => module.name).toList(),
@@ -135,7 +141,7 @@ class TodoItem {
 
   static TodoItem fromJson(Map<String, dynamic> json) {
     final category = json['category'] as String? ?? '生活';
-    final status = _enumByName(
+    final status = enumByName(
       TodoStatus.values,
       json['status'] as String?,
       fallback:
@@ -145,21 +151,21 @@ class TodoItem {
       id: json['id'] as String?,
       title: json['title'] as String? ?? '未命名待办',
       category: category,
-      color: _todoColorForCategory(category),
-      priority: _enumByName(
+      color: todoColorForCategory(category),
+      priority: enumByName(
         TodoPriority.values,
         json['priority'] as String?,
         fallback: TodoPriority.shouldDo,
       ),
       status: status,
-      dueDate: _dateFromJson(json['dueDate'] as String?),
+      dueDate: dateFromJson(json['dueDate'] as String?),
       note: json['note'] as String? ?? '',
-      repeatRule: _enumByName(
+      repeatRule: enumByName(
         TodoRepeatRule.values,
         json['repeatRule'] as String?,
         fallback: TodoRepeatRule.none,
       ),
-      linkedModules: _linkedModulesFromJson(json['linkedModules']),
+      linkedModules: linkedModulesFromJson(json['linkedModules']),
       postponedCount: (json['postponedCount'] as num?)?.toInt() ?? 0,
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
@@ -270,7 +276,7 @@ class FinanceRecord {
 
   String get displayAmount {
     final prefix = type == '收入' ? '+' : '-';
-    return '$prefix${_formatMoney(amount)}';
+    return '$prefix${formatMoney(amount)}';
   }
 
   Map<String, Object?> toJson() {
@@ -289,7 +295,7 @@ class FinanceRecord {
     final title = json['title'] as String? ?? '手动记录';
     final account = json['account'] as String?;
     return FinanceRecord(
-      icon: _financeIconForTitle(title),
+      icon: financeIconForTitle(title),
       title: title,
       subtitle: json['subtitle'] as String? ?? '手动记录',
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
@@ -297,12 +303,12 @@ class FinanceRecord {
       date: DateTime.tryParse(json['date'] as String? ?? ''),
       account:
           account == null || account.trim().isEmpty ? '银行卡' : account.trim(),
-      tags: _financeStringListFromJson(json['tags']),
+      tags: financeStringListFromJson(json['tags']),
     );
   }
 }
 
-Color _todoColorForCategory(String category) {
+Color todoColorForCategory(String category) {
   return switch (category) {
     '健康' => const Color(0xFFFF6F9D),
     '工作' => const Color(0xFF9278F7),
@@ -312,7 +318,7 @@ Color _todoColorForCategory(String category) {
   };
 }
 
-T _enumByName<T extends Enum>(
+T enumByName<T extends Enum>(
   List<T> values,
   String? name, {
   required T fallback,
@@ -325,14 +331,14 @@ T _enumByName<T extends Enum>(
   return fallback;
 }
 
-List<TodoLinkedModule> _linkedModulesFromJson(Object? value) {
+List<TodoLinkedModule> linkedModulesFromJson(Object? value) {
   if (value is! List<dynamic>) {
     return [];
   }
   return value
       .whereType<String>()
       .map(
-        (name) => _enumByName(
+        (name) => enumByName(
           TodoLinkedModule.values,
           name,
           fallback: TodoLinkedModule.health,
@@ -342,7 +348,7 @@ List<TodoLinkedModule> _linkedModulesFromJson(Object? value) {
       .toList();
 }
 
-List<String> _financeStringListFromJson(Object? value) {
+List<String> financeStringListFromJson(Object? value) {
   if (value is! List<dynamic>) {
     return [];
   }
@@ -353,7 +359,7 @@ List<String> _financeStringListFromJson(Object? value) {
       .toList();
 }
 
-String? _dateToJson(DateTime? value) {
+String? dateToJson(DateTime? value) {
   if (value == null) {
     return null;
   }
@@ -363,7 +369,7 @@ String? _dateToJson(DateTime? value) {
       '${date.day.toString().padLeft(2, '0')}';
 }
 
-DateTime? _dateFromJson(String? value) {
+DateTime? dateFromJson(String? value) {
   if (value == null || value.trim().isEmpty) {
     return null;
   }
@@ -377,7 +383,7 @@ String _newLocalId() {
   return 'todo_${micros}_$salt';
 }
 
-IconData _financeIconForTitle(String title) {
+IconData financeIconForTitle(String title) {
   return switch (title) {
     '三餐' => Icons.restaurant_rounded,
     '咖啡' => Icons.local_cafe_rounded,
@@ -402,7 +408,7 @@ IconData _financeIconForTitle(String title) {
   };
 }
 
-String _formatMoney(double value) {
+String formatMoney(double value) {
   final fixed = value.abs().toStringAsFixed(2);
   final parts = fixed.split('.');
   final digits = parts.first;
@@ -416,4 +422,15 @@ String _formatMoney(double value) {
   }
   final sign = value < 0 ? '-' : '';
   return '$sign¥${buffer.toString()}.${parts.last}';
+}
+
+String linkedTodoPrompt(TodoItem todo, TodoLinkedModule module) {
+  return switch (module) {
+    TodoLinkedModule.finance => '${todo.title} 已完成，可以补一条财务记录。',
+    TodoLinkedModule.food => '${todo.title} 已完成，可以补充饮食记录。',
+    TodoLinkedModule.workout => '${todo.title} 已完成，可以记录训练组数。',
+    TodoLinkedModule.health => todo.done
+        ? '${todo.title} 已完成，健康模块会同步今日状态。'
+        : '${todo.title} 未完成，明天关注睡眠和恢复。',
+  };
 }

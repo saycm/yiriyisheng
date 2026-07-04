@@ -1,3 +1,5 @@
+# 中文注释：旧版 Python 服务端测试，保留作历史接口验证参考。
+
 import http.client
 import importlib.util
 import json

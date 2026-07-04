@@ -1,10 +1,12 @@
-part of '../main.dart';
+// 中文注释：首页状态与模块调度层，负责组合财务、计划、饮食、锻炼和健康模块。
+
+part of 'life_home.dart';
 
 extension _LifeHomeMutations on _LifeHomePageState {
   void _recordFoodCalories(int calories) {
     // 饮食模块的记录会进入应用级共享状态，健康模块据此展示今日摄入。
     _updateState(() {
-      _recordedFoodCalories += calories;
+      _foodState.calories += calories;
       _pushLifeEvent(
         LifeEvent(
           title: '记录饮食',
@@ -19,9 +21,9 @@ extension _LifeHomeMutations on _LifeHomePageState {
 
   void _updateWorkoutGroups(String actionName, int finishedGroups) {
     // 锻炼模块完成组数保存在父级，切换到健康/饮食/计划后仍能联动展示。
-    final previousGroups = _workoutGroupsByAction[actionName] ?? 0;
+    final previousGroups = _workoutState.groupsByAction[actionName] ?? 0;
     _updateState(() {
-      _workoutGroupsByAction[actionName] = finishedGroups;
+      _workoutState.groupsByAction[actionName] = finishedGroups;
       if (finishedGroups > previousGroups) {
         _pushLifeEvent(
           LifeEvent(
@@ -38,7 +40,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
 
   void _startWorkoutSession(ActiveWorkoutSession session) {
     _updateState(() {
-      _activeWorkoutSession = session;
+      _workoutState.activeSession = session;
       _pushLifeEvent(
         LifeEvent(
           title: '开始训练',
@@ -52,16 +54,16 @@ extension _LifeHomeMutations on _LifeHomePageState {
   }
 
   void _updateWorkoutSession(ActiveWorkoutSession session) {
-    _updateState(() => _activeWorkoutSession = session);
+    _updateState(() => _workoutState.activeSession = session);
     _syncLinkedSummaryToWidget();
   }
 
   void _finishWorkoutSession(WorkoutHistoryEntry entry) {
     _updateState(() {
-      _workoutHistory.insert(0, entry);
-      _activeWorkoutSession = null;
+      _workoutState.history.insert(0, entry);
+      _workoutState.activeSession = null;
       for (final result in entry.actionResults) {
-        _workoutGroupsByAction[result.actionName] = result.finishedGroups;
+        _workoutState.groupsByAction[result.actionName] = result.finishedGroups;
       }
       _pushLifeEvent(
         LifeEvent(
@@ -76,11 +78,14 @@ extension _LifeHomeMutations on _LifeHomePageState {
   }
 
   void _updateWorkoutPlan(WorkoutPlan plan) {
-    final index = _workoutPlans.indexWhere((item) => item.id == plan.id);
+    final index = _workoutState.plans.indexWhere((item) => item.id == plan.id);
     if (index == -1) {
+      // 三点菜单的新建/复制计划会产生新 id，这里负责把它纳入首页状态。
+      _updateState(() => _workoutState.plans.add(plan));
+      _syncLinkedSummaryToWidget();
       return;
     }
-    _updateState(() => _workoutPlans[index] = plan);
+    _updateState(() => _workoutState.plans[index] = plan);
     _syncLinkedSummaryToWidget();
   }
 
@@ -113,11 +118,11 @@ extension _LifeHomeMutations on _LifeHomePageState {
   }
 
   void _updateTodo(TodoItem todo) {
-    final index = _todos.indexWhere((item) => item.id == todo.id);
+    final index = _planState.todos.indexWhere((item) => item.id == todo.id);
     if (index == -1) {
       return;
     }
-    _updateState(() => _todos[index] = todo);
+    _updateState(() => _planState.todos[index] = todo);
     _syncLinkedSummaryToWidget();
   }
 
@@ -153,7 +158,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
 
   void _deleteTodo(TodoItem todo) {
     _updateState(() {
-      _todos.removeWhere((item) => item.id == todo.id);
+      _planState.todos.removeWhere((item) => item.id == todo.id);
       _pushLifeEvent(
         LifeEvent(
           title: '删除待办',
@@ -168,7 +173,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
 
   void _addTodo(TodoItem todo) {
     _updateState(() {
-      _todos.add(todo);
+      _planState.todos.add(todo);
       _pushLifeEvent(
         LifeEvent(
           title: '新增待办',
@@ -182,9 +187,9 @@ extension _LifeHomeMutations on _LifeHomePageState {
   }
 
   void _clearCompletedTodos() {
-    final count = _todos.where((todo) => todo.done).length;
+    final count = _planState.todos.where((todo) => todo.done).length;
     _updateState(() {
-      _todos.removeWhere((todo) => todo.done);
+      _planState.todos.removeWhere((todo) => todo.done);
       if (count > 0) {
         _pushLifeEvent(
           LifeEvent(
@@ -204,7 +209,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
       _pushLifeEvent(
         LifeEvent(
           title: '${module.label}提醒',
-          detail: _linkedTodoPrompt(todo, module),
+          detail: linkedTodoPrompt(todo, module),
           icon: module.icon,
           color: module.color,
         ),
@@ -220,16 +225,16 @@ extension _LifeHomeMutations on _LifeHomePageState {
   }
 
   void _addFinanceRecord(FinanceRecord record) {
-    _updateState(() => _financeRecords.insert(0, record));
+    _updateState(() => _financeState.records.insert(0, record));
     _syncLinkedSummaryToWidget();
   }
 
   void _editFinanceRecord(FinanceRecord oldRecord, FinanceRecord newRecord) {
-    final index = _financeRecords.indexOf(oldRecord);
+    final index = _financeState.records.indexOf(oldRecord);
     if (index == -1) {
       return;
     }
-    _updateState(() => _financeRecords[index] = newRecord);
+    _updateState(() => _financeState.records[index] = newRecord);
     _syncLinkedSummaryToWidget();
   }
 
@@ -237,22 +242,23 @@ extension _LifeHomeMutations on _LifeHomePageState {
     required String endpoint,
     required String model,
     required String apiKey,
+    AiFinanceParseStrategy? parseStrategy,
+    String? customPrompt,
   }) {
     _updateState(() {
-      _aiFinanceEndpoint =
-          endpoint.trim().isEmpty ? _defaultGlmChatEndpoint : endpoint.trim();
-      _aiFinanceModel =
-          model.trim().isEmpty ? _defaultGlmTextModel : model.trim();
-      _aiFinanceApiKey = apiKey.trim();
+      _financeState.updateAiConfig(
+        endpoint: endpoint,
+        model: model,
+        apiKey: apiKey,
+        parseStrategy: parseStrategy,
+        customPrompt: customPrompt,
+      );
     });
     _syncLinkedSummaryToWidget();
   }
 
   void _pushLifeEvent(LifeEvent event) {
     // 所有模块产生的关键操作都汇入同一条时间线，计划复盘和模块中心共用。
-    _events.insert(0, event);
-    if (_events.length > 8) {
-      _events.removeRange(8, _events.length);
-    }
+    _planState.pushEvent(event);
   }
 }

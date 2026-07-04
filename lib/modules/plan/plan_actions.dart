@@ -1,7 +1,8 @@
-part of '../../main.dart';
+// 中文注释：计划模块源码，负责待办状态、日期选择和计划页交互。
+
+part of 'plan.dart';
 
 mixin _PlanModuleActions on _PlanModuleState {
-
   void _toggleTodo(TodoItem todo) {
     widget.onToggleTodo(todo);
   }
@@ -11,7 +12,7 @@ mixin _PlanModuleActions on _PlanModuleState {
       TodoItem(
         title: title,
         category: '生活',
-        color: _todoColorForCategory('生活'),
+        color: todoColorForCategory('生活'),
         priority: TodoPriority.shouldDo,
       ),
     );

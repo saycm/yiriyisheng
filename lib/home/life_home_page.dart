@@ -1,33 +1,33 @@
-part of '../main.dart';
+// 中文注释：首页状态与模块调度层，负责组合财务、计划、饮食、锻炼和健康模块。
+
+part of 'life_home.dart';
 
 class LifeHomePage extends StatefulWidget {
-  const LifeHomePage({super.key, this.onSignOut});
+  const LifeHomePage({super.key, this.onSignOut, this.appDataStore});
 
   final Future<void> Function()? onSignOut;
+  final LifeSummaryStore? appDataStore;
 
   @override
   State<LifeHomePage> createState() => _LifeHomePageState();
 }
 
 class _LifeHomePageState extends State<LifeHomePage> {
-  static const _appDataStore = _AppDataStore();
-  static const _widgetStore = _LifeWidgetStore();
+  static const _defaultAppDataStore = AppDataStore();
+  static const _widgetStore = LifeWidgetStore();
 
   LifeModule _module = LifeModule.plan;
   WidgetQuickAction? _pendingQuickAction;
   int _quickActionToken = 0;
   bool _initialQuickActionChecked = false;
-  int _recordedFoodCalories = 0;
-  String _aiFinanceEndpoint = _defaultGlmChatEndpoint;
-  String _aiFinanceModel = _defaultGlmTextModel;
-  String _aiFinanceApiKey = '';
-  final Map<String, int> _workoutGroupsByAction = {};
-  final List<WorkoutPlan> _workoutPlans = _createDefaultWorkoutPlans();
-  ActiveWorkoutSession? _activeWorkoutSession;
-  final List<WorkoutHistoryEntry> _workoutHistory = [];
-  final List<LifeEvent> _events = [];
-  final List<TodoItem> _todos = _createSeedTodos();
-  final List<FinanceRecord> _financeRecords = _createSeedFinanceRecords();
+  final _foodState = _FoodHomeState();
+  final _workoutState = _WorkoutHomeState();
+  final _planState = _PlanHomeState();
+  final _financeState = _FinanceHomeState();
+  bool _appDataSaveFailed = false;
+
+  LifeSummaryStore get _appDataStore =>
+      widget.appDataStore ?? _defaultAppDataStore;
 
   @override
   void initState() {
@@ -102,31 +102,28 @@ class _LifeHomePageState extends State<LifeHomePage> {
     super.dispose();
   }
 
-  int get _workoutFinishedGroups => _workoutGroupsByAction.values.fold(
-        0,
-        (total, groups) => total + groups,
-      );
-
   @override
   Widget build(BuildContext context) {
-    return _buildLifeHomeModulePage(
+    final page = _buildLifeHomeModulePage(
       module: _module,
       onSwitchModule: _setModule,
       onOpenModules: _openModuleSheet,
       onOpenQuickRecord: _openQuickRecordSheet,
-      foodCalories: _recordedFoodCalories,
-      workoutGroups: _workoutFinishedGroups,
-      workoutGroupsByAction: _workoutGroupsByAction,
-      workoutPlans: _workoutPlans,
-      activeWorkoutSession: _activeWorkoutSession,
-      workoutHistory: _workoutHistory,
-      todos: _todos,
-      events: _events,
-      financeRecords: _financeRecords,
-      todayExpense: _todayExpense,
-      aiFinanceEndpoint: _aiFinanceEndpoint,
-      aiFinanceModel: _aiFinanceModel,
-      aiFinanceApiKey: _aiFinanceApiKey,
+      foodCalories: _foodState.calories,
+      workoutGroups: _workoutState.finishedGroups,
+      workoutGroupsByAction: _workoutState.groupsByAction,
+      workoutPlans: _workoutState.plans,
+      activeWorkoutSession: _workoutState.activeSession,
+      workoutHistory: _workoutState.history,
+      todos: _planState.todos,
+      events: _planState.events,
+      financeRecords: _financeState.records,
+      todayExpense: _financeState.todayExpense,
+      aiFinanceEndpoint: _financeState.aiEndpoint,
+      aiFinanceModel: _financeState.aiModel,
+      aiFinanceApiKey: _financeState.aiApiKey,
+      aiFinanceParseStrategy: _financeState.aiParseStrategy,
+      aiFinanceCustomPrompt: _financeState.aiCustomPrompt,
       onAddFinanceRecord: _addFinanceRecord,
       onEditFinanceRecord: _editFinanceRecord,
       onUpdateAiFinanceConfig: _updateAiFinanceConfig,
@@ -147,11 +144,51 @@ class _LifeHomePageState extends State<LifeHomePage> {
       quickActionToken: _quickActionToken,
       onQuickActionHandled: _markQuickActionHandled,
     );
+    if (!_appDataSaveFailed) {
+      return page;
+    }
+    return Stack(
+      children: [
+        page,
+        const _AppDataSaveFailureBanner(),
+      ],
+    );
   }
 
-  int get _pendingTodoCount => _todos.where((todo) => todo.isActive).length;
+  int get _pendingTodoCount => _planState.pendingTodoCount;
+}
 
-  double get _todayExpense => _financeRecords
-      .where((record) => record.type == '支出')
-      .fold(0, (total, record) => total + record.amount);
+class _AppDataSaveFailureBanner extends StatelessWidget {
+  const _AppDataSaveFailureBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Material(
+              key: const ValueKey('app_data_save_failure_banner'),
+              color: AppColors.financeRed,
+              elevation: 10,
+              borderRadius: BorderRadius.circular(8),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Text(
+                  '数据保存失败，请稍后重试。',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

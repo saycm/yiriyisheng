@@ -1,4 +1,6 @@
-part of '../../../main.dart';
+// 中文注释：计划模块弹层组件，负责待办新增、筛选和快捷收集。
+
+part of '../plan.dart';
 
 class _PlanMoreSheet extends StatelessWidget {
   const _PlanMoreSheet({
@@ -20,7 +22,7 @@ class _PlanMoreSheet extends StatelessWidget {
       ..._todoCategoryOptions().map((category) => category.$1),
     ];
 
-    return _InfoSheetFrame(
+    return InfoSheetFrame(
       title: '待办选项',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

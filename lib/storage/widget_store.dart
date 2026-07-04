@@ -1,7 +1,9 @@
-part of '../main.dart';
+// 中文注释：本地存储层，负责 SQLite 持久化和桌面小组件数据同步。
 
-class _LifeWidgetStore {
-  const _LifeWidgetStore();
+part of 'storage.dart';
+
+class LifeWidgetStore {
+  const LifeWidgetStore();
 
   static const _channel = MethodChannel('pingsheng_life/widget_summary');
 

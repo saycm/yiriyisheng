@@ -1,3 +1,5 @@
+// 中文注释：Go 服务端入口，负责认证、更新策略、APK 下载和数据持久化接口。
+
 package main
 
 import (

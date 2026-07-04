@@ -1,4 +1,6 @@
-part of '../../main.dart';
+// 中文注释：计划模块源码，负责待办状态、日期选择和计划页交互。
+
+part of 'plan.dart';
 
 InputDecoration _planInputDecoration(String hint) {
   return InputDecoration(
@@ -35,10 +37,6 @@ String _formatPlanDate(DateTime? date) {
     return '无日期';
   }
   return '${date.year}年${date.month.toString().padLeft(2, '0')}月${date.day.toString().padLeft(2, '0')}日';
-}
-
-String _formatPlanMonth(DateTime date) {
-  return '${date.year}年${date.month.toString().padLeft(2, '0')}月';
 }
 
 String _weekdayLabel(DateTime date) {

@@ -1,4 +1,6 @@
-part of '../main.dart';
+// 中文注释：业务数据模型，负责 App 内状态、序列化和恢复。
+
+part of 'models.dart';
 
 enum SystemHealthStatus {
   loading,
@@ -161,8 +163,8 @@ class HealthSystemSnapshot {
   }
 }
 
-class _SystemHealthStore {
-  const _SystemHealthStore();
+class SystemHealthStore {
+  const SystemHealthStore();
 
   static const _channel = MethodChannel('pingsheng_life/system_health');
 

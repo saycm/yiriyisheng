@@ -1,3 +1,5 @@
+// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+
 import 'dart:io';
 
 import 'package:flutter/services.dart';

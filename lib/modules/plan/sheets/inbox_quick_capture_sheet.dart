@@ -1,4 +1,6 @@
-part of '../../../main.dart';
+// 中文注释：计划模块弹层组件，负责待办新增、筛选和快捷收集。
+
+part of '../plan.dart';
 
 class _InboxQuickCaptureSheet extends StatefulWidget {
   const _InboxQuickCaptureSheet({required this.onSave});
@@ -21,7 +23,7 @@ class _InboxQuickCaptureSheetState extends State<_InboxQuickCaptureSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return _InfoSheetFrame(
+    return InfoSheetFrame(
       title: '收件箱快速录入',
       child: Padding(
         padding: EdgeInsets.only(

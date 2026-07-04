@@ -1,3 +1,5 @@
+// 中文注释：Android 权限说明页，负责在系统权限弹窗前解释用途。
+
 package com.pingsheng.pingsheng_life
 
 import android.app.Activity

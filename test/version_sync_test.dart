@@ -1,3 +1,5 @@
+// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -5,11 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('app update version defaults match pubspec version', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    final appConfig = File('lib/app/app.dart').readAsStringSync();
+    final appConfig = File('lib/core/app_core.dart').readAsStringSync();
 
-    final pubspecVersion = RegExp(r'^version:\s*([0-9.]+)\+([0-9]+)\s*$',
-            multiLine: true)
-        .firstMatch(pubspec);
+    final pubspecVersion =
+        RegExp(r'^version:\s*([0-9.]+)\+([0-9]+)\s*$', multiLine: true)
+            .firstMatch(pubspec);
     expect(pubspecVersion, isNotNull);
 
     final appVersionName = RegExp(

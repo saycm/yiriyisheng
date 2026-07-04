@@ -1,4 +1,6 @@
-part of '../../main.dart';
+// 中文注释：计划模块源码，负责待办状态、日期选择和计划页交互。
+
+part of 'plan.dart';
 
 mixin _PlanModuleState on State<PlanModulePage> {
   DateTime _selectedDate = DateUtils.dateOnly(DateTime.now());

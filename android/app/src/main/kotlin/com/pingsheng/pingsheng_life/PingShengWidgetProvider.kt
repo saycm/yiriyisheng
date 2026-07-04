@@ -1,3 +1,5 @@
+// 中文注释：Android 桌面小组件，负责展示生活摘要和处理快捷动作。
+
 package com.pingsheng.pingsheng_life
 
 import android.app.PendingIntent

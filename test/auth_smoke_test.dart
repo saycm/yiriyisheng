@@ -1,3 +1,5 @@
+// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pingsheng_life/main.dart';

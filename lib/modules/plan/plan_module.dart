@@ -1,4 +1,6 @@
-part of '../../main.dart';
+// 中文注释：计划模块源码，负责待办状态、日期选择和计划页交互。
+
+part of 'plan.dart';
 
 class PlanModulePage extends StatefulWidget {
   const PlanModulePage({
@@ -94,7 +96,7 @@ class _PlanModulePageState extends State<PlanModulePage>
                   onOpenMore: _openMoreSheet,
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: 6),
                   child: widget.moduleNav,
                 ),
                 _PlanDateToolbar(
@@ -120,6 +122,7 @@ class _PlanModulePageState extends State<PlanModulePage>
                       _selectedTab = 2;
                     }),
                     onToggleTodo: _toggleTodo,
+                    onUpdateTodo: widget.onUpdateTodo,
                     onPostponeTodo: widget.onPostponeTodo,
                     onArchiveTodo: widget.onArchiveTodo,
                     onDeleteTodo: widget.onDeleteTodo,
@@ -134,8 +137,8 @@ class _PlanModulePageState extends State<PlanModulePage>
               alignment: Alignment.bottomCenter,
               child: Padding(
                 padding:
-                    const EdgeInsets.only(bottom: _moduleSwitchBarBottomGap),
-                child: _PlanBottomNav(
+                    const EdgeInsets.only(bottom: moduleSwitchBarBottomGap),
+                child: PlanBottomNav(
                   selectedIndex: _selectedTab,
                   onChanged: (index) => setState(() => _selectedTab = index),
                 ),
@@ -146,7 +149,7 @@ class _PlanModulePageState extends State<PlanModulePage>
       ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(
-          bottom: _moduleSwitchBarReservedHeight + 12,
+          bottom: moduleSwitchBarReservedHeight + 12,
         ),
         child: FloatingActionButton.small(
           key: const ValueKey('plan_add_todo_fab'),

@@ -1,4 +1,6 @@
-part of '../../main.dart';
+// 中文注释：首页弹层组件，负责快捷记录和跨模块联动操作。
+
+part of '../life_home.dart';
 
 class _TodoLinkedActionSheet extends StatelessWidget {
   const _TodoLinkedActionSheet({
@@ -11,7 +13,7 @@ class _TodoLinkedActionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _InfoSheetFrame(
+    return InfoSheetFrame(
       title: '继续记录',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,7 +40,7 @@ class _TodoLinkedActionSheet extends StatelessWidget {
           ...todo.linkedModules.map(
             (module) => _TodoLinkedActionTile(
               module: module,
-              prompt: _linkedTodoPrompt(todo, module),
+              prompt: linkedTodoPrompt(todo, module),
               onTap: () => onSelect(module),
             ),
           ),
@@ -135,15 +137,4 @@ class _TodoLinkedActionTile extends StatelessWidget {
       ),
     );
   }
-}
-
-String _linkedTodoPrompt(TodoItem todo, TodoLinkedModule module) {
-  return switch (module) {
-    TodoLinkedModule.finance => '${todo.title} 已完成，可以补一条财务记录。',
-    TodoLinkedModule.food => '${todo.title} 已完成，可以补充饮食记录。',
-    TodoLinkedModule.workout => '${todo.title} 已完成，可以记录训练组数。',
-    TodoLinkedModule.health => todo.done
-        ? '${todo.title} 已完成，健康模块会同步今日状态。'
-        : '${todo.title} 未完成，明天关注睡眠和恢复。',
-  };
 }
