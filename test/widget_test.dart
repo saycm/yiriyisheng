@@ -77,10 +77,11 @@ void main() {
     await tester.tap(qaTile);
     await tester.pumpAndSettle();
 
-    expect(find.text('健康模块的数据从哪里来？'), findsOneWidget);
-    await tester.tap(find.text('健康模块的数据从哪里来？'));
+    expect(find.text('状态中心的数据从哪里来？'), findsOneWidget);
+    await tester.tap(find.text('状态中心的数据从哪里来？'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Health Connect'), findsWidgets);
+    expect(find.textContaining('手动状态记录'), findsWidgets);
+    expect(find.textContaining('Health Connect 是可选数据源'), findsWidgets);
   });
 
   testWidgets('module sheet presents compact module center content',
@@ -289,7 +290,9 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('module_link_4')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('系统健康'), findsWidgets);
+    expect(find.byKey(const ValueKey('module_glass_header_title_health')),
+        findsOneWidget);
+    expect(find.text('状态中心'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('module_link_1')));
     await tester.pumpAndSettle();
@@ -382,11 +385,42 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('module_link_4')));
     await tester.pumpAndSettle();
 
-    await dragPageUp(tester);
-    expect(find.text('168 kcal'), findsOneWidget);
-    expect(find.text('2 组'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
+    await tester.pumpAndSettle();
+    final healthSummarySheet = find.byType(BottomSheet);
+    expect(
+        find.descendant(
+          of: healthSummarySheet,
+          matching: find.text('健康总览'),
+        ),
+        findsOneWidget);
+    expect(
+        find.descendant(
+          of: healthSummarySheet,
+          matching: find.text('饮食摄入'),
+        ),
+        findsOneWidget);
+    expect(
+        find.descendant(
+          of: healthSummarySheet,
+          matching: find.text('168 kcal'),
+        ),
+        findsOneWidget);
+    expect(
+        find.descendant(
+          of: healthSummarySheet,
+          matching: find.text('锻炼完成'),
+        ),
+        findsOneWidget);
+    expect(
+        find.descendant(
+          of: healthSummarySheet,
+          matching: find.text('2 组'),
+        ),
+        findsOneWidget);
 
-    await dragPageDown(tester);
+    await tester.tap(find.byIcon(Icons.close_rounded).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('module_link_2')));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.add).first);
@@ -437,7 +471,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('module_link_4')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('系统健康'), findsWidgets);
+    expect(find.byKey(const ValueKey('module_glass_header_title_health')),
+        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('health_status_score_card')), findsOneWidget);
     expect(find.byKey(const ValueKey('health_bottom_nav_0')), findsOneWidget);
     expect(find.byKey(const ValueKey('health_bottom_nav_1')), findsNothing);
     expect(find.byKey(const ValueKey('health_bottom_nav_2')), findsNothing);
@@ -463,11 +500,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('module_link_4')));
     await tester.pumpAndSettle();
 
-    await dragPageUp(tester);
-    expect(find.text('模块联动'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
+    await tester.pumpAndSettle();
+    expect(find.text('健康总览'), findsOneWidget);
+    expect(find.text('饮食摄入'), findsOneWidget);
     expect(find.text('80 kcal'), findsOneWidget);
 
-    await dragPageDown(tester);
+    await tester.tap(find.byIcon(Icons.close_rounded).first);
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('module_link_3')));
@@ -486,11 +526,30 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('module_link_4')));
     await tester.pumpAndSettle();
 
-    await dragPageUp(tester);
-    expect(find.text('80 kcal'), findsOneWidget);
-    expect(find.text('1 组'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
+    await tester.pumpAndSettle();
+    final healthSummarySheet = find.byType(BottomSheet);
+    expect(
+        find.descendant(
+          of: healthSummarySheet,
+          matching: find.text('健康总览'),
+        ),
+        findsOneWidget);
+    expect(
+        find.descendant(
+          of: healthSummarySheet,
+          matching: find.text('80 kcal'),
+        ),
+        findsOneWidget);
+    expect(
+        find.descendant(
+          of: healthSummarySheet,
+          matching: find.text('1 组'),
+        ),
+        findsOneWidget);
 
-    await dragPageDown(tester);
+    await tester.tap(find.byIcon(Icons.close_rounded).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
 

@@ -92,7 +92,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           _SettingsActionTile(
             icon: Icons.quiz_rounded,
             title: 'Q&A',
-            subtitle: '健康数据、传感器、小组件常见问题',
+            subtitle: '状态中心、外部数据源、小组件常见问题',
             onTap: () => _showQaSheet(context),
           ),
           const SizedBox(height: 16),
@@ -143,18 +143,18 @@ class _QaSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     const items = [
       (
-        '健康模块的数据从哪里来？',
-        '步数、能量、基础代谢、睡眠、心率和呼吸频率来自手机系统 Health Connect；计步器、心率和加速度传感器状态来自 Android SensorManager。'
+        '状态中心的数据从哪里来？',
+        '状态中心优先使用手动状态记录，并结合饮食摄入、锻炼组数和计划信息生成今日状态。Health Connect 是可选数据源，没有授权也不影响使用。'
       ),
-      ('为什么有些指标显示无系统记录？', 'App 不再使用演示数据。没有授权、系统没有记录、设备没有对应传感器时，会直接显示无系统记录。'),
+      ('为什么不再默认显示步数和心率？', '大多数设备不会默认配置 Health Connect。状态中心先保证没有外部权限也能记录和回溯，步数、心率和睡眠会放在外部数据源里作为参考。'),
       (
-        '怎样开启真实健康数据？',
-        '进入健康页点击授权，按系统提示允许 Health Connect 读取步数、能量、睡眠、心率和呼吸数据，再回到 App 刷新。'
+        '怎样开启真实系统健康数据？',
+        '进入状态页底部的外部数据源，按系统提示允许 Health Connect 读取步数、能量、睡眠、心率和呼吸数据，再回到 App 刷新。'
       ),
-      ('桌面小组件的健康摘要如何更新？', 'App 成功读取系统健康数据后会写入本机共享摘要，小组件读取同一份状态；没授权时只显示健康待授权。'),
+      ('桌面小组件的状态摘要如何更新？', 'App 会优先展示今日状态记录和模块联动摘要；有系统健康数据时，再补充外部数据源参考。'),
       (
         '数据会上传吗？',
-        '当前实现只读取本机系统数据并在本机展示，不接入服务器上传。你可以随时在系统 Health Connect 权限里关闭访问。'
+        '当前实现只在本机展示状态记录和系统健康参考数据，不接入服务器上传。你可以随时在系统 Health Connect 权限里关闭访问。'
       ),
     ];
 
