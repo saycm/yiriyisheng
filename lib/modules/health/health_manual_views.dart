@@ -75,7 +75,7 @@ class _HealthManualStatusCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        '手动身体记录',
+                        '状态记录',
                         style: TextStyle(
                           color: AppColors.ink,
                           fontSize: 16,
@@ -414,7 +414,7 @@ class _HealthManualRecordSheetState extends State<_HealthManualRecordSheet> {
   @override
   Widget build(BuildContext context) {
     return InfoSheetFrame(
-      title: '身体记录',
+      title: '状态记录',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

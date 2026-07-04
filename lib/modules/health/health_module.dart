@@ -223,6 +223,11 @@ class _HealthModulePageState extends State<HealthModulePage> {
                             stress: _stressFeeling,
                             body: _bodyFeeling,
                             mood: _moodFeeling,
+                            onSleepChanged: _updateSleepFeeling,
+                            onEnergyChanged: _updateEnergyFeeling,
+                            onStressChanged: _updateStressFeeling,
+                            onBodyChanged: _updateBodyFeeling,
+                            onMoodChanged: _updateMoodFeeling,
                           ),
                           const SizedBox(height: 14),
                           _HealthImpactCard(impacts: _statusResult.impacts),
@@ -283,6 +288,68 @@ class _HealthModulePageState extends State<HealthModulePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('外部数据源将在这里管理')),
     );
+  }
+
+  void _updateSleepFeeling(HealthSleepFeeling value) {
+    setState(() {
+      _sleepFeeling = value;
+      if (value == HealthSleepFeeling.poor) {
+        _bodyTag = '睡眠差';
+      } else if (_bodyTag == '睡眠差') {
+        _bodyTag = '正常';
+      }
+    });
+  }
+
+  void _updateEnergyFeeling(HealthEnergyFeeling value) {
+    setState(() {
+      _energyFeeling = value;
+      _energyLevel = switch (value) {
+        HealthEnergyFeeling.strong => 5,
+        HealthEnergyFeeling.normal => 3,
+        HealthEnergyFeeling.tired => 2,
+      };
+      _fatigueLevel = switch (value) {
+        HealthEnergyFeeling.strong => 1,
+        HealthEnergyFeeling.normal => 2,
+        HealthEnergyFeeling.tired => 4,
+      };
+      if (value == HealthEnergyFeeling.tired) {
+        _bodyTag = '疲惫';
+      } else if (_bodyTag == '疲惫') {
+        _bodyTag = '正常';
+      }
+    });
+  }
+
+  void _updateStressFeeling(HealthStressFeeling value) {
+    setState(() {
+      _stressFeeling = value;
+      _stressLevel = switch (value) {
+        HealthStressFeeling.low => 1,
+        HealthStressFeeling.medium => 3,
+        HealthStressFeeling.high => 5,
+      };
+      if (value == HealthStressFeeling.high) {
+        _bodyTag = '压力大';
+      } else if (_bodyTag == '压力大') {
+        _bodyTag = '正常';
+      }
+    });
+  }
+
+  void _updateBodyFeeling(HealthBodyFeeling value) {
+    setState(() {
+      _bodyFeeling = value;
+      _painNote = _painNoteForBody(value);
+    });
+  }
+
+  void _updateMoodFeeling(HealthMoodFeeling value) {
+    setState(() {
+      _moodFeeling = value;
+      _moodNote = _moodLabel(value);
+    });
   }
 
   void _openManualRecordSheet() {
@@ -375,6 +442,21 @@ class _HealthModulePageState extends State<HealthModulePage> {
       return HealthMoodFeeling.happy;
     }
     return HealthMoodFeeling.calm;
+  }
+
+  String _painNoteForBody(HealthBodyFeeling value) {
+    switch (value) {
+      case HealthBodyFeeling.normal:
+        return '';
+      case HealthBodyFeeling.neckPain:
+        return '肩颈不适';
+      case HealthBodyFeeling.stomach:
+        return '胃部不适';
+      case HealthBodyFeeling.headache:
+        return '头痛';
+      case HealthBodyFeeling.other:
+        return '身体不适';
+    }
   }
 
   // Keep legacy health cards available for the external data source sheet.
@@ -772,6 +854,11 @@ class _HealthQuickRecordCard extends StatelessWidget {
     required this.stress,
     required this.body,
     required this.mood,
+    required this.onSleepChanged,
+    required this.onEnergyChanged,
+    required this.onStressChanged,
+    required this.onBodyChanged,
+    required this.onMoodChanged,
   });
 
   final HealthSleepFeeling sleep;
@@ -779,12 +866,17 @@ class _HealthQuickRecordCard extends StatelessWidget {
   final HealthStressFeeling stress;
   final HealthBodyFeeling body;
   final HealthMoodFeeling mood;
+  final ValueChanged<HealthSleepFeeling> onSleepChanged;
+  final ValueChanged<HealthEnergyFeeling> onEnergyChanged;
+  final ValueChanged<HealthStressFeeling> onStressChanged;
+  final ValueChanged<HealthBodyFeeling> onBodyChanged;
+  final ValueChanged<HealthMoodFeeling> onMoodChanged;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       key: const ValueKey('health_quick_record_card'),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
@@ -808,22 +900,165 @@ class _HealthQuickRecordCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _HealthStatusChip(label: '睡眠', value: _sleepLabel(sleep)),
-              _HealthStatusChip(label: '精力', value: _energyLabel(energy)),
-              _HealthStatusChip(label: '压力', value: _stressLabel(stress)),
-              _HealthStatusChip(label: '身体', value: _bodyLabel(body)),
-              _HealthStatusChip(label: '心情', value: _moodLabel(mood)),
-            ],
+          const SizedBox(height: 8),
+          _HealthChoiceRow<HealthSleepFeeling>(
+            label: '睡眠',
+            selected: sleep,
+            values: HealthSleepFeeling.values,
+            keyPrefix: 'health_quick_sleep',
+            labelFor: _sleepLabel,
+            onChanged: onSleepChanged,
+          ),
+          const SizedBox(height: 4),
+          _HealthChoiceRow<HealthEnergyFeeling>(
+            label: '精力',
+            selected: energy,
+            values: HealthEnergyFeeling.values,
+            keyPrefix: 'health_quick_energy',
+            labelFor: _energyLabel,
+            onChanged: onEnergyChanged,
+          ),
+          const SizedBox(height: 4),
+          _HealthChoiceRow<HealthStressFeeling>(
+            label: '压力',
+            selected: stress,
+            values: HealthStressFeeling.values,
+            keyPrefix: 'health_quick_stress',
+            labelFor: _stressLabel,
+            onChanged: onStressChanged,
+          ),
+          const SizedBox(height: 4),
+          _HealthChoiceRow<HealthBodyFeeling>(
+            label: '身体',
+            selected: body,
+            values: HealthBodyFeeling.values,
+            keyPrefix: 'health_quick_body',
+            labelFor: _quickBodyLabel,
+            onChanged: onBodyChanged,
+          ),
+          const SizedBox(height: 4),
+          _HealthChoiceRow<HealthMoodFeeling>(
+            label: '心情',
+            selected: mood,
+            values: HealthMoodFeeling.values,
+            keyPrefix: 'health_quick_mood',
+            labelFor: _moodLabel,
+            onChanged: onMoodChanged,
           ),
         ],
       ),
     );
   }
+}
+
+class _HealthChoiceRow<T extends Enum> extends StatelessWidget {
+  const _HealthChoiceRow({
+    required this.label,
+    required this.selected,
+    required this.values,
+    required this.keyPrefix,
+    required this.labelFor,
+    required this.onChanged,
+  });
+
+  final String label;
+  final T selected;
+  final List<T> values;
+  final String keyPrefix;
+  final String Function(T value) labelFor;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 34,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 7),
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: values
+                .map(
+                  (value) => _HealthChoiceChip<T>(
+                    keyPrefix: keyPrefix,
+                    value: value,
+                    label: labelFor(value),
+                    selected: value == selected,
+                    onChanged: onChanged,
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HealthChoiceChip<T extends Enum> extends StatelessWidget {
+  const _HealthChoiceChip({
+    required this.keyPrefix,
+    required this.value,
+    required this.label,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final String keyPrefix;
+  final T value;
+  final String label;
+  final bool selected;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelStyle = TextStyle(
+      color: selected ? AppColors.primary : AppColors.ink,
+      fontSize: 11,
+      fontWeight: FontWeight.w900,
+    );
+
+    return InkWell(
+      key: ValueKey('${keyPrefix}_${value.name}'),
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => onChanged(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primarySoft : AppColors.background,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.line,
+          ),
+        ),
+        child: selected
+            ? Text(label, style: labelStyle)
+            : RichText(text: TextSpan(text: label, style: labelStyle)),
+      ),
+    );
+  }
+}
+
+String _quickBodyLabel(HealthBodyFeeling value) {
+  if (value == HealthBodyFeeling.neckPain) {
+    return '肩颈不适';
+  }
+  return _bodyLabel(value);
 }
 
 class _HealthImpactCard extends StatelessWidget {
@@ -1128,50 +1363,6 @@ class _HealthExternalSourceEntry extends StatelessWidget {
             const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _HealthStatusChip extends StatelessWidget {
-  const _HealthStatusChip({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.muted,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppColors.ink,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -196,6 +196,32 @@ void main() {
     expect(find.text('压力较低'), findsNothing);
   });
 
+  testWidgets('quick status record updates score and suggestions',
+      (tester) async {
+    mockSystemHealthStatus(
+      status: 'permissionRequired',
+      message: '还没有授予步数、睡眠和心率权限。',
+    );
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    addTearDown(
+      () => tester.binding.platformDispatcher.defaultRouteNameTestValue = '/',
+    );
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('health_quick_sleep_poor')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('health_quick_stress_high')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('health_quick_body_neckPain')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('负载偏高'), findsWidgets);
+    expect(find.textContaining('压力偏高'), findsWidgets);
+    expect(find.textContaining('肩颈不适'), findsWidgets);
+  });
+
   testWidgets('health connect status stays behind optional source entry',
       (tester) async {
     Future<void> pumpHealthWithStatus({
