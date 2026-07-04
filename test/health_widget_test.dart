@@ -235,6 +235,11 @@ void main() {
         findsOneWidget);
     expect(find.text('外部数据源'), findsOneWidget);
     expect(find.text('系统健康数据已连接'), findsNothing);
+    expect(find.byKey(const ValueKey('health_impact_card')), findsOneWidget);
+    expect(find.byKey(const ValueKey('health_status_suggestion_card')),
+        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('health_status_trend_card')), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
     await tester.pumpAndSettle();

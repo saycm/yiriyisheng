@@ -2,42 +2,6 @@
 
 part of 'health.dart';
 
-class _HealthSensorCard extends StatelessWidget {
-  const _HealthSensorCard({required this.snapshot});
-
-  final HealthSensorSnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    final values = [
-      (
-        '计步器',
-        snapshot.stepCounterSinceBoot == null
-            ? (snapshot.stepCounterAvailable ? '可用' : '无')
-            : '${snapshot.stepCounterSinceBoot} 步'
-      ),
-      (
-        '心率',
-        snapshot.heartRateBpm == null
-            ? (snapshot.heartRateSensorAvailable ? '待读取' : '无')
-            : '${snapshot.heartRateBpm!.round()} bpm'
-      ),
-      (
-        '加速度',
-        snapshot.accelerationMagnitude == null
-            ? (snapshot.accelerometerAvailable ? '可用' : '无')
-            : snapshot.accelerationMagnitude!.toStringAsFixed(1)
-      ),
-    ];
-    return ModuleLinkedSummaryCard(
-      title: '手机传感器',
-      subtitle: '来自系统 SensorManager 的实时设备能力和读数。',
-      icon: Icons.sensors_rounded,
-      values: values,
-    );
-  }
-}
-
 // ignore: unused_element
 class _HealthMetricCard extends StatelessWidget {
   const _HealthMetricCard({
@@ -354,44 +318,6 @@ class _HealthSummaryTile extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _ActivityRingsPainter extends CustomPainter {
-  const _ActivityRingsPainter({required this.progress});
-
-  final List<double> progress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 16;
-    final rings = [
-      (radius: 56.0, color: const Color(0xFF48CE81), value: progress[0]),
-      (radius: 38.0, color: const Color(0xFFFF9559), value: progress[1]),
-      (radius: 20.0, color: const Color(0xFF7D9CFF), value: progress[2]),
-    ];
-
-    for (final ring in rings) {
-      paint.color = const Color(0xFFE9ECF4);
-      canvas.drawCircle(center, ring.radius, paint);
-      paint.color = ring.color;
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: ring.radius),
-        -math.pi / 2,
-        math.pi * 2 * ring.value,
-        false,
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ActivityRingsPainter oldDelegate) {
-    return progress != oldDelegate.progress;
   }
 }
 

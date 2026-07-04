@@ -32,6 +32,12 @@ void main() {
         isTrue);
     expect(File('lib/modules/health/health_metric_views.dart').existsSync(),
         isTrue);
+    expect(File('lib/modules/health/health_status_views.dart').existsSync(),
+        isTrue);
+    expect(
+        File('lib/modules/health/health_external_source_views.dart')
+            .existsSync(),
+        isTrue);
   });
 
   test('android release disables impeller on emulator-hosted Vulkan', () {

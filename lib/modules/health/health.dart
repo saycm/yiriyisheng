@@ -14,4 +14,5 @@ part 'health_manual_views.dart';
 part 'health_metric_views.dart';
 part 'health_module.dart';
 part 'health_status_center.dart';
+part 'health_external_source_views.dart';
 part 'health_status_views.dart';
