@@ -38,6 +38,7 @@ class _HealthSensorCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _HealthMetricCard extends StatelessWidget {
   const _HealthMetricCard({
     required this.metric,
@@ -127,6 +128,7 @@ class _HealthMetricCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _HealthMetricSheet extends StatelessWidget {
   const _HealthMetricSheet({
     required this.day,

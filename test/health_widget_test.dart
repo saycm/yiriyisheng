@@ -22,6 +22,39 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('health module shows status center before external data source',
+      (tester) async {
+    mockSystemHealthStatus(
+      status: 'permissionRequired',
+      message: '还没有授予步数、睡眠和心率权限。',
+    );
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    addTearDown(
+      () => tester.binding.platformDispatcher.defaultRouteNameTestValue = '/',
+    );
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('今日状态'), findsWidgets);
+    expect(find.text('状态中心'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('health_status_score_card')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('health_quick_record_card')), findsOneWidget);
+    expect(find.byKey(const ValueKey('health_external_source_entry')),
+        findsOneWidget);
+
+    final statusTop = tester
+        .getTopLeft(find.byKey(const ValueKey('health_status_score_card')))
+        .dy;
+    final externalTop = tester
+        .getTopLeft(find.byKey(const ValueKey('health_external_source_entry')))
+        .dy;
+    expect(statusTop, lessThan(externalTop));
+    expect(find.text('Health Connect 未授权'), findsNothing);
+  });
+
   testWidgets('health date switch opens metric detail and summary',
       (tester) async {
     mockSystemHealthSnapshot();

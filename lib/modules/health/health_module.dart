@@ -87,6 +87,11 @@ class _HealthModulePageState extends State<HealthModulePage> {
   double _stressLevel = 2;
   String _painNote = '';
   String _moodNote = '平稳';
+  HealthSleepFeeling _sleepFeeling = HealthSleepFeeling.normal;
+  HealthEnergyFeeling _energyFeeling = HealthEnergyFeeling.normal;
+  HealthStressFeeling _stressFeeling = HealthStressFeeling.medium;
+  HealthBodyFeeling _bodyFeeling = HealthBodyFeeling.normal;
+  HealthMoodFeeling _moodFeeling = HealthMoodFeeling.calm;
 
   List<HealthDay> get _days => _buildHealthDays(_systemHealth);
 
@@ -94,6 +99,20 @@ class _HealthModulePageState extends State<HealthModulePage> {
     final days = _days;
     final index = math.min(_selectedIndex, days.length - 1);
     return days[index];
+  }
+
+  HealthStatusResult get _statusResult {
+    return const HealthStatusCalculator().calculate(
+      input: HealthStatusInput(
+        sleep: _sleepFeeling,
+        energy: _energyFeeling,
+        stress: _stressFeeling,
+        body: _bodyFeeling,
+        mood: _moodFeeling,
+        foodCalories: widget.foodCalories,
+        workoutGroups: widget.workoutGroups,
+      ),
+    );
   }
 
   @override
@@ -140,11 +159,13 @@ class _HealthModulePageState extends State<HealthModulePage> {
     });
   }
 
+  // ignore: unused_element
   Future<void> _requestSystemHealthAccess() async {
     await _healthStore.requestPermissions();
     await _loadSystemHealth();
   }
 
+  // ignore: unused_element
   Future<void> _openSystemHealthSettings() async {
     await _healthStore.openSettings();
   }
@@ -179,44 +200,55 @@ class _HealthModulePageState extends State<HealthModulePage> {
                       moduleSwitchBarReservedHeight + 24,
                     ),
                     children: [
-                      _HealthDateStrip(
-                        days: days,
-                        selectedDay: selectedDay,
-                        onSelect: (day) {
-                          setState(() => _selectedIndex = days.indexOf(day));
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _HealthSystemStatusCard(
-                        snapshot: _systemHealth,
-                        loading: _loadingHealth,
-                        onRefresh: _loadSystemHealth,
-                        onRequestPermission: _requestSystemHealthAccess,
-                        onOpenSettings: _openSystemHealthSettings,
-                      ),
-                      const SizedBox(height: 14),
-                      _HealthRingsCard(day: selectedDay),
-                      const SizedBox(height: 14),
-                      _HealthLinkedSummaryCard(
-                        foodCalories: widget.foodCalories,
-                        workoutGroups: widget.workoutGroups,
-                      ),
-                      const SizedBox(height: 14),
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.05,
-                        children: selectedDay.metrics
-                            .map(
-                              (metric) => _HealthMetricCard(
-                                metric: metric,
-                                onTap: () => _openMetricSheet(metric),
-                              ),
-                            )
-                            .toList(),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _HealthDateStrip(
+                            days: days,
+                            selectedDay: selectedDay,
+                            onSelect: (day) {
+                              setState(
+                                  () => _selectedIndex = days.indexOf(day));
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _HealthStatusScoreCard(
+                            result: _statusResult,
+                            onRecord: _openManualRecordSheet,
+                          ),
+                          const SizedBox(height: 14),
+                          _HealthQuickRecordCard(
+                            sleep: _sleepFeeling,
+                            energy: _energyFeeling,
+                            stress: _stressFeeling,
+                            body: _bodyFeeling,
+                            mood: _moodFeeling,
+                            onSleepChanged: (value) =>
+                                setState(() => _sleepFeeling = value),
+                            onEnergyChanged: (value) =>
+                                setState(() => _energyFeeling = value),
+                            onStressChanged: (value) =>
+                                setState(() => _stressFeeling = value),
+                            onBodyChanged: (value) =>
+                                setState(() => _bodyFeeling = value),
+                            onMoodChanged: (value) =>
+                                setState(() => _moodFeeling = value),
+                          ),
+                          const SizedBox(height: 14),
+                          _HealthImpactCard(impacts: _statusResult.impacts),
+                          const SizedBox(height: 14),
+                          _HealthStatusSuggestionCard(
+                            suggestions: _statusResult.suggestions,
+                          ),
+                          const SizedBox(height: 14),
+                          _HealthStatusTrendCard(result: _statusResult),
+                          const SizedBox(height: 14),
+                          _HealthExternalSourceEntry(
+                            snapshot: _systemHealth,
+                            loading: _loadingHealth,
+                            onTap: _openExternalSourceSheet,
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 14),
                       _HealthManualStatusCard(
@@ -260,18 +292,6 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
-  void _openMetricSheet(HealthMetric metric) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _HealthMetricSheet(
-        day: _selectedDay,
-        metric: metric,
-      ),
-    );
-  }
-
   void _openSummarySheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -284,6 +304,12 @@ class _HealthModulePageState extends State<HealthModulePage> {
         bodyTag: _bodyTag,
         moodNote: _moodNote,
       ),
+    );
+  }
+
+  void _openExternalSourceSheet() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('外部数据源将在这里管理')),
     );
   }
 
@@ -564,6 +590,556 @@ class _HealthHeader extends StatelessWidget {
   }
 }
 
+class _HealthStatusScoreCard extends StatelessWidget {
+  const _HealthStatusScoreCard({
+    required this.result,
+    required this.onRecord,
+  });
+
+  final HealthStatusResult result;
+  final VoidCallback onRecord;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('health_status_score_card'),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.favorite_rounded,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '今日状态',
+                      style: TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '状态中心',
+                      style: TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: onRecord,
+                icon: const Icon(Icons.edit_note_rounded, size: 18),
+                label: const Text('记录状态'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                result.score.toString(),
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 44,
+                  fontWeight: FontWeight.w900,
+                  height: 0.95,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Text(
+                  '/100',
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: AppColors.mintSoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  result.level,
+                  style: const TextStyle(
+                    color: AppColors.success,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            result.primaryReason,
+            style: const TextStyle(
+              color: AppColors.ink,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HealthQuickRecordCard extends StatelessWidget {
+  const _HealthQuickRecordCard({
+    required this.sleep,
+    required this.energy,
+    required this.stress,
+    required this.body,
+    required this.mood,
+    required this.onSleepChanged,
+    required this.onEnergyChanged,
+    required this.onStressChanged,
+    required this.onBodyChanged,
+    required this.onMoodChanged,
+  });
+
+  final HealthSleepFeeling sleep;
+  final HealthEnergyFeeling energy;
+  final HealthStressFeeling stress;
+  final HealthBodyFeeling body;
+  final HealthMoodFeeling mood;
+  final ValueChanged<HealthSleepFeeling> onSleepChanged;
+  final ValueChanged<HealthEnergyFeeling> onEnergyChanged;
+  final ValueChanged<HealthStressFeeling> onStressChanged;
+  final ValueChanged<HealthBodyFeeling> onBodyChanged;
+  final ValueChanged<HealthMoodFeeling> onMoodChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('health_quick_record_card'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.fact_check_rounded,
+                  color: AppColors.primary, size: 21),
+              SizedBox(width: 8),
+              Text(
+                '快速记录',
+                style: TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _HealthStatusChip(label: '睡眠', value: _sleepLabel(sleep)),
+              _HealthStatusChip(label: '精力', value: _energyLabel(energy)),
+              _HealthStatusChip(label: '压力', value: _stressLabel(stress)),
+              _HealthStatusChip(label: '身体', value: _bodyLabel(body)),
+              _HealthStatusChip(label: '心情', value: _moodLabel(mood)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HealthImpactCard extends StatelessWidget {
+  const _HealthImpactCard({required this.impacts});
+
+  final List<HealthStatusImpact> impacts;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('health_impact_card'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '影响因素',
+            style: TextStyle(
+              color: AppColors.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...impacts.map(
+            (impact) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _HealthImpactRow(impact: impact),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HealthImpactRow extends StatelessWidget {
+  const _HealthImpactRow({required this.impact});
+
+  final HealthStatusImpact impact;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasScore = impact.maxScore > 0;
+    final progress = hasScore
+        ? (impact.score / impact.maxScore).clamp(0.0, 1.0).toDouble()
+        : 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: impact.color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                impact.title,
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            if (hasScore)
+              Text(
+                '${impact.score}/${impact.maxScore}',
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          impact.label,
+          style: const TextStyle(
+            color: AppColors.muted,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        if (hasScore) ...[
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              color: impact.color,
+              backgroundColor: AppColors.background,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _HealthStatusSuggestionCard extends StatelessWidget {
+  const _HealthStatusSuggestionCard({required this.suggestions});
+
+  final List<String> suggestions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('health_status_suggestion_card'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '状态建议',
+            style: TextStyle(
+              color: AppColors.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...suggestions.map(
+            (suggestion) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.success,
+                    size: 17,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      suggestion,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HealthStatusTrendCard extends StatelessWidget {
+  const _HealthStatusTrendCard({required this.result});
+
+  final HealthStatusResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final scoredImpacts =
+        result.impacts.where((impact) => impact.maxScore > 0).toList();
+    final frequentTags = result.impacts
+        .where((impact) => impact.label.trim().isNotEmpty)
+        .take(4)
+        .map((impact) => impact.label)
+        .join(' · ');
+
+    return Container(
+      key: const ValueKey('health_status_trend_card'),
+      height: 168,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '状态趋势',
+            style: TextStyle(
+              color: AppColors.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: CustomPaint(
+              painter: TinyBarsPainter(
+                values: scoredImpacts
+                    .map((impact) => impact.score.toDouble())
+                    .toList(),
+                color: AppColors.primary,
+              ),
+              child: const SizedBox.expand(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            frequentTags,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HealthExternalSourceEntry extends StatelessWidget {
+  const _HealthExternalSourceEntry({
+    required this.snapshot,
+    required this.loading,
+    required this.onTap,
+  });
+
+  final HealthSystemSnapshot snapshot;
+  final bool loading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = _HealthConnectionState.fromSnapshot(snapshot, loading);
+
+    return InkWell(
+      key: const ValueKey('health_external_source_entry'),
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.line),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: state.color.withValues(alpha: 0.13),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.sync_alt_rounded, color: state.color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '外部数据源',
+                    style: TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Health Connect 是可选数据源，不影响状态中心。',
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HealthStatusChip extends StatelessWidget {
+  const _HealthStatusChip({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.ink,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _HealthDateStrip extends StatelessWidget {
   const _HealthDateStrip({
     required this.days,
@@ -641,6 +1217,7 @@ class _HealthDateStrip extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _HealthSystemStatusCard extends StatelessWidget {
   const _HealthSystemStatusCard({
     required this.snapshot,
@@ -910,6 +1487,7 @@ class _HealthStatusPill extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _HealthRingsCard extends StatelessWidget {
   const _HealthRingsCard({required this.day});
 
@@ -1012,6 +1590,7 @@ class _RingLegend extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _HealthLinkedSummaryCard extends StatelessWidget {
   const _HealthLinkedSummaryCard({
     required this.foodCalories,
