@@ -90,19 +90,85 @@ void main() {
       find.byKey(const ValueKey('health_external_source_entry')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('health_external_source_entry')));
+    await tester
+        .tap(find.byKey(const ValueKey('health_external_source_entry')));
     await tester.pumpAndSettle();
 
+    final sheet = find.byType(BottomSheet);
     expect(
       find.descendant(
-        of: find.byType(BottomSheet),
+        of: sheet,
         matching: find.text('外部数据源'),
       ),
       findsOneWidget,
     );
-    expect(find.text('Health Connect 未授权'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.text('Health Connect 未授权'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('这是可选数据源，不影响状态中心使用。'), findsOneWidget);
-    expect(find.text('去授权'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.text('去授权'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('external data source updates after permission request',
+      (tester) async {
+    mockSystemHealthPermissionFlow();
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    addTearDown(
+      () => tester.binding.platformDispatcher.defaultRouteNameTestValue = '/',
+    );
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('health_external_source_entry')),
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('health_external_source_entry')));
+    await tester.pumpAndSettle();
+
+    final sheet = find.byType(BottomSheet);
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.text('Health Connect 未授权'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.descendant(
+        of: sheet,
+        matching: find.text('去授权'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.text('系统健康数据已连接'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.text('去授权'),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('status center opens summary and shows external source entry',

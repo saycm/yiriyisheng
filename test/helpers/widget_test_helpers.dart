@@ -102,6 +102,50 @@ void mockSystemHealthStatus({
   );
 }
 
+void mockSystemHealthPermissionFlow() {
+  const channel = MethodChannel('pingsheng_life/system_health');
+  var granted = false;
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(channel, (call) async {
+    if (call.method == 'loadHealthSnapshot') {
+      return {
+        'status': granted ? 'ok' : 'permissionRequired',
+        'message': granted ? '已连接 Health Connect 和本机传感器。' : '还没有授予步数、睡眠和心率权限。',
+        'lastUpdated': '2026-06-05T08:30:00.000Z',
+        'sensors': {
+          'stepCounterAvailable': granted,
+          'heartRateSensorAvailable': granted,
+          'accelerometerAvailable': granted,
+        },
+        'days': [
+          if (granted)
+            {
+              'dateIso': '2026-06-05',
+              'steps': 6320,
+              'activeCaloriesKcal': 610.0,
+              'basalCaloriesKcal': 1591.0,
+              'sleepMinutes': 408,
+              'heartRateBpm': 82,
+              'respiratoryRate': 15.8,
+            },
+        ],
+      };
+    }
+    if (call.method == 'requestHealthPermissions') {
+      granted = true;
+      return {'granted': true, 'grantedCount': 6};
+    }
+    if (call.method == 'openHealthConnectSettings') {
+      return null;
+    }
+    throw PlatformException(code: 'not_implemented');
+  });
+  addTearDown(
+    () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null),
+  );
+}
+
 Future<void> dragPageUp(WidgetTester tester) async {
   await tester.dragFrom(const Offset(300, 500), const Offset(0, -360));
   await tester.pumpAndSettle();

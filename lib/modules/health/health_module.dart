@@ -148,21 +148,30 @@ class _HealthModulePageState extends State<HealthModulePage> {
     if (mounted) {
       setState(() => _loadingHealth = true);
     }
+    await _refreshSystemHealthSnapshot();
+  }
+
+  Future<HealthSystemSnapshot> _refreshSystemHealthSnapshot() async {
     final snapshot = await _healthStore.load();
     if (!mounted) {
-      return;
+      return snapshot;
     }
     setState(() {
       _systemHealth = snapshot;
       _loadingHealth = false;
       _selectedIndex = math.max(0, _buildHealthDays(snapshot).length - 1);
     });
+    return snapshot;
   }
 
   // ignore: unused_element
   Future<void> _requestSystemHealthAccess() async {
+    await _requestSystemHealthAccessSnapshot();
+  }
+
+  Future<HealthSystemSnapshot> _requestSystemHealthAccessSnapshot() async {
     await _healthStore.requestPermissions();
-    await _loadSystemHealth();
+    return _refreshSystemHealthSnapshot();
   }
 
   // ignore: unused_element
@@ -292,8 +301,8 @@ class _HealthModulePageState extends State<HealthModulePage> {
       builder: (context) => _HealthExternalSourceSheet(
         snapshot: _systemHealth,
         loading: _loadingHealth,
-        onRefresh: _loadSystemHealth,
-        onRequestPermission: _requestSystemHealthAccess,
+        onRefreshSnapshot: _refreshSystemHealthSnapshot,
+        onRequestPermissionAndRefresh: _requestSystemHealthAccessSnapshot,
         onOpenSettings: _openSystemHealthSettings,
       ),
     );
@@ -1314,20 +1323,54 @@ class _HealthExternalSourceEntry extends StatelessWidget {
   }
 }
 
-class _HealthExternalSourceSheet extends StatelessWidget {
+class _HealthExternalSourceSheet extends StatefulWidget {
   const _HealthExternalSourceSheet({
     required this.snapshot,
     required this.loading,
-    required this.onRefresh,
-    required this.onRequestPermission,
+    required this.onRefreshSnapshot,
+    required this.onRequestPermissionAndRefresh,
     required this.onOpenSettings,
   });
 
   final HealthSystemSnapshot snapshot;
   final bool loading;
-  final VoidCallback onRefresh;
-  final VoidCallback onRequestPermission;
+  final Future<HealthSystemSnapshot> Function() onRefreshSnapshot;
+  final Future<HealthSystemSnapshot> Function() onRequestPermissionAndRefresh;
   final VoidCallback onOpenSettings;
+
+  @override
+  State<_HealthExternalSourceSheet> createState() =>
+      _HealthExternalSourceSheetState();
+}
+
+class _HealthExternalSourceSheetState
+    extends State<_HealthExternalSourceSheet> {
+  late HealthSystemSnapshot _snapshot = widget.snapshot;
+  late bool _loading = widget.loading;
+
+  Future<void> _refresh() async {
+    setState(() => _loading = true);
+    final snapshot = await widget.onRefreshSnapshot();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _snapshot = snapshot;
+      _loading = false;
+    });
+  }
+
+  Future<void> _requestPermission() async {
+    setState(() => _loading = true);
+    final snapshot = await widget.onRequestPermissionAndRefresh();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _snapshot = snapshot;
+      _loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1342,14 +1385,14 @@ class _HealthExternalSourceSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _HealthSystemStatusCard(
-            snapshot: snapshot,
-            loading: loading,
-            onRefresh: onRefresh,
-            onRequestPermission: onRequestPermission,
-            onOpenSettings: onOpenSettings,
+            snapshot: _snapshot,
+            loading: _loading,
+            onRefresh: _refresh,
+            onRequestPermission: _requestPermission,
+            onOpenSettings: widget.onOpenSettings,
           ),
           const SizedBox(height: 12),
-          _HealthSensorCard(snapshot: snapshot.sensors),
+          _HealthSensorCard(snapshot: _snapshot.sensors),
         ],
       ),
     );
@@ -1444,8 +1487,8 @@ class _HealthSystemStatusCard extends StatelessWidget {
 
   final HealthSystemSnapshot snapshot;
   final bool loading;
-  final VoidCallback onRefresh;
-  final VoidCallback onRequestPermission;
+  final Future<void> Function() onRefresh;
+  final Future<void> Function() onRequestPermission;
   final VoidCallback onOpenSettings;
 
   @override
