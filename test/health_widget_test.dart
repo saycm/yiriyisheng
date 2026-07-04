@@ -72,6 +72,39 @@ void main() {
     expect(find.text('手机传感器'), findsNothing);
   });
 
+  testWidgets('external data source explains health connect as optional',
+      (tester) async {
+    mockSystemHealthStatus(
+      status: 'permissionRequired',
+      message: '还没有授予步数、睡眠和心率权限。',
+    );
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    addTearDown(
+      () => tester.binding.platformDispatcher.defaultRouteNameTestValue = '/',
+    );
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('health_external_source_entry')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('health_external_source_entry')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('外部数据源'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Health Connect 未授权'), findsOneWidget);
+    expect(find.text('这是可选数据源，不影响状态中心使用。'), findsOneWidget);
+    expect(find.text('去授权'), findsOneWidget);
+  });
+
   testWidgets('status center opens summary and shows external source entry',
       (tester) async {
     mockSystemHealthSnapshot();

@@ -285,8 +285,17 @@ class _HealthModulePageState extends State<HealthModulePage> {
   }
 
   void _openExternalSourceSheet() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('外部数据源将在这里管理')),
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _HealthExternalSourceSheet(
+        snapshot: _systemHealth,
+        loading: _loadingHealth,
+        onRefresh: _loadSystemHealth,
+        onRequestPermission: _requestSystemHealthAccess,
+        onOpenSettings: _openSystemHealthSettings,
+      ),
     );
   }
 
@@ -410,7 +419,6 @@ class _HealthModulePageState extends State<HealthModulePage> {
         _HealthManualStatusCard,
         _HealthReminderCard,
         _HealthTrendDashboardCard,
-        _HealthSensorCard,
       );
 
   // ignore: unused_element
@@ -1306,6 +1314,48 @@ class _HealthExternalSourceEntry extends StatelessWidget {
   }
 }
 
+class _HealthExternalSourceSheet extends StatelessWidget {
+  const _HealthExternalSourceSheet({
+    required this.snapshot,
+    required this.loading,
+    required this.onRefresh,
+    required this.onRequestPermission,
+    required this.onOpenSettings,
+  });
+
+  final HealthSystemSnapshot snapshot;
+  final bool loading;
+  final VoidCallback onRefresh;
+  final VoidCallback onRequestPermission;
+  final VoidCallback onOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    return InfoSheetFrame(
+      title: '外部数据源',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const EmptyCard(
+            title: 'Health Connect 是可选数据源',
+            subtitle: '没有授权或设备不支持时，状态中心仍然可以通过手动记录、饮食和锻炼数据正常使用。',
+          ),
+          const SizedBox(height: 12),
+          _HealthSystemStatusCard(
+            snapshot: snapshot,
+            loading: loading,
+            onRefresh: onRefresh,
+            onRequestPermission: onRequestPermission,
+            onOpenSettings: onOpenSettings,
+          ),
+          const SizedBox(height: 12),
+          _HealthSensorCard(snapshot: snapshot.sensors),
+        ],
+      ),
+    );
+  }
+}
+
 class _HealthDateStrip extends StatelessWidget {
   const _HealthDateStrip({
     required this.days,
@@ -1383,7 +1433,6 @@ class _HealthDateStrip extends StatelessWidget {
   }
 }
 
-// ignore: unused_element
 class _HealthSystemStatusCard extends StatelessWidget {
   const _HealthSystemStatusCard({
     required this.snapshot,
@@ -1444,6 +1493,15 @@ class _HealthSystemStatusCard extends StatelessWidget {
                     Text(
                       snapshot.message,
                       style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      '这是可选数据源，不影响状态中心使用。',
+                      style: TextStyle(
                         color: AppColors.muted,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
