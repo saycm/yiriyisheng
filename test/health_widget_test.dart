@@ -167,7 +167,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('精力偏低'), findsWidgets);
-    expect(find.text('颈肩不适'), findsWidgets);
+    expect(find.text('肩颈不适'), findsWidgets);
     expect(find.text('焦虑'), findsWidgets);
     expect(find.text('身体有不适'), findsOneWidget);
   });
@@ -220,6 +220,47 @@ void main() {
     expect(find.text('负载偏高'), findsWidgets);
     expect(find.textContaining('压力偏高'), findsWidgets);
     expect(find.textContaining('肩颈不适'), findsWidgets);
+  });
+
+  testWidgets('manual save preserves quick status selections', (tester) async {
+    mockSystemHealthStatus(
+      status: 'permissionRequired',
+      message: '还没有授予步数、睡眠和心率权限。',
+    );
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    addTearDown(
+      () => tester.binding.platformDispatcher.defaultRouteNameTestValue = '/',
+    );
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('health_quick_sleep_poor')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('health_quick_stress_high')));
+    await tester.pumpAndSettle();
+    final happyMood = find.byKey(const ValueKey('health_quick_mood_happy'));
+    await tester.ensureVisible(happyMood);
+    await tester.pumpAndSettle();
+    await tester.tap(happyMood);
+    await tester.pumpAndSettle();
+
+    final recordStatus = find.text('记录状态');
+    await tester.ensureVisible(recordStatus);
+    await tester.pumpAndSettle();
+    await tester.tap(recordStatus);
+    await tester.pumpAndSettle();
+    final saveHealthRecord =
+        find.byKey(const ValueKey('save_health_manual_record'));
+    await tester.ensureVisible(saveHealthRecord);
+    await tester.pumpAndSettle();
+    await tester.tap(saveHealthRecord);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('睡眠感较差'), findsWidgets);
+    expect(find.textContaining('压力偏高'), findsWidgets);
+    expect(find.textContaining('心情不错'), findsWidgets);
+    expect(find.text('睡眠一般'), findsNothing);
   });
 
   testWidgets('health connect status stays behind optional source entry',

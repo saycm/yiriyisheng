@@ -325,7 +325,7 @@ String _bodyLabel(HealthBodyFeeling value) {
     case HealthBodyFeeling.normal:
       return '身体正常';
     case HealthBodyFeeling.neckPain:
-      return '颈肩不适';
+      return '肩颈不适';
     case HealthBodyFeeling.stomach:
       return '胃部不适';
     case HealthBodyFeeling.headache:

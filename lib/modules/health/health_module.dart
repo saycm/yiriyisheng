@@ -364,6 +364,11 @@ class _HealthModulePageState extends State<HealthModulePage> {
         stressLevel: _stressLevel,
         painNote: _painNote,
         moodNote: _moodNote,
+        sleep: _sleepFeeling,
+        energy: _energyFeeling,
+        stress: _stressFeeling,
+        body: _bodyFeeling,
+        mood: _moodFeeling,
         onSave: (record) {
           Navigator.of(context).pop();
           setState(() {
@@ -373,75 +378,15 @@ class _HealthModulePageState extends State<HealthModulePage> {
             _stressLevel = record.stressLevel;
             _painNote = record.painNote;
             _moodNote = record.moodNote;
-            _sleepFeeling = _sleepFeelingFromRecord(record);
-            _energyFeeling = _energyFeelingFromRecord(record);
-            _stressFeeling = _stressFeelingFromRecord(record);
-            _bodyFeeling = _bodyFeelingFromRecord(record);
-            _moodFeeling = _moodFeelingFromNote(record.moodNote);
+            _sleepFeeling = record.sleep;
+            _energyFeeling = record.energy;
+            _stressFeeling = record.stress;
+            _bodyFeeling = record.body;
+            _moodFeeling = record.mood;
           });
         },
       ),
     );
-  }
-
-  HealthSleepFeeling _sleepFeelingFromRecord(_HealthManualRecord record) {
-    if (record.bodyTag == '很好') {
-      return HealthSleepFeeling.good;
-    }
-    if (record.bodyTag == '睡眠差') {
-      return HealthSleepFeeling.poor;
-    }
-    return HealthSleepFeeling.normal;
-  }
-
-  HealthEnergyFeeling _energyFeelingFromRecord(_HealthManualRecord record) {
-    if (record.bodyTag == '很好' || record.energyLevel >= 4) {
-      return HealthEnergyFeeling.strong;
-    }
-    if (record.bodyTag == '疲惫' || record.energyLevel <= 2) {
-      return HealthEnergyFeeling.tired;
-    }
-    return HealthEnergyFeeling.normal;
-  }
-
-  HealthStressFeeling _stressFeelingFromRecord(_HealthManualRecord record) {
-    if (record.bodyTag == '很好' || record.stressLevel <= 2) {
-      return HealthStressFeeling.low;
-    }
-    if (record.bodyTag == '压力大' || record.stressLevel >= 4) {
-      return HealthStressFeeling.high;
-    }
-    return HealthStressFeeling.medium;
-  }
-
-  HealthBodyFeeling _bodyFeelingFromRecord(_HealthManualRecord record) {
-    final painNote = record.painNote.trim();
-    if (painNote.contains('肩') || painNote.contains('颈')) {
-      return HealthBodyFeeling.neckPain;
-    }
-    if (painNote.contains('胃')) {
-      return HealthBodyFeeling.stomach;
-    }
-    if (painNote.contains('头')) {
-      return HealthBodyFeeling.headache;
-    }
-    if (painNote.isNotEmpty) {
-      return HealthBodyFeeling.other;
-    }
-    return HealthBodyFeeling.normal;
-  }
-
-  HealthMoodFeeling _moodFeelingFromNote(String moodNote) {
-    if (moodNote.contains('焦虑')) {
-      return HealthMoodFeeling.anxious;
-    }
-    if (moodNote.contains('低落') || moodNote.contains('难过')) {
-      return HealthMoodFeeling.low;
-    }
-    if (moodNote.contains('开心') || moodNote.contains('愉快')) {
-      return HealthMoodFeeling.happy;
-    }
-    return HealthMoodFeeling.calm;
   }
 
   String _painNoteForBody(HealthBodyFeeling value) {
@@ -933,7 +878,7 @@ class _HealthQuickRecordCard extends StatelessWidget {
             selected: body,
             values: HealthBodyFeeling.values,
             keyPrefix: 'health_quick_body',
-            labelFor: _quickBodyLabel,
+            labelFor: _bodyLabel,
             onChanged: onBodyChanged,
           ),
           const SizedBox(height: 4),
@@ -1052,13 +997,6 @@ class _HealthChoiceChip<T extends Enum> extends StatelessWidget {
       ),
     );
   }
-}
-
-String _quickBodyLabel(HealthBodyFeeling value) {
-  if (value == HealthBodyFeeling.neckPain) {
-    return '肩颈不适';
-  }
-  return _bodyLabel(value);
 }
 
 class _HealthImpactCard extends StatelessWidget {
