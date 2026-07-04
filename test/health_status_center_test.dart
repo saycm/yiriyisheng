@@ -38,7 +38,20 @@ void main() {
     expect(result.score, lessThanOrEqualTo(54));
     expect(result.level, '负载偏高');
     expect(result.primaryReason, '睡眠感较差、压力偏高、身体有不适');
+    expect(
+      result.impacts.map((impact) => impact.title),
+      containsAll(['锻炼', '情绪']),
+    );
+    expect(
+      result.impacts.firstWhere((impact) => impact.title == '锻炼').label,
+      '训练量偏高',
+    );
+    expect(
+      result.impacts.firstWhere((impact) => impact.title == '情绪').label,
+      '焦虑',
+    );
     expect(result.suggestions, contains('今天压力偏高，优先处理高价值任务，减少低优先级事项。'));
+    expect(result.suggestions, contains('情绪焦虑时，先安排 10 分钟放松或呼吸练习。'));
     expect(result.suggestions, contains('睡眠感较差且训练量偏高，今天更适合轻度训练或拉伸。'));
     expect(result.suggestions, contains('摄入偏低时不建议直接做高强度训练。'));
   });

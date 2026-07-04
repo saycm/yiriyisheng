@@ -70,10 +70,9 @@ class HealthStatusCalculator {
     final energyScore = _energyScore(input.energy);
     final stressScore = _stressScore(input.stress);
     final bodyScore = _bodyScore(input.body);
-    final loadScore = _loadScore(
-      foodCalories: input.foodCalories,
-      workoutGroups: input.workoutGroups,
-    );
+    final foodScore = _foodLoadScore(input.foodCalories);
+    final workoutScore = _workoutLoadScore(input.workoutGroups);
+    final loadScore = foodScore + workoutScore;
     final score =
         (sleepScore + energyScore + stressScore + bodyScore + loadScore)
             .clamp(0, 100);
@@ -113,10 +112,24 @@ class HealthStatusCalculator {
         ),
         HealthStatusImpact(
           title: '饮食',
-          label: '${input.foodCalories} 千卡',
-          score: loadScore,
-          maxScore: 15,
+          label: _foodLabel(input.foodCalories),
+          score: foodScore,
+          maxScore: 7,
           color: AppColors.accent,
+        ),
+        HealthStatusImpact(
+          title: '锻炼',
+          label: _workoutLabel(input.workoutGroups),
+          score: workoutScore,
+          maxScore: 8,
+          color: AppColors.sky,
+        ),
+        HealthStatusImpact(
+          title: '情绪',
+          label: _moodLabel(input.mood),
+          score: 0,
+          maxScore: 0,
+          color: AppColors.muted,
         ),
       ],
       suggestions: _suggestions(input, score),
@@ -168,22 +181,24 @@ class HealthStatusCalculator {
     }
   }
 
-  int _loadScore({
-    required int foodCalories,
-    required int workoutGroups,
-  }) {
-    var score = 15;
-    if (foodCalories < 1200) {
-      score -= 7;
-    } else if (foodCalories > 2600) {
-      score -= 3;
+  int _foodLoadScore(int calories) {
+    if (calories < 1200) {
+      return 0;
     }
+    if (calories > 2600) {
+      return 4;
+    }
+    return 7;
+  }
+
+  int _workoutLoadScore(int workoutGroups) {
     if (workoutGroups > 14) {
-      score -= 8;
-    } else if (workoutGroups > 10) {
-      score -= 4;
+      return 0;
     }
-    return score.clamp(0, 15);
+    if (workoutGroups > 10) {
+      return 4;
+    }
+    return 8;
   }
 
   String _level(int score) {
@@ -230,6 +245,12 @@ class HealthStatusCalculator {
     if (input.stress == HealthStressFeeling.high) {
       suggestions.add('今天压力偏高，优先处理高价值任务，减少低优先级事项。');
     }
+    if (input.mood == HealthMoodFeeling.anxious) {
+      suggestions.add('情绪焦虑时，先安排 10 分钟放松或呼吸练习。');
+    }
+    if (input.mood == HealthMoodFeeling.low) {
+      suggestions.add('情绪低落时，先完成一件轻量事项，减少自我消耗。');
+    }
     if (input.sleep == HealthSleepFeeling.poor && input.workoutGroups > 14) {
       suggestions.add('睡眠感较差且训练量偏高，今天更适合轻度训练或拉伸。');
     }
@@ -241,6 +262,29 @@ class HealthStatusCalculator {
     }
     return suggestions;
   }
+}
+
+String _foodLabel(int calories) {
+  if (calories < 1200) {
+    return '摄入偏低';
+  }
+  if (calories > 2600) {
+    return '摄入偏高';
+  }
+  return '$calories 千卡';
+}
+
+String _workoutLabel(int workoutGroups) {
+  if (workoutGroups > 14) {
+    return '训练量偏高';
+  }
+  if (workoutGroups > 10) {
+    return '训练量略高';
+  }
+  if (workoutGroups == 0) {
+    return '未训练';
+  }
+  return '$workoutGroups 组';
 }
 
 String _sleepLabel(HealthSleepFeeling value) {
