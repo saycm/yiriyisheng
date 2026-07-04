@@ -7,23 +7,11 @@ class HealthMetric {
     required this.title,
     required this.value,
     required this.unit,
-    required this.icon,
-    required this.color,
-    required this.bars,
-    required this.hasData,
-    required this.source,
-    required this.statusText,
   });
 
   final String title;
   final String value;
   final String unit;
-  final IconData icon;
-  final Color color;
-  final List<double> bars;
-  final bool hasData;
-  final String source;
-  final String statusText;
 }
 
 class HealthDay {
@@ -421,28 +409,17 @@ class _HealthModulePageState extends State<HealthModulePage> {
     final samples = snapshot.days.isEmpty
         ? [HealthSystemDaySample.empty(DateTime.now())]
         : snapshot.days;
-    return samples
-        .map((sample) => _buildHealthDay(sample, samples, snapshot))
-        .toList();
+    return samples.map((sample) => _buildHealthDay(sample, snapshot)).toList();
   }
 
   HealthDay _buildHealthDay(
     HealthSystemDaySample sample,
-    List<HealthSystemDaySample> samples,
     HealthSystemSnapshot snapshot,
   ) {
-    final stepsTrend = _trendValues(samples, (day) => day.steps);
-    final activeTrend = _trendValues(samples, (day) => day.activeCaloriesKcal);
-    final basalTrend = _trendValues(samples, (day) => day.basalCaloriesKcal);
-    final sleepTrend = _trendValues(samples, (day) => day.sleepMinutes);
-    final heartTrend = _trendValues(samples, (day) => day.heartRateBpm);
-    final respiratoryTrend =
-        _trendValues(samples, (day) => day.respiratoryRate);
     final sensorHeartRate = snapshot.sensors.heartRateBpm?.round();
     final heartRate = sample.heartRateBpm ?? sensorHeartRate;
-    final heartSource = sample.heartRateBpm == null && sensorHeartRate != null
-        ? '传感器实时'
-        : 'Health Connect';
+    final usesSensorHeartRate =
+        sample.heartRateBpm == null && sensorHeartRate != null;
 
     return HealthDay(
       date: sample.date,
@@ -464,55 +441,31 @@ class _HealthModulePageState extends State<HealthModulePage> {
           title: '今日基础代谢',
           value: sample.basalCaloriesKcal?.round().toString(),
           unit: 'kcal',
-          icon: Icons.bolt_rounded,
-          color: const Color(0xFFFFD749),
-          bars: basalTrend,
-          source: 'Health Connect',
         ),
         _metric(
           title: '今日能量',
           value: sample.activeCaloriesKcal?.round().toString(),
           unit: 'kcal',
-          icon: Icons.local_fire_department_rounded,
-          color: const Color(0xFFFFA14A),
-          bars: activeTrend,
-          source: 'Health Connect',
         ),
         _metric(
           title: '今日步数',
           value: _formatOptionalWhole(sample.steps),
           unit: '步',
-          icon: Icons.directions_walk_rounded,
-          color: const Color(0xFF61CE86),
-          bars: stepsTrend,
-          source: 'Health Connect',
         ),
         _metric(
           title: '昨晚睡眠',
           value: _formatOptionalSleep(sample.sleepMinutes),
           unit: '小时',
-          icon: Icons.dark_mode_rounded,
-          color: const Color(0xFF8D7CF6),
-          bars: sleepTrend,
-          source: 'Health Connect',
         ),
         _metric(
-          title: heartSource == '传感器实时' ? '实时心率' : '今日心率',
+          title: usesSensorHeartRate ? '实时心率' : '今日心率',
           value: heartRate?.toString(),
           unit: 'bpm',
-          icon: Icons.favorite_rounded,
-          color: const Color(0xFFFF7A83),
-          bars: heartTrend,
-          source: heartSource,
         ),
         _metric(
           title: '今日呼吸',
           value: sample.respiratoryRate?.toStringAsFixed(1),
           unit: '次/分',
-          icon: Icons.air_rounded,
-          color: const Color(0xFFB58CFF),
-          bars: respiratoryTrend,
-          source: 'Health Connect',
         ),
       ],
     );
@@ -522,37 +475,12 @@ class _HealthModulePageState extends State<HealthModulePage> {
     required String title,
     required String? value,
     required String unit,
-    required IconData icon,
-    required Color color,
-    required List<double> bars,
-    required String source,
   }) {
-    final hasData = value != null;
     return HealthMetric(
       title: title,
       value: value ?? '--',
-      unit: hasData ? unit : '无系统记录',
-      icon: icon,
-      color: color,
-      bars: hasData ? bars : const [],
-      hasData: hasData,
-      source: source,
-      statusText: hasData ? source : _systemHealth.message,
+      unit: value == null ? '无系统记录' : unit,
     );
-  }
-
-  List<double> _trendValues(
-    List<HealthSystemDaySample> samples,
-    num? Function(HealthSystemDaySample sample) selector,
-  ) {
-    final values = <double>[];
-    for (final sample in samples) {
-      final value = selector(sample);
-      if (value != null) {
-        values.add(math.max(0, value.toDouble()));
-      }
-    }
-    return values;
   }
 
   double _progress(num? value, num goal) {
