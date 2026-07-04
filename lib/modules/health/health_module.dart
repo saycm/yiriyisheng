@@ -223,16 +223,6 @@ class _HealthModulePageState extends State<HealthModulePage> {
                             stress: _stressFeeling,
                             body: _bodyFeeling,
                             mood: _moodFeeling,
-                            onSleepChanged: (value) =>
-                                setState(() => _sleepFeeling = value),
-                            onEnergyChanged: (value) =>
-                                setState(() => _energyFeeling = value),
-                            onStressChanged: (value) =>
-                                setState(() => _stressFeeling = value),
-                            onBodyChanged: (value) =>
-                                setState(() => _bodyFeeling = value),
-                            onMoodChanged: (value) =>
-                                setState(() => _moodFeeling = value),
                           ),
                           const SizedBox(height: 14),
                           _HealthImpactCard(impacts: _statusResult.impacts),
@@ -316,10 +306,75 @@ class _HealthModulePageState extends State<HealthModulePage> {
             _stressLevel = record.stressLevel;
             _painNote = record.painNote;
             _moodNote = record.moodNote;
+            _sleepFeeling = _sleepFeelingFromRecord(record);
+            _energyFeeling = _energyFeelingFromRecord(record);
+            _stressFeeling = _stressFeelingFromRecord(record);
+            _bodyFeeling = _bodyFeelingFromRecord(record);
+            _moodFeeling = _moodFeelingFromNote(record.moodNote);
           });
         },
       ),
     );
+  }
+
+  HealthSleepFeeling _sleepFeelingFromRecord(_HealthManualRecord record) {
+    if (record.bodyTag == '很好') {
+      return HealthSleepFeeling.good;
+    }
+    if (record.bodyTag == '睡眠差') {
+      return HealthSleepFeeling.poor;
+    }
+    return HealthSleepFeeling.normal;
+  }
+
+  HealthEnergyFeeling _energyFeelingFromRecord(_HealthManualRecord record) {
+    if (record.bodyTag == '很好' || record.energyLevel >= 4) {
+      return HealthEnergyFeeling.strong;
+    }
+    if (record.bodyTag == '疲惫' || record.energyLevel <= 2) {
+      return HealthEnergyFeeling.tired;
+    }
+    return HealthEnergyFeeling.normal;
+  }
+
+  HealthStressFeeling _stressFeelingFromRecord(_HealthManualRecord record) {
+    if (record.bodyTag == '很好' || record.stressLevel <= 2) {
+      return HealthStressFeeling.low;
+    }
+    if (record.bodyTag == '压力大' || record.stressLevel >= 4) {
+      return HealthStressFeeling.high;
+    }
+    return HealthStressFeeling.medium;
+  }
+
+  HealthBodyFeeling _bodyFeelingFromRecord(_HealthManualRecord record) {
+    final painNote = record.painNote.trim();
+    if (painNote.contains('肩') || painNote.contains('颈')) {
+      return HealthBodyFeeling.neckPain;
+    }
+    if (painNote.contains('胃')) {
+      return HealthBodyFeeling.stomach;
+    }
+    if (painNote.contains('头')) {
+      return HealthBodyFeeling.headache;
+    }
+    if (painNote.isNotEmpty) {
+      return HealthBodyFeeling.other;
+    }
+    return HealthBodyFeeling.normal;
+  }
+
+  HealthMoodFeeling _moodFeelingFromNote(String moodNote) {
+    if (moodNote.contains('焦虑')) {
+      return HealthMoodFeeling.anxious;
+    }
+    if (moodNote.contains('低落') || moodNote.contains('难过')) {
+      return HealthMoodFeeling.low;
+    }
+    if (moodNote.contains('开心') || moodNote.contains('愉快')) {
+      return HealthMoodFeeling.happy;
+    }
+    return HealthMoodFeeling.calm;
   }
 
   // Keep legacy health cards available for the external data source sheet.
@@ -717,11 +772,6 @@ class _HealthQuickRecordCard extends StatelessWidget {
     required this.stress,
     required this.body,
     required this.mood,
-    required this.onSleepChanged,
-    required this.onEnergyChanged,
-    required this.onStressChanged,
-    required this.onBodyChanged,
-    required this.onMoodChanged,
   });
 
   final HealthSleepFeeling sleep;
@@ -729,11 +779,6 @@ class _HealthQuickRecordCard extends StatelessWidget {
   final HealthStressFeeling stress;
   final HealthBodyFeeling body;
   final HealthMoodFeeling mood;
-  final ValueChanged<HealthSleepFeeling> onSleepChanged;
-  final ValueChanged<HealthEnergyFeeling> onEnergyChanged;
-  final ValueChanged<HealthStressFeeling> onStressChanged;
-  final ValueChanged<HealthBodyFeeling> onBodyChanged;
-  final ValueChanged<HealthMoodFeeling> onMoodChanged;
 
   @override
   Widget build(BuildContext context) {

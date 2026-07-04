@@ -97,7 +97,11 @@ void main() {
     expect(find.byKey(const ValueKey('module_glass_header_title_health')),
         findsOneWidget);
     expect(find.text('5'), findsWidgets);
-    expect(find.text('系统健康数据已连接'), findsOneWidget);
+    expect(find.text('今日状态'), findsWidgets);
+    expect(find.text('状态中心'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('health_status_score_card')), findsOneWidget);
+    expect(find.byKey(const ValueKey('health_impact_card')), findsOneWidget);
 
     await tester.tap(find.text('4').first);
     await tester.pumpAndSettle();
@@ -115,20 +119,28 @@ void main() {
     await tester.pumpAndSettle();
 
     final healthList = find.byKey(const ValueKey('health_main_list'));
-    final stepsMetric = find.text('今日步数');
-    await dragUntilFound(tester, stepsMetric, scrollable: healthList);
-    expect(stepsMetric, findsOneWidget);
-    await tester.tap(stepsMetric);
-    await tester.pumpAndSettle();
-
-    expect(find.text('4,814 步'), findsOneWidget);
-    expect(find.text('趋势摘要'), findsOneWidget);
-
-    await tester.tap(find.byIcon(Icons.close_rounded).first);
-    await tester.pumpAndSettle();
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('health_status_suggestion_card')),
+      scrollable: healthList,
+    );
+    expect(find.text('状态建议'), findsOneWidget);
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('health_status_trend_card')),
+      scrollable: healthList,
+    );
+    expect(find.text('状态趋势'), findsOneWidget);
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('health_external_source_entry')),
+      scrollable: healthList,
+    );
+    expect(find.text('外部数据源'), findsOneWidget);
   });
 
-  testWidgets('health manual body record updates dashboard', (tester) async {
+  testWidgets('health manual body record updates status center',
+      (tester) async {
     mockSystemHealthSnapshot();
     tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
     addTearDown(
@@ -138,10 +150,7 @@ void main() {
     await tester.pumpWidget(const PingShengApp());
     await tester.pumpAndSettle();
 
-    final healthList = find.byKey(const ValueKey('health_main_list'));
-    final manualCard = find.byKey(const ValueKey('health_manual_status_card'));
-    await dragUntilFound(tester, manualCard, scrollable: healthList);
-    await tester.tap(manualCard);
+    await tester.tap(find.text('记录状态'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('health_body_tag_疲惫')));
     await tester.enterText(
@@ -157,24 +166,13 @@ void main() {
     await tester.tap(saveHealthRecord);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('疲惫'), findsWidgets);
-    expect(find.text('肩颈紧'), findsOneWidget);
-    await dragPageDown(tester);
-    await dragUntilFound(
-      tester,
-      find.byKey(const ValueKey('health_reminder_card')),
-      scrollable: healthList,
-    );
-    expect(find.text('健康提醒'), findsOneWidget);
-    await dragUntilFound(
-      tester,
-      find.byKey(const ValueKey('health_trend_dashboard_card')),
-      scrollable: healthList,
-    );
-    expect(find.text('最近 7 天趋势'), findsOneWidget);
+    expect(find.text('精力偏低'), findsWidgets);
+    expect(find.text('颈肩不适'), findsWidgets);
+    expect(find.text('焦虑'), findsWidgets);
+    expect(find.text('身体有不适'), findsOneWidget);
   });
 
-  testWidgets('health connect status explains setup and empty data states',
+  testWidgets('health connect status stays behind optional source entry',
       (tester) async {
     Future<void> pumpHealthWithStatus({
       required String status,
@@ -194,25 +192,27 @@ void main() {
       status: 'permissionRequired',
       message: '还没有授予步数、睡眠和心率权限。',
     );
-    expect(find.text('Health Connect 未授权'), findsOneWidget);
-    expect(find.textContaining('授予步数、睡眠和心率权限'), findsOneWidget);
-    expect(find.text('去授权'), findsOneWidget);
+    expect(find.text('状态中心'), findsOneWidget);
+    expect(find.byKey(const ValueKey('health_external_source_entry')),
+        findsOneWidget);
+    expect(find.text('Health Connect 未授权'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await pumpHealthWithStatus(
       status: 'unavailable',
       message: '未安装 Health Connect 或当前系统不支持。',
     );
-    expect(find.text('需要安装 Health Connect'), findsOneWidget);
-    expect(find.text('去安装'), findsOneWidget);
+    expect(find.text('今日状态'), findsWidgets);
+    expect(find.text('需要安装 Health Connect'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await pumpHealthWithStatus(
       status: 'updateRequired',
       message: 'Health Connect 版本过低。',
     );
-    expect(find.text('需要更新 Health Connect'), findsOneWidget);
-    expect(find.text('去更新'), findsOneWidget);
+    expect(find.byKey(const ValueKey('health_external_source_entry')),
+        findsOneWidget);
+    expect(find.text('需要更新 Health Connect'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await pumpHealthWithStatus(
@@ -222,8 +222,8 @@ void main() {
         {'dateIso': '2026-06-05'},
       ],
     );
-    expect(find.text('Health Connect 已连接，暂无数据'), findsOneWidget);
-    expect(find.text('数据为空'), findsOneWidget);
-    expect(find.text('打开设置'), findsOneWidget);
+    expect(find.text('外部数据源'), findsOneWidget);
+    expect(find.text('Health Connect 已连接，暂无数据'), findsNothing);
+    expect(find.text('数据为空'), findsNothing);
   });
 }
