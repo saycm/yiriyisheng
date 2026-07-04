@@ -250,24 +250,6 @@ class _HealthModulePageState extends State<HealthModulePage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
-                      _HealthManualStatusCard(
-                        bodyTag: _bodyTag,
-                        energyLevel: _energyLevel.round(),
-                        fatigueLevel: _fatigueLevel.round(),
-                        stressLevel: _stressLevel.round(),
-                        painNote: _painNote,
-                        moodNote: _moodNote,
-                        onTap: _openManualRecordSheet,
-                      ),
-                      const SizedBox(height: 14),
-                      _HealthReminderCard(
-                        reminders: _healthReminders(selectedDay),
-                      ),
-                      const SizedBox(height: 14),
-                      _HealthTrendDashboardCard(day: selectedDay),
-                      const SizedBox(height: 14),
-                      _HealthSensorCard(snapshot: _systemHealth.sensors),
                     ],
                   ),
                 ),
@@ -340,6 +322,16 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
+  // Keep legacy health cards available for the external data source sheet.
+  // ignore: unused_element
+  Object? get _legacyHealthCardRefs => (
+        _HealthManualStatusCard,
+        _HealthReminderCard,
+        _HealthTrendDashboardCard,
+        _HealthSensorCard,
+      );
+
+  // ignore: unused_element
   List<String> _healthReminders(HealthDay day) {
     final steps = _metricNumber(day.metrics, '今日步数');
     final sleep = day.metrics.firstWhere((metric) => metric.title == '昨晚睡眠');

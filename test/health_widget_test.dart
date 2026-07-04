@@ -53,6 +53,23 @@ void main() {
         .dy;
     expect(statusTop, lessThan(externalTop));
     expect(find.text('Health Connect 未授权'), findsNothing);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('health_external_source_entry')),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('health_main_list')),
+      const Offset(0, -360),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+        find.byKey(const ValueKey('health_manual_status_card')), findsNothing);
+    expect(find.byKey(const ValueKey('health_reminder_card')), findsNothing);
+    expect(find.byKey(const ValueKey('health_trend_dashboard_card')),
+        findsNothing);
+    expect(find.text('手机传感器'), findsNothing);
   });
 
   testWidgets('health date switch opens metric detail and summary',
