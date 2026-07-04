@@ -1,4 +1,7 @@
+// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pingsheng_life/main.dart';
 
@@ -495,6 +498,179 @@ void main() {
     expect(find.text('蝴蝶机夹胸'), findsNothing);
   });
 
+  testWidgets('workout more menu filters unfinished actions and sets rest time',
+      (tester) async {
+    final finishedGroups = <String, int>{'蝴蝶机夹胸': 4};
+    ActiveWorkoutSession? activeSession;
+
+    Widget buildWorkout() {
+      return MaterialApp(
+        home: WorkoutModulePage(
+          moduleNav: const SizedBox.shrink(),
+          onOpenModules: () {},
+          onSwitchModule: (_) {},
+          finishedGroupsByAction: finishedGroups,
+          onUpdateActionGroups: (actionName, groups) {
+            finishedGroups[actionName] = groups;
+          },
+          workoutPlans: createDefaultWorkoutPlans(),
+          onUpdateWorkoutPlan: (_) {},
+          activeWorkoutSession: activeSession,
+          workoutHistory: const [],
+          onStartWorkoutSession: (session) => activeSession = session,
+          onUpdateWorkoutSession: (session) => activeSession = session,
+          onFinishWorkoutSession: (_) => activeSession = null,
+          foodCalories: 0,
+          quickAction: null,
+          quickActionToken: 0,
+          onQuickActionHandled: () {},
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildWorkout());
+
+    expect(find.text('84 个动作'), findsOneWidget);
+    expect(find.text('蝴蝶机夹胸'), findsWidgets);
+
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('锻炼选项'), findsOneWidget);
+
+    await tester.tap(find.byType(Switch).last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('未完成 83 / 全部 84'), findsOneWidget);
+    expect(find.text('蝴蝶机夹胸'), findsNothing);
+
+    final rest60 = find.byKey(const ValueKey('workout_rest_60s'));
+    await tester.ensureVisible(rest60);
+    await tester.pumpAndSettle();
+    await tester.tap(rest60);
+    await tester.pumpAndSettle();
+    final continueAction = find.byKey(const ValueKey('workout_more_continue'));
+    await tester.ensureVisible(continueAction);
+    await tester.pumpAndSettle();
+    await tester.tap(continueAction);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout_action_detail_list')),
+        findsOneWidget);
+
+    await tester.tap(find.text('开始动作'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1:00'), findsWidgets);
+  });
+
+  testWidgets('workout more menu creates a plan in app state', (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
+    await tester.pumpAndSettle();
+
+    final createPlan = find.byKey(const ValueKey('workout_more_create_plan'));
+    await tester.ensureVisible(createPlan);
+    await tester.pumpAndSettle();
+    await tester.tap(createPlan);
+    await tester.pumpAndSettle();
+
+    expect(
+        find.byKey(const ValueKey('workout_plan_edit_sheet')), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.close_rounded).last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+
+    await dragUntilFound(
+      tester,
+      find.text('自定义训练'),
+      scrollable: find.byType(Scrollable).last,
+    );
+  });
+
+  testWidgets('workout more menu exports history to clipboard', (tester) async {
+    String? clipboardText;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        final arguments = call.arguments;
+        if (arguments is Map) {
+          clipboardText = arguments['text']?.toString();
+        }
+      }
+      return null;
+    });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    final history = [
+      WorkoutHistoryEntry(
+        planId: 'plan-chest-back',
+        planName: '胸背强化',
+        startedAt: DateTime(2026, 7, 4, 8),
+        finishedAt: DateTime(2026, 7, 4, 8, 32),
+        durationMinutes: 32,
+        totalGroups: 8,
+        estimatedCalories: 224,
+        actionResults: const [
+          WorkoutActionResult(
+            actionName: '器械推胸',
+            bodyPart: '胸背',
+            targetGroups: 4,
+            finishedGroups: 4,
+            reps: '12次',
+          ),
+        ],
+        feedback: '刚好',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkoutModulePage(
+          moduleNav: const SizedBox.shrink(),
+          onOpenModules: () {},
+          onSwitchModule: (_) {},
+          finishedGroupsByAction: const {},
+          onUpdateActionGroups: (_, __) {},
+          workoutPlans: createDefaultWorkoutPlans(),
+          onUpdateWorkoutPlan: (_) {},
+          activeWorkoutSession: null,
+          workoutHistory: history,
+          onStartWorkoutSession: (_) {},
+          onUpdateWorkoutSession: (_) {},
+          onFinishWorkoutSession: (_) {},
+          foodCalories: 0,
+          quickAction: null,
+          quickActionToken: 0,
+          onQuickActionHandled: () {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
+    await tester.pumpAndSettle();
+
+    final exportHistory =
+        find.byKey(const ValueKey('workout_more_export_history'));
+    await tester.ensureVisible(exportHistory);
+    await tester.pumpAndSettle();
+    await tester.tap(exportHistory);
+    await tester.pumpAndSettle();
+
+    expect(find.text('训练历史已复制'), findsOneWidget);
+    expect(clipboardText, contains('胸背强化'));
+    expect(clipboardText, contains('器械推胸'));
+  });
+
   testWidgets('workout history shows calendar and progress trends',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
@@ -580,6 +756,73 @@ void main() {
     expect(find.text('14 个动作'), findsOneWidget);
     expect(find.text('站姿股四头肌拉伸'), findsOneWidget);
     await dragUntilFound(tester, find.text('胸椎旋转'), scrollable: workoutList);
+  });
+
+  testWidgets('workout restore migrates stale default plans and active session',
+      (tester) async {
+    final store = _RestoringLifeSummaryStore(
+      LifeSummarySnapshot(
+        foodCalories: 0,
+        workoutGroupsByAction: const {'蝴蝶机夹胸': 4},
+        todos: const [],
+        financeRecords: const [],
+        workoutPlans: [
+          WorkoutPlan(
+            id: 'plan-chest-back',
+            name: '胸背强化',
+            target: '旧版胸背训练',
+            bodyParts: const ['胸背'],
+            actionNames: const [],
+            estimatedMinutes: 30,
+            createdAt: DateTime(2026, 6),
+            updatedAt: DateTime(2026, 6),
+          ),
+        ],
+        activeWorkoutSession: ActiveWorkoutSession(
+          id: 'session-old',
+          planId: 'plan-chest-back',
+          planName: '胸背强化',
+          startedAt: DateTime(2026, 6, 29, 8),
+          actionProgress: const {
+            '蝴蝶机夹胸': 0,
+            '宽握高位下拉': 0,
+            '器械推胸': 0,
+            '坐姿绳索划船': 0,
+            '上斜哑铃卧推': 0,
+          },
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LifeHomePage(appDataStore: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+
+    final workoutList = find.byKey(const ValueKey('workout_main_list'));
+    expect(find.byKey(const ValueKey('workout_active_plan_banner')),
+        findsOneWidget);
+    expect(find.text('6 个动作'), findsWidgets);
+    await dragUntilFound(
+      tester,
+      find.text('弹力带拉开'),
+      scrollable: workoutList,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('6 动作 · 22 组'), findsOneWidget);
+    await dragUntilFound(
+      tester,
+      find.text('新手全身基础'),
+      scrollable: find.byType(Scrollable).last,
+    );
   });
 
   testWidgets('workout finished set updates list summary and data',
@@ -703,4 +946,32 @@ void main() {
     expect(find.byKey(const ValueKey('module_glass_header_title_food')),
         findsOneWidget);
   });
+}
+
+class _RestoringLifeSummaryStore implements LifeSummaryStore {
+  _RestoringLifeSummaryStore(this.snapshot);
+
+  final LifeSummarySnapshot snapshot;
+  var saveCalls = 0;
+
+  @override
+  Future<LifeSummarySnapshot?> load() async => snapshot;
+
+  @override
+  Future<void> save({
+    required int foodCalories,
+    required Map<String, int> workoutGroupsByAction,
+    required List<TodoItem> todos,
+    required List<FinanceRecord> financeRecords,
+    required List<WorkoutPlan> workoutPlans,
+    required ActiveWorkoutSession? activeWorkoutSession,
+    required List<WorkoutHistoryEntry> workoutHistory,
+    required String aiFinanceEndpoint,
+    required String aiFinanceModel,
+    required String aiFinanceApiKey,
+    required AiFinanceParseStrategy aiFinanceParseStrategy,
+    required String aiFinanceCustomPrompt,
+  }) async {
+    saveCalls++;
+  }
 }

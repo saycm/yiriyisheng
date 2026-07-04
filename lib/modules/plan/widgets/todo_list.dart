@@ -1,3 +1,5 @@
+// 中文注释：计划模块页面组件，负责今日总览、待办箱、周计划和统计视图。
+
 part of '../plan.dart';
 
 class _TodoList extends StatelessWidget {

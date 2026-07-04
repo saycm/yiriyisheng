@@ -1,3 +1,5 @@
+// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -143,8 +145,15 @@ void main() {
     await tester.pumpWidget(const PingShengApp());
     await tester.pumpAndSettle();
 
+    final header = find.byKey(const ValueKey('module_glass_header'));
+    expect(tester.getSize(header).height, lessThanOrEqualTo(38));
+
     final mainLink = find.byKey(const ValueKey('module_link_1'));
-    expect(tester.getSize(mainLink).height, lessThanOrEqualTo(40));
+    expect(tester.getSize(mainLink).height, lessThanOrEqualTo(36));
+
+    final dateButton = find.byKey(const ValueKey('plan_header_date_button'));
+    expect(tester.getSize(dateButton).height, lessThanOrEqualTo(30));
+    expect(tester.getBottomLeft(dateButton).dy, lessThanOrEqualTo(155));
 
     final innerNav = find.byKey(const ValueKey('plan_bottom_nav_0'));
     expect(tester.getSize(innerNav).width, lessThanOrEqualTo(66));
@@ -167,8 +176,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('plan_header_date_button')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('plan_glass_date_picker')),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('plan_glass_date_picker')), findsOneWidget);
     expect(find.byType(CalendarDatePicker), findsOneWidget);
   });
 
@@ -204,8 +212,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('plan_header_date_button')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('plan_glass_date_picker')),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('plan_glass_date_picker')), findsOneWidget);
     expect(find.byType(CalendarDatePicker), findsOneWidget);
   });
 

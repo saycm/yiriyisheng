@@ -1,3 +1,5 @@
+// 中文注释：计划模块页面组件，负责今日总览、待办箱、周计划和统计视图。
+
 part of '../plan.dart';
 
 class _TodayOverviewCard extends StatelessWidget {
@@ -73,19 +75,25 @@ class _TodayOverviewCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: metricTiles,
-                ),
-              ),
-              const SizedBox(width: 8),
-              _TodayOverviewHealthPanel(statusText: healthStatusText),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = 8.0;
+              final tileWidth = (constraints.maxWidth - spacing) / 2;
+              return Column(
+                children: [
+                  Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: [
+                      for (final tile in metricTiles)
+                        SizedBox(width: tileWidth, child: tile),
+                    ],
+                  ),
+                  const SizedBox(height: spacing),
+                  _TodayOverviewHealthPanel(statusText: healthStatusText),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -108,42 +116,40 @@ class _TodayOverviewMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 96,
-      child: Container(
-        key: ValueKey('today_overview_metric_$label'),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.11),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withValues(alpha: 0.10)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 19),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: color,
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-              ),
+    return Container(
+      key: ValueKey('today_overview_metric_$label'),
+      height: 82,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.11),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 19),
+          const Spacer(),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.muted,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -159,36 +165,50 @@ class _TodayOverviewHealthPanel extends StatelessWidget {
     const color = Color(0xFFFF6F9D);
     return Container(
       key: const ValueKey('today_overview_health_panel'),
-      width: 116,
-      height: 146,
-      padding: const EdgeInsets.all(12),
+      height: 72,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withValues(alpha: 0.12)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          const Icon(Icons.favorite_rounded, color: color, size: 21),
-          const Spacer(),
-          Text(
-            statusText,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: color,
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
             ),
+            child: const Icon(Icons.favorite_rounded, color: color, size: 21),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            '健康',
-            style: TextStyle(
-              color: AppColors.muted,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  statusText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: color,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                const Text(
+                  '健康',
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

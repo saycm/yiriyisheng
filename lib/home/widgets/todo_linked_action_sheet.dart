@@ -1,3 +1,5 @@
+// 中文注释：首页弹层组件，负责快捷记录和跨模块联动操作。
+
 part of '../life_home.dart';
 
 class _TodoLinkedActionSheet extends StatelessWidget {

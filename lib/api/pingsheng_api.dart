@@ -1,3 +1,5 @@
+// 中文注释：后端接口客户端，负责认证、更新检查和服务端通信。
+
 part of '../auth/auth.dart';
 
 class _PingShengApi {

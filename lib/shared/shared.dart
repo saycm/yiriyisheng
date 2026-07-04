@@ -1,3 +1,5 @@
+// 中文注释：跨模块共享 UI 组件，负责统一卡片、导航、弹层和模块外壳。
+
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';

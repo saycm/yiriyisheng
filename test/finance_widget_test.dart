@@ -1,4 +1,7 @@
+// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pingsheng_life/main.dart';
 
@@ -146,7 +149,8 @@ AI 已识别：
       scrollable: find.byType(Scrollable).last,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('ai_parse_strategy_note_short')));
+    await tester
+        .tap(find.byKey(const ValueKey('ai_parse_strategy_note_short')));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('ai_parse_strategy_save')),
@@ -419,7 +423,7 @@ AI 已识别：
     );
   });
 
-  testWidgets('finance ai exposes image and voice capabilities',
+  testWidgets('finance ai exposes image capability and hides voice input',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
 
@@ -428,16 +432,113 @@ AI 已识别：
     await openFinanceAiRecord(tester);
 
     expect(find.byKey(const ValueKey('ai_finance_pick_image')), findsOneWidget);
-    expect(
-        find.byKey(const ValueKey('ai_finance_voice_input')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ai_finance_voice_input')), findsNothing);
 
     await tester.tap(find.byIcon(Icons.settings_rounded));
     await tester.pumpAndSettle();
 
     expect(find.text('图片理解'), findsOneWidget);
-    expect(find.text('语音转文字'), findsOneWidget);
+    expect(find.text('语音转文字'), findsNothing);
     expect(find.text('智谱GLM'), findsWidgets);
-    expect(find.text('本机语音识别'), findsOneWidget);
+    expect(find.text('系统/云端语音识别'), findsNothing);
+  });
+
+  testWidgets('finance ai prompt editor saves custom prompt', (tester) async {
+    final store = _MemoryLifeSummaryStore();
+    await tester.pumpWidget(
+      MaterialApp(home: LifeHomePage(appDataStore: store)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('module_link_0')));
+    await tester.pumpAndSettle();
+    await openFinanceAiRecord(tester);
+
+    await tester.tap(find.text('去设置'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('提示词编辑'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('提示词编辑'), findsOneWidget);
+    expect(find.text('{{OCR_TEXT}}'), findsWidgets);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('ai_prompt_editor_field')),
+      '自定义平生提示词：{{OCR_TEXT}}',
+    );
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('ai_prompt_editor_save')),
+      scrollable: find.byType(ListView).last,
+    );
+    await tester.tap(find.byKey(const ValueKey('ai_prompt_editor_save')));
+    await tester.pumpAndSettle();
+
+    expect(store.savedPrompt, '自定义平生提示词：{{OCR_TEXT}}');
+    expect(find.text('提示词已保存'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('提示词编辑'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('ai_prompt_editor_field')),
+          )
+          .controller
+          ?.text,
+      '自定义平生提示词：{{OCR_TEXT}}',
+    );
+  });
+
+  testWidgets('finance ai scales selected bill images before upload',
+      (tester) async {
+    const channel = MethodChannel('plugins.flutter.io/image_picker');
+    Map<dynamic, dynamic>? capturedArgs;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'pickImage') {
+        capturedArgs = call.arguments as Map<dynamic, dynamic>;
+      }
+      return null;
+    });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: LifeHomePage(appDataStore: _MemoryLifeSummaryStore())),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('module_link_0')));
+    await tester.pumpAndSettle();
+    await openFinanceAiRecord(tester);
+
+    await tester.tap(find.text('去设置'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('服务商管理'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('智谱GLM'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('ai_provider_api_key')),
+      'glm-key',
+    );
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('ai_finance_pick_image')));
+    await tester.pumpAndSettle();
+
+    expect(capturedArgs?['maxWidth'], 1600.0);
+    expect(capturedArgs?['maxHeight'], 1600.0);
+    expect(capturedArgs?['imageQuality'], 80);
   });
 
   testWidgets('finance glm ai config survives module switches', (tester) async {
@@ -655,11 +756,40 @@ AI 已识别：
     expect(find.textContaining('已使用 83%'), findsOneWidget);
   });
 
+  testWidgets('finance overview places property health below assets workbench',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('module_link_0')));
+    await tester.pumpAndSettle();
+
+    final assetsTitle = find.text('资产工作台');
+    final healthTitle = find.text('财产健康值');
+
+    expect(assetsTitle, findsOneWidget);
+    expect(healthTitle, findsOneWidget);
+    expect(
+      tester.getTopLeft(assetsTitle).dy,
+      lessThan(tester.getTopLeft(healthTitle).dy),
+    );
+  });
+
   testWidgets('finance overview opens property health detail', (tester) async {
     await tester.pumpWidget(const PingShengApp());
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
+
+    await dragUntilFound(
+      tester,
+      find.text('财产健康值'),
+      scrollable: find.byType(Scrollable).last,
+    );
 
     expect(find.text('财产健康值'), findsOneWidget);
     expect(find.textContaining('分 ·'), findsOneWidget);
@@ -700,6 +830,7 @@ AI 已识别：
 
 class _MemoryLifeSummaryStore implements LifeSummaryStore {
   AiFinanceParseStrategy? savedStrategy;
+  String? savedPrompt;
 
   @override
   Future<LifeSummarySnapshot?> load() async => null;
@@ -717,8 +848,10 @@ class _MemoryLifeSummaryStore implements LifeSummaryStore {
     required String aiFinanceModel,
     required String aiFinanceApiKey,
     required AiFinanceParseStrategy aiFinanceParseStrategy,
+    required String aiFinanceCustomPrompt,
   }) async {
     savedStrategy = aiFinanceParseStrategy;
+    savedPrompt = aiFinanceCustomPrompt;
   }
 }
 

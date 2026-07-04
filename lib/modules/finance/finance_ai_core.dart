@@ -1,3 +1,5 @@
+// 中文注释：财务模块源码，负责账目、资产、预算、财产健康值和 AI 记账。
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -5,7 +7,7 @@ import 'dart:typed_data';
 const String defaultGlmChatEndpoint =
     'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 const String defaultGlmTextModel = 'glm-4-flash';
-const String defaultGlmVisionModel = 'glm-4v-flash';
+const String defaultGlmVisionModel = 'glm-4.6v';
 
 enum AiFinanceBillType { income, expense, transfer }
 
@@ -412,6 +414,33 @@ class AiFinanceJsonParser {
 class AiFinancePromptBuilder {
   const AiFinancePromptBuilder();
 
+  static const defaultTemplate = '''{{INPUT_SOURCE}}提取记账信息，返回JSON数组。
+
+当前时间：{{CURRENT_TIME}}
+
+{{OCR_TEXT}}
+
+{{CATEGORIES}}{{ACCOUNTS}}
+
+输出格式：
+- 始终返回 JSON 数组，即使只有一笔，也包成 [{...}]
+- 识别到多笔独立消费/收入/转账时，数组中每笔一个对象，按时间先后顺序排列
+- “拆开 AA”“拆开报销”“拼单”等场景，每个独立支付/收款都算一笔
+- 同一商家的多件商品如果是一次性支付，合并为一笔
+
+字段说明：
+1. amount: 金额（支出负数，收入正数，转账正数）
+2. time: ISO8601格式，尽量推断时间
+3. note: 备注（必须≤15字，超过则精简），优先商户/商品/用途
+4. category: 从分类列表选择（转账填“转账”）
+5. type: income、expense 或 transfer
+6. account: 支付账户（收入/支出可用）
+7. from_account: 转出账户（仅转账可用）
+8. to_account: 转入账户（仅转账可用）
+9. tag/tags: 标签（可选，单个字符串或字符串数组）
+
+注意：只返回 JSON 数组，尽量推断时间不要返回 null。''';
+
   static const _expenseCategories = [
     '三餐',
     '餐饮',
@@ -441,13 +470,28 @@ class AiFinancePromptBuilder {
     required String text,
     DateTime? now,
     AiFinanceParseStrategy strategy = AiFinanceParseStrategy.defaults,
+    String customPrompt = '',
+    String inputSource = '从以下自然语言中',
   }) {
     final ts = now ?? DateTime.now();
     final currentDate = '${ts.year}-${_pad(ts.month)}-${_pad(ts.day)}';
     final currentTime = '$currentDate ${_pad(ts.hour)}:${_pad(ts.minute)}';
-    final accountList = strategy.extractAccounts
-        ? '\n账户列表：现金、支付宝、微信、银行卡、信用卡'
-        : '';
+    final accountList =
+        strategy.extractAccounts ? '\n账户列表：现金、支付宝、微信、银行卡、信用卡' : '';
+    final customTemplate = customPrompt.trim();
+    if (customTemplate.isNotEmpty) {
+      return _renderCustomTemplate(
+        customTemplate,
+        inputSource: inputSource,
+        currentDate: currentDate,
+        currentTime: currentTime,
+        text: text,
+        categories: '分类列表：\n'
+            '支出：${_expenseCategories.join('、')}\n'
+            '收入：${_incomeCategories.join('、')}',
+        accounts: accountList,
+      );
+    }
     final splitRule = strategy.splitMultipleBills
         ? '- 识别到多笔独立消费/收入/转账时，数组中每笔一个对象，按时间先后顺序排列'
         : '- 不要主动拆分多笔账单；除非用户明确要求“拆开/分别记/每笔一条”，否则合并为一笔摘要记录';
@@ -518,6 +562,28 @@ $transferExample
   }
 
   static String _pad(int value) => value.toString().padLeft(2, '0');
+
+  String _renderCustomTemplate(
+    String template, {
+    required String inputSource,
+    required String currentDate,
+    required String currentTime,
+    required String text,
+    required String categories,
+    required String accounts,
+  }) {
+    final rendered = template
+        .replaceAll('{{INPUT_SOURCE}}', inputSource)
+        .replaceAll('{{CURRENT_TIME}}', currentTime)
+        .replaceAll('{{CURRENT_DATE}}', currentDate)
+        .replaceAll('{{OCR_TEXT}}', text)
+        .replaceAll('{{CATEGORIES}}', categories)
+        .replaceAll('{{ACCOUNTS}}', accounts);
+    if (template.contains('{{OCR_TEXT}}')) {
+      return rendered;
+    }
+    return '$rendered\n\n用户输入：\n$text';
+  }
 }
 
 class AiFinanceException implements Exception {
@@ -552,6 +618,7 @@ class AiFinanceClient {
     required String endpoint,
     required String model,
     AiFinanceParseStrategy strategy = AiFinanceParseStrategy.defaults,
+    String customPrompt = '',
   }) async {
     final trimmedText = text.trim();
     if (trimmedText.isEmpty) {
@@ -579,6 +646,7 @@ class AiFinanceClient {
               'content': promptBuilder.build(
                 text: trimmedText,
                 strategy: strategy,
+                customPrompt: customPrompt,
               ),
             },
           ],
@@ -604,6 +672,7 @@ class AiFinanceClient {
     required String endpoint,
     required String model,
     AiFinanceParseStrategy strategy = AiFinanceParseStrategy.defaults,
+    String customPrompt = '',
   }) async {
     if (imageBytes.isEmpty) {
       throw const AiFinanceException('请选择要识别的账单图片');
@@ -634,6 +703,8 @@ class AiFinanceClient {
                   'text': promptBuilder.build(
                     text: '请识别图片中的账单、付款截图、订单或收据，提取金额、时间、商家、分类、账户和备注。',
                     strategy: strategy,
+                    customPrompt: customPrompt,
+                    inputSource: '从以下账单图片中',
                   ),
                 },
                 {
@@ -651,10 +722,10 @@ class AiFinanceClient {
         throw const AiFinanceException('AI 没有从图片中识别到账单，请换一张图片再试');
       }
       return bills;
-    } on AiFinanceException {
-      rethrow;
+    } on AiFinanceException catch (error) {
+      throw _mapImageApiException(error);
     } catch (error) {
-      throw AiFinanceException('图片理解失败：$error');
+      throw _mapImageUnexpectedException(error);
     }
   }
 
@@ -716,5 +787,36 @@ class AiFinanceClient {
       }
     }
     throw const AiFinanceException('AI 接口返回中没有 message.content');
+  }
+
+  AiFinanceException _mapImageApiException(AiFinanceException error) {
+    if (error.message.startsWith('AI 接口请求失败：')) {
+      return const AiFinanceException(
+        '图片理解接口返回异常。请检查 API Key、账号额度或视觉模型是否可用后再试。',
+      );
+    }
+    return error;
+  }
+
+  AiFinanceException _mapImageUnexpectedException(Object error) {
+    if (_isNetworkTransportError(error)) {
+      return const AiFinanceException(
+        '图片理解连接失败。请检查网络连接，或稍后换一张较清晰的截图再试。',
+      );
+    }
+    return const AiFinanceException('图片理解失败。请稍后重试，或换一张更清晰的账单图片。');
+  }
+
+  bool _isNetworkTransportError(Object error) {
+    final text = error.toString().toLowerCase();
+    return error is SocketException ||
+        error is HttpException ||
+        error is HandshakeException ||
+        text.contains('connection reset') ||
+        text.contains('connection closed') ||
+        text.contains('failed host lookup') ||
+        text.contains('network is unreachable') ||
+        text.contains('connection timed out') ||
+        text.contains('connection refused');
   }
 }

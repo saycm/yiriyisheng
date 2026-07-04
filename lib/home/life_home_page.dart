@@ -1,3 +1,5 @@
+// 中文注释：首页状态与模块调度层，负责组合财务、计划、饮食、锻炼和健康模块。
+
 part of 'life_home.dart';
 
 class LifeHomePage extends StatefulWidget {
@@ -121,6 +123,7 @@ class _LifeHomePageState extends State<LifeHomePage> {
       aiFinanceModel: _financeState.aiModel,
       aiFinanceApiKey: _financeState.aiApiKey,
       aiFinanceParseStrategy: _financeState.aiParseStrategy,
+      aiFinanceCustomPrompt: _financeState.aiCustomPrompt,
       onAddFinanceRecord: _addFinanceRecord,
       onEditFinanceRecord: _editFinanceRecord,
       onUpdateAiFinanceConfig: _updateAiFinanceConfig,

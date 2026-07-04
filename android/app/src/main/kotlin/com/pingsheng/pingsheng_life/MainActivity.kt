@@ -1,3 +1,5 @@
+// 中文注释：Android 原生入口，负责 Flutter 通道、权限申请、更新下载和健康数据桥接。
+
 package com.pingsheng.pingsheng_life
 
 import android.Manifest
@@ -139,6 +141,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
                     else -> result.notImplemented()
                 }
             }
+
     }
 
     override fun onResume() {

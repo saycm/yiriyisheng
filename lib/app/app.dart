@@ -1,3 +1,5 @@
+// 中文注释：应用外层壳和启动流程，负责更新检查与首页挂载。
+
 import 'package:flutter/material.dart';
 
 import '../auth/auth.dart';

@@ -1,3 +1,5 @@
+// 中文注释：全局基础配置，集中放置颜色、版本和跨模块常量。
+
 import 'package:flutter/material.dart';
 
 enum LifeModule { plan, finance, food, workout, health }
@@ -35,11 +37,11 @@ const String apiBaseUrl = String.fromEnvironment(
 );
 const String appVersionName = String.fromEnvironment(
   'PINGSHENG_APP_VERSION_NAME',
-  defaultValue: '1.0.32',
+  defaultValue: '1.0.42',
 );
 const int appVersionCode = int.fromEnvironment(
   'PINGSHENG_APP_VERSION_CODE',
-  defaultValue: 33,
+  defaultValue: 43,
 );
 
 final RegExp authHiddenOrWhitespacePattern =

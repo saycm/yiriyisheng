@@ -1,3 +1,5 @@
+// 中文注释：饮食模块源码，负责食物类目、餐次记录和营养汇总。
+
 part of 'food.dart';
 
 class _FoodHeader extends StatelessWidget {

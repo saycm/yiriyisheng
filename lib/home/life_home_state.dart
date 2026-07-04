@@ -1,3 +1,5 @@
+// 中文注释：首页状态与模块调度层，负责组合财务、计划、饮食、锻炼和健康模块。
+
 part of 'life_home.dart';
 
 class _FoodHomeState {
@@ -24,14 +26,14 @@ class _WorkoutHomeState {
       ..clear()
       ..addAll(snapshot.workoutGroupsByAction);
 
-    final restoredPlans = snapshot.workoutPlans;
-    if (restoredPlans != null && restoredPlans.isNotEmpty) {
-      plans
-        ..clear()
-        ..addAll(restoredPlans);
-    }
+    plans
+      ..clear()
+      ..addAll(_mergeWorkoutPlans(snapshot.workoutPlans));
 
-    activeSession = snapshot.activeWorkoutSession;
+    activeSession = _migrateWorkoutSession(
+      snapshot.activeWorkoutSession,
+      plans,
+    );
 
     final restoredHistory = snapshot.workoutHistory;
     if (restoredHistory != null) {
@@ -40,6 +42,78 @@ class _WorkoutHomeState {
         ..addAll(restoredHistory);
     }
   }
+}
+
+List<WorkoutPlan> _mergeWorkoutPlans(List<WorkoutPlan>? restoredPlans) {
+  final defaults = createDefaultWorkoutPlans();
+  if (restoredPlans == null || restoredPlans.isEmpty) {
+    return defaults;
+  }
+
+  final defaultIds = {for (final plan in defaults) plan.id};
+  final restoredById = {for (final plan in restoredPlans) plan.id: plan};
+  final merged = <WorkoutPlan>[];
+
+  for (final defaultPlan in defaults) {
+    final restored = restoredById[defaultPlan.id];
+    if (restored == null ||
+        _shouldRefreshDefaultWorkoutPlan(restored, defaultPlan)) {
+      merged.add(defaultPlan);
+    } else {
+      merged.add(restored);
+    }
+  }
+
+  for (final restored in restoredPlans) {
+    if (!defaultIds.contains(restored.id)) {
+      merged.add(restored);
+    }
+  }
+
+  return merged;
+}
+
+bool _shouldRefreshDefaultWorkoutPlan(
+  WorkoutPlan restored,
+  WorkoutPlan defaultPlan,
+) {
+  if (restored.actionNames.isEmpty) {
+    return true;
+  }
+  return defaultPlan.actionNames.any(
+    (actionName) => !restored.actionNames.contains(actionName),
+  );
+}
+
+ActiveWorkoutSession? _migrateWorkoutSession(
+  ActiveWorkoutSession? session,
+  List<WorkoutPlan> plans,
+) {
+  if (session == null) {
+    return null;
+  }
+
+  for (final plan in plans) {
+    if (plan.id != session.planId) {
+      continue;
+    }
+    if (plan.actionNames.isEmpty) {
+      return session.actionProgress.isEmpty ? null : session;
+    }
+    return ActiveWorkoutSession(
+      id: session.id,
+      planId: plan.id,
+      planName: plan.name,
+      startedAt: session.startedAt,
+      actionProgress: {
+        for (final actionName in plan.actionNames)
+          actionName: session.groupsFor(actionName),
+      },
+      feedback: session.feedback,
+    );
+  }
+
+  return session.actionProgress.isEmpty ? null : session;
 }
 
 class _PlanHomeState {
@@ -71,6 +145,7 @@ class _FinanceHomeState {
   String aiModel = defaultGlmTextModel;
   String aiApiKey = '';
   AiFinanceParseStrategy aiParseStrategy = AiFinanceParseStrategy.defaults;
+  String aiCustomPrompt = '';
 
   double get todayExpense => records
       .where((record) => record.type == '支出')
@@ -92,6 +167,7 @@ class _FinanceHomeState {
         : snapshot.aiFinanceModel;
     aiApiKey = snapshot.aiFinanceApiKey;
     aiParseStrategy = snapshot.aiFinanceParseStrategy;
+    aiCustomPrompt = snapshot.aiFinanceCustomPrompt;
   }
 
   void updateAiConfig({
@@ -99,11 +175,13 @@ class _FinanceHomeState {
     required String model,
     required String apiKey,
     AiFinanceParseStrategy? parseStrategy,
+    String? customPrompt,
   }) {
     aiEndpoint =
         endpoint.trim().isEmpty ? defaultGlmChatEndpoint : endpoint.trim();
     aiModel = model.trim().isEmpty ? defaultGlmTextModel : model.trim();
     aiApiKey = apiKey.trim();
     aiParseStrategy = parseStrategy ?? aiParseStrategy;
+    aiCustomPrompt = customPrompt ?? aiCustomPrompt;
   }
 }

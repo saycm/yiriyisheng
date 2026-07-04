@@ -1,3 +1,5 @@
+// 中文注释：财务模块源码，负责账目、资产、预算、财产健康值和 AI 记账。
+
 part of 'finance.dart';
 
 class _FinanceAiAssistantPage extends StatefulWidget {
@@ -6,6 +8,7 @@ class _FinanceAiAssistantPage extends StatefulWidget {
     required this.model,
     required this.apiKey,
     required this.parseStrategy,
+    required this.customPrompt,
     required this.onConfigChanged,
     required this.onSaveAll,
   });
@@ -14,11 +17,13 @@ class _FinanceAiAssistantPage extends StatefulWidget {
   final String model;
   final String apiKey;
   final AiFinanceParseStrategy parseStrategy;
+  final String customPrompt;
   final void Function({
     required String endpoint,
     required String model,
     required String apiKey,
     AiFinanceParseStrategy? parseStrategy,
+    String? customPrompt,
   }) onConfigChanged;
   final ValueChanged<List<FinanceRecord>> onSaveAll;
 
@@ -31,29 +36,27 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
   final _client = AiFinanceClient();
   final _imagePicker = ImagePicker();
   late final TextEditingController _inputController;
-  late final stt.SpeechToText _speech;
   final List<_FinanceAiAssistantMessage> _messages = [];
   late String _endpoint;
   late String _model;
   late String _apiKey;
   late AiFinanceParseStrategy _parseStrategy;
+  late String _customPrompt;
   bool _loading = false;
-  bool _listening = false;
 
   @override
   void initState() {
     super.initState();
     _inputController = TextEditingController();
-    _speech = stt.SpeechToText();
     _endpoint = widget.endpoint;
     _model = widget.model;
     _apiKey = widget.apiKey;
     _parseStrategy = widget.parseStrategy;
+    _customPrompt = widget.customPrompt;
   }
 
   @override
   void dispose() {
-    _speech.cancel();
     _inputController.dispose();
     super.dispose();
   }
@@ -92,10 +95,8 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
             _FinanceAiComposer(
               controller: _inputController,
               loading: _loading,
-              listening: _listening,
               onQuickCommand: _applyQuickCommand,
               onPickImage: _pickBillImage,
-              onVoiceInput: _toggleVoiceInput,
               onSend: _sendMessage,
             ),
           ],
@@ -112,6 +113,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
           model: _model,
           apiKey: _apiKey,
           parseStrategy: _parseStrategy,
+          customPrompt: _customPrompt,
           onConfigChanged: _updateConfig,
         ),
       ),
@@ -123,23 +125,27 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     required String model,
     required String apiKey,
     AiFinanceParseStrategy? parseStrategy,
+    String? customPrompt,
   }) {
     final nextEndpoint =
         endpoint.trim().isEmpty ? defaultGlmChatEndpoint : endpoint.trim();
     final nextModel = model.trim().isEmpty ? defaultGlmTextModel : model.trim();
     final nextApiKey = apiKey.trim();
     final nextParseStrategy = parseStrategy ?? _parseStrategy;
+    final nextCustomPrompt = customPrompt ?? _customPrompt;
     setState(() {
       _endpoint = nextEndpoint;
       _model = nextModel;
       _apiKey = nextApiKey;
       _parseStrategy = nextParseStrategy;
+      _customPrompt = nextCustomPrompt;
     });
     widget.onConfigChanged(
       endpoint: nextEndpoint,
       model: nextModel,
       apiKey: nextApiKey,
       parseStrategy: nextParseStrategy,
+      customPrompt: nextCustomPrompt,
     );
   }
 
@@ -172,6 +178,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
         endpoint: _endpoint,
         model: _model,
         strategy: _parseStrategy,
+        customPrompt: _customPrompt,
       );
       _saveBills(bills);
       _inputController.clear();
@@ -202,7 +209,10 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     try {
       final image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 88,
+        // 真机相册原图很容易过大，先缩到适合账单识别的尺寸再转 base64 上传。
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 80,
       );
       if (image == null) {
         return;
@@ -219,6 +229,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
         endpoint: _endpoint,
         model: '',
         strategy: _parseStrategy,
+        customPrompt: _customPrompt,
       );
       _saveBills(bills);
     } on PlatformException catch (error) {
@@ -239,77 +250,6 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     } finally {
       if (mounted) {
         setState(() => _loading = false);
-      }
-    }
-  }
-
-  Future<void> _toggleVoiceInput() async {
-    if (_listening) {
-      await _speech.stop();
-      if (mounted) {
-        setState(() => _listening = false);
-      }
-      return;
-    }
-
-    try {
-      final available = await _speech.initialize(
-        onStatus: (status) {
-          if (!mounted) {
-            return;
-          }
-          if (status == 'done' || status == 'notListening') {
-            setState(() => _listening = false);
-          }
-        },
-        onError: (error) {
-          if (mounted) {
-            setState(() => _listening = false);
-            _appendAssistantMessage(
-              '语音识别失败：${error.errorMsg}',
-              isError: true,
-            );
-          }
-        },
-      );
-      if (!available) {
-        _appendAssistantMessage('未获得麦克风权限，请在系统设置中开启', isError: true);
-        return;
-      }
-      setState(() => _listening = true);
-      await _speech.listen(
-        onResult: (result) {
-          if (!mounted) {
-            return;
-          }
-          _inputController.text = result.recognizedWords;
-          _inputController.selection = TextSelection.collapsed(
-            offset: _inputController.text.length,
-          );
-          if (result.finalResult) {
-            setState(() => _listening = false);
-          }
-        },
-        listenOptions: stt.SpeechListenOptions(
-          localeId: 'zh_CN',
-          listenFor: const Duration(seconds: 12),
-          pauseFor: const Duration(seconds: 3),
-          listenMode: stt.ListenMode.dictation,
-          partialResults: true,
-        ),
-      );
-    } on PlatformException catch (error) {
-      if (mounted) {
-        setState(() => _listening = false);
-        _appendAssistantMessage(
-          '麦克风权限申请失败：${error.message ?? error.code}',
-          isError: true,
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() => _listening = false);
-        _appendAssistantMessage('语音转文字失败：$error', isError: true);
       }
     }
   }
@@ -469,19 +409,15 @@ class _FinanceAiComposer extends StatelessWidget {
   const _FinanceAiComposer({
     required this.controller,
     required this.loading,
-    required this.listening,
     required this.onQuickCommand,
     required this.onPickImage,
-    required this.onVoiceInput,
     required this.onSend,
   });
 
   final TextEditingController controller;
   final bool loading;
-  final bool listening;
   final ValueChanged<_AiFinanceQuickCommand> onQuickCommand;
   final VoidCallback onPickImage;
-  final VoidCallback onVoiceInput;
   final VoidCallback onSend;
 
   @override
@@ -536,14 +472,6 @@ class _FinanceAiComposer extends StatelessWidget {
                 onPressed: loading ? null : onPickImage,
               ),
               const SizedBox(width: 8),
-              _FinanceAiIconButton(
-                keyValue: 'ai_finance_voice_input',
-                tooltip: listening ? '停止识别' : '语音转文字',
-                icon: listening ? Icons.graphic_eq_rounded : Icons.mic_rounded,
-                active: listening,
-                onPressed: loading ? null : onVoiceInput,
-              ),
-              const SizedBox(width: 8),
               SizedBox(
                 width: 44,
                 height: 44,
@@ -582,14 +510,12 @@ class _FinanceAiIconButton extends StatelessWidget {
     required this.tooltip,
     required this.icon,
     required this.onPressed,
-    this.active = false,
   });
 
   final String keyValue;
   final String tooltip;
   final IconData icon;
   final VoidCallback? onPressed;
-  final bool active;
 
   @override
   Widget build(BuildContext context) {
@@ -601,8 +527,8 @@ class _FinanceAiIconButton extends StatelessWidget {
         tooltip: tooltip,
         onPressed: onPressed,
         style: IconButton.styleFrom(
-          backgroundColor: active ? AppColors.primary : AppColors.background,
-          foregroundColor: active ? Colors.white : AppColors.primary,
+          backgroundColor: AppColors.background,
+          foregroundColor: AppColors.primary,
           disabledForegroundColor: AppColors.muted,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),

@@ -1,3 +1,5 @@
+// 中文注释：财务模块源码，负责账目、资产、预算、财产健康值和 AI 记账。
+
 part of 'finance.dart';
 
 class _TrendCard extends StatelessWidget {

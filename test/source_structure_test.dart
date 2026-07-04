@@ -1,3 +1,5 @@
+// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -43,12 +45,19 @@ void main() {
     expect(manifest, contains('android:value="false"'));
   });
 
-  test('android declares ai image and speech permissions', () {
+  test('android keeps image permissions and removes speech recorder plumbing',
+      () {
     final manifest =
         File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
+    final mainActivity = File(
+            'android/app/src/main/kotlin/com/pingsheng/pingsheng_life/MainActivity.kt')
+        .readAsStringSync();
 
-    expect(manifest, contains('android.permission.RECORD_AUDIO'));
     expect(manifest, contains('android.permission.READ_MEDIA_IMAGES'));
     expect(manifest, contains('android.permission.READ_EXTERNAL_STORAGE'));
+    expect(manifest, isNot(contains('android.permission.RECORD_AUDIO')));
+    expect(manifest, isNot(contains('android.speech.RecognitionService')));
+    expect(mainActivity, isNot(contains('pingsheng_life/voice_recorder')));
+    expect(mainActivity, isNot(contains('AudioRecord')));
   });
 }

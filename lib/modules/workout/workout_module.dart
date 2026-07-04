@@ -1,3 +1,5 @@
+// 中文注释：锻炼模块源码，负责动作库、训练计划、训练记录和更多菜单。
+
 part of 'workout.dart';
 
 class WorkoutModulePage extends StatefulWidget {
@@ -932,6 +934,8 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
   int _handledQuickActionToken = 0;
   String _activeBodyPart = '全部';
   String _lastFeedback = '刚好';
+  bool _showOnlyUnfinished = false;
+  int _defaultRestSeconds = 120;
   int _restSecondsLeft = 0;
 
   int get _totalGroups =>
@@ -976,6 +980,27 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
       orElse: () => scopedActions.last,
     );
   }
+
+  List<WorkoutAction> get _currentScopeActions {
+    final session = widget.activeWorkoutSession;
+    if (session == null) {
+      return _actions;
+    }
+    // 有训练会话时，菜单统计和未完成过滤只看当前计划内的动作。
+    return _actions
+        .where((action) => session.actionProgress.containsKey(action.name))
+        .toList();
+  }
+
+  int get _currentScopeTotalGroups => _currentScopeActions.fold(
+        0,
+        (total, action) => total + action.groups,
+      );
+
+  int get _currentScopeFinishedGroups => _currentScopeActions.fold(
+        0,
+        (total, action) => total + _finishedGroupsFor(action),
+      );
 
   bool get _activePlanCompleted {
     final session = widget.activeWorkoutSession;
@@ -1052,7 +1077,10 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
           children: [
             Column(
               children: [
-                _WorkoutHeader(onOpenModules: widget.onOpenModules),
+                _WorkoutHeader(
+                  onOpenModules: widget.onOpenModules,
+                  onOpenMore: _openMoreSheet,
+                ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: widget.moduleNav,
@@ -1103,17 +1131,21 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
       );
     }
     final session = widget.activeWorkoutSession;
-    final sourceActions = session == null
-        ? _actions
-        : _actions
-            .where((action) => session.actionProgress.containsKey(action.name))
-            .toList();
-    final visibleActions = _activeBodyPart == '全部'
+    final sourceActions = _currentScopeActions;
+    final bodyPartActions = _activeBodyPart == '全部'
         ? sourceActions
         : sourceActions
             .where(
                 (action) => _bodyPartLabel(action.bodyPart) == _activeBodyPart)
             .toList();
+    final visibleActions = _showOnlyUnfinished
+        ? bodyPartActions
+            .where((action) => _finishedGroupsFor(action) < action.groups)
+            .toList()
+        : bodyPartActions;
+    final actionCountLabel = _showOnlyUnfinished
+        ? '未完成 ${visibleActions.length} / 全部 ${bodyPartActions.length}'
+        : '${visibleActions.length} 个动作';
     final activePlan = _activePlan;
 
     return ListView(
@@ -1177,7 +1209,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
               ),
             ),
             Text(
-              '${visibleActions.length} 个动作',
+              actionCountLabel,
               style: const TextStyle(
                 color: AppColors.muted,
                 fontSize: 13,
@@ -1279,6 +1311,195 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     );
   }
 
+  // 汇总当前训练状态，生成右上角“三点”菜单需要的启用/禁用状态。
+  Future<void> _openMoreSheet() {
+    final session = widget.activeWorkoutSession;
+    final activePlan = _activePlan;
+    final canFinishTraining = session != null &&
+        session.actionProgress.values.any((groups) => groups > 0);
+    final canResetProgress = widget.finishedGroupsByAction.values
+            .any((groups) => groups > 0) ||
+        (session?.actionProgress.values.any((groups) => groups > 0) ?? false);
+
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _WorkoutMoreSheet(
+          hasActiveSession: session != null,
+          canFinishTraining: canFinishTraining,
+          canEditActivePlan: activePlan != null,
+          canResetProgress: canResetProgress,
+          hasHistory: widget.workoutHistory.isNotEmpty,
+          showOnlyUnfinished: _showOnlyUnfinished,
+          defaultRestSeconds: _defaultRestSeconds,
+          finishedGroups: _currentScopeFinishedGroups,
+          totalGroups: _currentScopeTotalGroups,
+          historyCount: widget.workoutHistory.length,
+          activePlanName: activePlan?.name ?? session?.planName,
+          onContinueTraining: _continueOrStartTraining,
+          onFinishTraining: _finishActivePlan,
+          onShowOnlyUnfinishedChanged: _setShowOnlyUnfinished,
+          onRestSecondsChanged: _setDefaultRestSeconds,
+          onEditActivePlan: _editActivePlan,
+          onCreatePlan: _createWorkoutPlan,
+          onCopyActivePlan: _copyActivePlan,
+          onResetProgress: _confirmResetTodayProgress,
+          onExportHistory: _exportWorkoutHistory,
+        );
+      },
+    );
+  }
+
+  // 无论当前在哪个 tab，都回到训练页并打开下一项可执行动作。
+  void _continueOrStartTraining() {
+    setState(() {
+      _selectedTopTab = 0;
+      _activeAction = _nextActionForCurrentScope;
+    });
+  }
+
+  void _setShowOnlyUnfinished(bool value) {
+    setState(() => _showOnlyUnfinished = value);
+  }
+
+  void _setDefaultRestSeconds(int seconds) {
+    setState(() => _defaultRestSeconds = seconds);
+  }
+
+  void _editActivePlan() {
+    final plan = _activePlan;
+    if (plan == null) {
+      return;
+    }
+    _openPlanEdit(plan);
+  }
+
+  // 新建计划先创建空壳，再复用现有编辑 Sheet 选择动作。
+  void _createWorkoutPlan() {
+    final now = DateTime.now();
+    final plan = WorkoutPlan(
+      name: '自定义训练',
+      target: '按当天状态自由组合',
+      bodyParts: const [],
+      actionNames: const [],
+      estimatedMinutes: 20,
+      createdAt: now,
+      updatedAt: now,
+    );
+    widget.onUpdateWorkoutPlan(plan);
+    _openPlanEdit(plan);
+  }
+
+  // 复制计划必须生成新 id，避免覆盖正在训练的原计划。
+  void _copyActivePlan() {
+    final plan = _activePlan;
+    if (plan == null) {
+      return;
+    }
+    final now = DateTime.now();
+    final copy = WorkoutPlan(
+      name: '${plan.name} 副本',
+      target: plan.target,
+      bodyParts: plan.bodyParts,
+      actionNames: plan.actionNames,
+      estimatedMinutes: plan.estimatedMinutes,
+      createdAt: now,
+      updatedAt: now,
+    );
+    widget.onUpdateWorkoutPlan(copy);
+    _showWorkoutSnack('已复制训练计划');
+  }
+
+  // 重置今日进度是破坏性操作，先让用户二次确认。
+  Future<void> _confirmResetTodayProgress() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('重置今日进度'),
+          content: const Text('会清空今天已记录的动作组数，训练历史不会删除。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('重置'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true) {
+      _resetTodayProgress();
+    }
+  }
+
+  void _resetTodayProgress() {
+    final session = widget.activeWorkoutSession;
+    // 今日进度同时存在全局动作组数和当前训练会话里，重置时要两处保持一致。
+    for (final action in _actions) {
+      widget.onUpdateActionGroups(action.name, 0);
+    }
+    if (session != null) {
+      widget.onUpdateWorkoutSession(
+        session.copyWith(
+          actionProgress: {
+            for (final actionName in session.actionProgress.keys) actionName: 0,
+          },
+        ),
+      );
+    }
+    setState(() {
+      _activeAction = null;
+      _restSecondsLeft = 0;
+    });
+    _showWorkoutSnack('今日进度已重置');
+  }
+
+  // 第一版导出走剪贴板，避免提前引入文件权限和分享插件。
+  Future<void> _exportWorkoutHistory() async {
+    await Clipboard.setData(ClipboardData(text: _workoutHistoryExportText()));
+    _showWorkoutSnack('训练历史已复制');
+  }
+
+  String _workoutHistoryExportText() {
+    final buffer = StringBuffer('训练历史\n');
+    for (final entry in widget.workoutHistory) {
+      // 导出内容先做成可读文本，后续如果需要文件分享可以复用这份摘要。
+      buffer
+        ..writeln('\n${entry.planName}')
+        ..writeln('开始：${_formatWorkoutDateTime(entry.startedAt)}')
+        ..writeln('完成：${_formatWorkoutDateTime(entry.finishedAt)}')
+        ..writeln('时长：${entry.durationMinutes} 分钟')
+        ..writeln('总组数：${entry.totalGroups} 组')
+        ..writeln('预估消耗：${entry.estimatedCalories} kcal')
+        ..writeln('反馈：${entry.feedback}');
+      for (final result in entry.actionResults) {
+        buffer.writeln(
+          '- ${result.actionName}：${result.finishedGroups}/${result.targetGroups} 组 · ${result.reps}',
+        );
+      }
+    }
+    return buffer.toString().trimRight();
+  }
+
+  String _formatWorkoutDateTime(DateTime value) {
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '${value.year}-$month-$day $hour:$minute';
+  }
+
+  void _showWorkoutSnack(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   WorkoutPlan _latestPlan(WorkoutPlan plan) {
     return widget.workoutPlans.firstWhere(
       (item) => item.id == plan.id,
@@ -1359,7 +1580,8 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
       );
     }
     widget.onUpdateActionGroups(action.name, nextCount);
-    setState(() => _restSecondsLeft = nextCount >= action.groups ? 0 : 120);
+    setState(() => _restSecondsLeft =
+        nextCount >= action.groups ? 0 : _defaultRestSeconds);
   }
 
   void _finishActivePlan() {

@@ -1,3 +1,5 @@
+// 中文注释：测试辅助工具，负责复用测试里的滚动、点击和平台通道模拟。
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

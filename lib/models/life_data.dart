@@ -1,3 +1,5 @@
+// 中文注释：业务数据模型，负责 App 内状态、序列化和恢复。
+
 part of 'models.dart';
 
 class LifeSummarySnapshot {
@@ -13,6 +15,7 @@ class LifeSummarySnapshot {
     this.aiFinanceModel = defaultGlmTextModel,
     this.aiFinanceApiKey = '',
     this.aiFinanceParseStrategy = AiFinanceParseStrategy.defaults,
+    this.aiFinanceCustomPrompt = '',
   });
 
   final int foodCalories;
@@ -26,6 +29,7 @@ class LifeSummarySnapshot {
   final String aiFinanceModel;
   final String aiFinanceApiKey;
   final AiFinanceParseStrategy aiFinanceParseStrategy;
+  final String aiFinanceCustomPrompt;
 }
 
 class TodoItem {

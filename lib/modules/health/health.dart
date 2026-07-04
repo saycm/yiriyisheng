@@ -1,3 +1,5 @@
+// 中文注释：健康模块源码，负责健康数据、手动记录和系统健康数据接入。
+
 import 'dart:async';
 import 'dart:math' as math;
 

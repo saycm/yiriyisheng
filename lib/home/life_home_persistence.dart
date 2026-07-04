@@ -1,3 +1,5 @@
+// 中文注释：首页状态与模块调度层，负责组合财务、计划、饮食、锻炼和健康模块。
+
 part of 'life_home.dart';
 
 extension _LifeHomePersistence on _LifeHomePageState {
@@ -55,6 +57,7 @@ extension _LifeHomePersistence on _LifeHomePageState {
         aiFinanceModel: _financeState.aiModel,
         aiFinanceApiKey: _financeState.aiApiKey,
         aiFinanceParseStrategy: _financeState.aiParseStrategy,
+        aiFinanceCustomPrompt: _financeState.aiCustomPrompt,
       );
       if (mounted && _appDataSaveFailed) {
         _updateState(() => _appDataSaveFailed = false);

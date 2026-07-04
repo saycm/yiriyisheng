@@ -1,3 +1,5 @@
+// 中文注释：财务模块源码，负责账目、资产、预算、财产健康值和 AI 记账。
+
 part of 'finance.dart';
 
 class _FinanceAiSettingsPage extends StatefulWidget {
@@ -6,6 +8,7 @@ class _FinanceAiSettingsPage extends StatefulWidget {
     required this.model,
     required this.apiKey,
     required this.parseStrategy,
+    required this.customPrompt,
     required this.onConfigChanged,
   });
 
@@ -13,11 +16,13 @@ class _FinanceAiSettingsPage extends StatefulWidget {
   final String model;
   final String apiKey;
   final AiFinanceParseStrategy parseStrategy;
+  final String customPrompt;
   final void Function({
     required String endpoint,
     required String model,
     required String apiKey,
     AiFinanceParseStrategy? parseStrategy,
+    String? customPrompt,
   }) onConfigChanged;
 
   @override
@@ -30,6 +35,7 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
   late String _model;
   late String _apiKey;
   late AiFinanceParseStrategy _parseStrategy;
+  late String _customPrompt;
 
   @override
   void initState() {
@@ -38,6 +44,7 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
     _model = widget.model;
     _apiKey = widget.apiKey;
     _parseStrategy = widget.parseStrategy;
+    _customPrompt = widget.customPrompt;
   }
 
   @override
@@ -123,12 +130,6 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
                     subtitle: '智谱GLM',
                     active: true,
                   ),
-                  const _FinanceAiCapabilityTile(
-                    icon: Icons.graphic_eq_rounded,
-                    title: '语音转文字',
-                    subtitle: '本机语音识别',
-                    active: true,
-                  ),
                   const SizedBox(height: 16),
                   const ModuleSectionTitle(
                     icon: Icons.tune_rounded,
@@ -140,6 +141,13 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
                     title: '记账解析策略',
                     subtitle: _strategySubtitle(_parseStrategy),
                     onTap: _openParseStrategy,
+                  ),
+                  const SizedBox(height: 10),
+                  _FinanceAiSettingsTile(
+                    icon: Icons.edit_note_rounded,
+                    title: '提示词编辑',
+                    subtitle: _promptSubtitle(_customPrompt),
+                    onTap: _openPromptEditor,
                   ),
                 ],
               ),
@@ -174,28 +182,43 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
     );
   }
 
+  void _openPromptEditor() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _FinanceAiPromptEditPage(
+          prompt: _customPrompt,
+          onChanged: _updateCustomPrompt,
+        ),
+      ),
+    );
+  }
+
   void _updateConfig({
     required String endpoint,
     required String model,
     required String apiKey,
     AiFinanceParseStrategy? parseStrategy,
+    String? customPrompt,
   }) {
     final nextEndpoint =
         endpoint.trim().isEmpty ? defaultGlmChatEndpoint : endpoint.trim();
     final nextModel = model.trim().isEmpty ? defaultGlmTextModel : model.trim();
     final nextApiKey = apiKey.trim();
     final nextParseStrategy = parseStrategy ?? _parseStrategy;
+    final nextCustomPrompt = customPrompt ?? _customPrompt;
     setState(() {
       _endpoint = nextEndpoint;
       _model = nextModel;
       _apiKey = nextApiKey;
       _parseStrategy = nextParseStrategy;
+      _customPrompt = nextCustomPrompt;
     });
     widget.onConfigChanged(
       endpoint: nextEndpoint,
       model: nextModel,
       apiKey: nextApiKey,
       parseStrategy: nextParseStrategy,
+      customPrompt: nextCustomPrompt,
     );
   }
 
@@ -205,6 +228,15 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
       model: _model,
       apiKey: _apiKey,
       parseStrategy: strategy,
+    );
+  }
+
+  void _updateCustomPrompt(String prompt) {
+    _updateConfig(
+      endpoint: _endpoint,
+      model: _model,
+      apiKey: _apiKey,
+      customPrompt: prompt,
     );
   }
 
@@ -224,6 +256,10 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
     }
     return '${enabled.join('、')} · ${strategy.noteLength.label}';
   }
+
+  static String _promptSubtitle(String prompt) {
+    return prompt.trim().isEmpty ? '使用默认平生记账提示词' : '已启用自定义提示词';
+  }
 }
 
 class _FinanceAiProviderManagePage extends StatelessWidget {
@@ -242,6 +278,7 @@ class _FinanceAiProviderManagePage extends StatelessWidget {
     required String model,
     required String apiKey,
     AiFinanceParseStrategy? parseStrategy,
+    String? customPrompt,
   }) onConfigChanged;
 
   @override
@@ -446,6 +483,307 @@ class _FinanceAiParseStrategyPageState
   }
 }
 
+class _FinanceAiPromptEditPage extends StatefulWidget {
+  const _FinanceAiPromptEditPage({
+    required this.prompt,
+    required this.onChanged,
+  });
+
+  final String prompt;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_FinanceAiPromptEditPage> createState() =>
+      _FinanceAiPromptEditPageState();
+}
+
+class _FinanceAiPromptEditPageState extends State<_FinanceAiPromptEditPage> {
+  late final TextEditingController _controller;
+  late String _savedPrompt;
+
+  bool get _hasChanges => _controller.text != _savedPrompt;
+
+  @override
+  void initState() {
+    super.initState();
+    _savedPrompt = widget.prompt.trim().isEmpty
+        ? AiFinancePromptBuilder.defaultTemplate
+        : widget.prompt;
+    _controller = TextEditingController(text: _savedPrompt);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _FinanceAiPageHeader(
+              title: '提示词编辑',
+              onBack: () => Navigator.of(context).pop(),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 22),
+                children: [
+                  _FinanceAiPromptVariablesCard(),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: _financeAiCardDecoration(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.edit_note_rounded,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              '提示词内容',
+                              style: TextStyle(
+                                color: AppColors.ink,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (_hasChanges)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.financeRed.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  '未保存',
+                                  style: TextStyle(
+                                    color: AppColors.financeRed,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          key: const ValueKey('ai_prompt_editor_field'),
+                          controller: _controller,
+                          minLines: 12,
+                          maxLines: 20,
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontFamily: 'monospace',
+                            fontSize: 13,
+                            height: 1.45,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: '输入提示词...',
+                            filled: true,
+                            fillColor: AppColors.background,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: _financeAiCardDecoration(),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                key: const ValueKey('ai_prompt_editor_preview'),
+                                onPressed: _showPreview,
+                                icon: const Icon(Icons.visibility_rounded),
+                                label: const Text('预览'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: FilledButton.icon(
+                                key: const ValueKey('ai_prompt_editor_save'),
+                                onPressed: _hasChanges ? _save : null,
+                                icon: const Icon(Icons.save_rounded),
+                                label: const Text('保存'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            key: const ValueKey('ai_prompt_editor_reset'),
+                            onPressed: _resetToDefault,
+                            icon: const Icon(Icons.restore_rounded),
+                            label: const Text('恢复默认'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _save() {
+    final displayedPrompt = _controller.text;
+    final storedPrompt =
+        displayedPrompt == AiFinancePromptBuilder.defaultTemplate
+            ? ''
+            : displayedPrompt;
+    setState(() => _savedPrompt = displayedPrompt);
+    widget.onChanged(storedPrompt);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('提示词已保存')),
+    );
+  }
+
+  void _resetToDefault() {
+    setState(() => _controller.text = AiFinancePromptBuilder.defaultTemplate);
+  }
+
+  void _showPreview() {
+    final preview = const AiFinancePromptBuilder().build(
+      text: '昨天中午吃饭50，晚上奶茶12',
+      now: DateTime(2026, 6, 5, 8, 30),
+      customPrompt: _controller.text,
+    );
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('提示词预览'),
+          content: SingleChildScrollView(
+            child: SelectableText(
+              preview,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 13,
+                height: 1.45,
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('关闭'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _FinanceAiPromptVariablesCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    const variables = [
+      ('{{INPUT_SOURCE}}', '输入来源描述，例如自然语言或账单图片'),
+      ('{{CURRENT_TIME}}', '当前日期时间，例如 2026-06-05 08:30'),
+      ('{{CURRENT_DATE}}', '当前日期，例如 2026-06-05'),
+      ('{{OCR_TEXT}}', '用户输入文字或图片识别任务描述'),
+      ('{{CATEGORIES}}', '平生内置收支分类列表'),
+      ('{{ACCOUNTS}}', '可用账户列表'),
+    ];
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+      decoration: _financeAiCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.code_rounded, color: AppColors.primary, size: 20),
+              SizedBox(width: 8),
+              Text(
+                '可用变量',
+                style: TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final variable in variables)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      variable.$1,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      variable.$2,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _FinanceAiProviderEditPage extends StatefulWidget {
   const _FinanceAiProviderEditPage({
     required this.endpoint,
@@ -462,6 +800,7 @@ class _FinanceAiProviderEditPage extends StatefulWidget {
     required String model,
     required String apiKey,
     AiFinanceParseStrategy? parseStrategy,
+    String? customPrompt,
   }) onConfigChanged;
 
   @override

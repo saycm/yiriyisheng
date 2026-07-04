@@ -1,3 +1,5 @@
+// 中文注释：计划模块页面组件，负责今日总览、待办箱、周计划和统计视图。
+
 part of '../plan.dart';
 
 class _PlanHeader extends StatelessWidget {
@@ -51,55 +53,53 @@ class _PlanDateToolbar extends StatelessWidget {
     final selectedDateText = _formatPlanDate(selectedDate);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
-      child: Row(
-        children: [
-          const Spacer(),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              key: const ValueKey('plan_header_date_button'),
-              borderRadius: BorderRadius.circular(14),
-              onTap: () => _pickDate(context),
-              child: GlassSurface(
-                borderRadius: 14,
-                color: AppColors.surface.withValues(alpha: 0.56),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 13,
-                  vertical: 9,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.calendar_month_rounded,
-                      size: 18,
-                      color: AppColors.primary,
+      padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
+      child: Center(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: const ValueKey('plan_header_date_button'),
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _pickDate(context),
+            child: GlassSurface(
+              borderRadius: 12,
+              color: AppColors.surface.withValues(alpha: 0.56),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 5,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.calendar_month_rounded,
+                    size: 15,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    key: const ValueKey('plan_header_selected_date'),
+                    selectedDateText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 13,
+                      height: 1,
+                      fontWeight: FontWeight.w900,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      key: const ValueKey('plan_header_selected_date'),
-                      selectedDateText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    const Icon(
-                      Icons.expand_more_rounded,
-                      size: 18,
-                      color: AppColors.primary,
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.expand_more_rounded,
+                    size: 15,
+                    color: AppColors.primary,
+                  ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

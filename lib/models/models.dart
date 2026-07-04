@@ -1,3 +1,5 @@
+// 中文注释：业务数据模型，负责 App 内状态、序列化和恢复。
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';

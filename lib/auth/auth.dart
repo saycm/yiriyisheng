@@ -1,3 +1,5 @@
+// 中文注释：登录注册与更新提示界面，负责进入首页前的账号和版本流程。
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';

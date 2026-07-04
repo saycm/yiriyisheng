@@ -1,3 +1,5 @@
+// 中文注释：计划模块页面组件，负责今日总览、待办箱、周计划和统计视图。
+
 part of '../plan.dart';
 
 class _PlanBody extends StatelessWidget {
@@ -13,6 +15,7 @@ class _PlanBody extends StatelessWidget {
     required this.healthStatusText,
     required this.onSelectDate,
     required this.onToggleTodo,
+    required this.onUpdateTodo,
     required this.onPostponeTodo,
     required this.onArchiveTodo,
     required this.onDeleteTodo,
@@ -32,6 +35,7 @@ class _PlanBody extends StatelessWidget {
   final String healthStatusText;
   final ValueChanged<DateTime> onSelectDate;
   final ValueChanged<TodoItem> onToggleTodo;
+  final ValueChanged<TodoItem> onUpdateTodo;
   final ValueChanged<TodoItem> onPostponeTodo;
   final ValueChanged<TodoItem> onArchiveTodo;
   final ValueChanged<TodoItem> onDeleteTodo;
@@ -73,6 +77,7 @@ class _PlanBody extends StatelessWidget {
         todos: todos,
         onSelectDate: onSelectDate,
         onToggle: onToggleTodo,
+        onUpdate: onUpdateTodo,
         onPostpone: onPostponeTodo,
         onArchive: onArchiveTodo,
         onDelete: onDeleteTodo,

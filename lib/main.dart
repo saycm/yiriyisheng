@@ -1,3 +1,5 @@
+// 中文注释：应用入口，负责启动 Flutter App。
+
 import 'package:flutter/material.dart';
 
 import 'app/app.dart';

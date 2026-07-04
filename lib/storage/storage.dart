@@ -1,3 +1,5 @@
+// 中文注释：本地存储层，负责 SQLite 持久化和桌面小组件数据同步。
+
 import 'dart:convert';
 import 'dart:io';
 

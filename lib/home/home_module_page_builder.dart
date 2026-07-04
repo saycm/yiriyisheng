@@ -1,3 +1,5 @@
+// 中文注释：首页状态与模块调度层，负责组合财务、计划、饮食、锻炼和健康模块。
+
 part of 'life_home.dart';
 
 Widget _buildLifeHomeModulePage({
@@ -19,6 +21,7 @@ Widget _buildLifeHomeModulePage({
   required String aiFinanceModel,
   required String aiFinanceApiKey,
   required AiFinanceParseStrategy aiFinanceParseStrategy,
+  required String aiFinanceCustomPrompt,
   required ValueChanged<FinanceRecord> onAddFinanceRecord,
   required void Function(FinanceRecord oldRecord, FinanceRecord newRecord)
       onEditFinanceRecord,
@@ -27,6 +30,7 @@ Widget _buildLifeHomeModulePage({
     required String model,
     required String apiKey,
     AiFinanceParseStrategy? parseStrategy,
+    String? customPrompt,
   }) onUpdateAiFinanceConfig,
   required ValueChanged<int> onRecordFoodCalories,
   required void Function(String actionName, int finishedGroups)
@@ -64,6 +68,7 @@ Widget _buildLifeHomeModulePage({
         aiModel: aiFinanceModel,
         aiApiKey: aiFinanceApiKey,
         aiParseStrategy: aiFinanceParseStrategy,
+        aiCustomPrompt: aiFinanceCustomPrompt,
         onAiConfigChanged: onUpdateAiFinanceConfig,
         quickAction: quickAction,
         quickActionToken: quickActionToken,

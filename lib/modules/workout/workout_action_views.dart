@@ -1,3 +1,5 @@
+// 中文注释：锻炼模块源码，负责动作库、训练计划、训练记录和更多菜单。
+
 // ignore_for_file: use_key_in_widget_constructors
 part of 'workout.dart';
 
@@ -497,7 +499,7 @@ class _WorkoutActionMetaCard extends StatelessWidget {
             mainAxisSpacing: 10,
             childAspectRatio: 2.4,
             children: values.map((item) {
-              return _WorkoutProgressBox(label: item.$1, value: item.$2);
+              return _WorkoutActionFieldBox(label: item.$1, value: item.$2);
             }).toList(),
           ),
           if (action.note.isNotEmpty) ...[
@@ -513,6 +515,70 @@ class _WorkoutActionMetaCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+// 动作字段卡只展示静态信息，单独控制行高和垂直居中，避免复用进度卡后文字显得歪。
+class _WorkoutActionFieldBox extends StatelessWidget {
+  const _WorkoutActionFieldBox({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              strutStyle: const StrutStyle(
+                fontSize: 13,
+                height: 1.1,
+                forceStrutHeight: true,
+              ),
+              style: const TextStyle(
+                color: AppColors.muted,
+                fontSize: 13,
+                height: 1.1,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              strutStyle: const StrutStyle(
+                fontSize: 17,
+                height: 1.1,
+                forceStrutHeight: true,
+              ),
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontSize: 17,
+                height: 1.1,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

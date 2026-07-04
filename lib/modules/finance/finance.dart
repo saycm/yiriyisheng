@@ -1,10 +1,11 @@
+// 中文注释：财务模块源码，负责账目、资产、预算、财产健康值和 AI 记账。
+
 import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../core/app_core.dart';
 import '../../models/models.dart';

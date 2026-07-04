@@ -1,3 +1,5 @@
+// 中文注释：财务模块源码，负责账目、资产、预算、财产健康值和 AI 记账。
+
 part of 'finance.dart';
 
 class FinanceModulePage extends StatefulWidget {
@@ -15,6 +17,7 @@ class FinanceModulePage extends StatefulWidget {
     required this.aiModel,
     required this.aiApiKey,
     required this.aiParseStrategy,
+    required this.aiCustomPrompt,
     required this.onAiConfigChanged,
     required this.quickAction,
     required this.quickActionToken,
@@ -34,11 +37,13 @@ class FinanceModulePage extends StatefulWidget {
   final String aiModel;
   final String aiApiKey;
   final AiFinanceParseStrategy aiParseStrategy;
+  final String aiCustomPrompt;
   final void Function({
     required String endpoint,
     required String model,
     required String apiKey,
     AiFinanceParseStrategy? parseStrategy,
+    String? customPrompt,
   }) onAiConfigChanged;
   final WidgetQuickAction? quickAction;
   final int quickActionToken;
@@ -180,6 +185,7 @@ class _FinanceModulePageState extends State<FinanceModulePage> {
           model: widget.aiModel,
           apiKey: widget.aiApiKey,
           parseStrategy: widget.aiParseStrategy,
+          customPrompt: widget.aiCustomPrompt,
           onConfigChanged: widget.onAiConfigChanged,
           onSaveAll: (records) {
             if (mounted) {

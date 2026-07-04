@@ -1,3 +1,5 @@
+// 中文注释：首页状态与模块调度层，负责组合财务、计划、饮食、锻炼和健康模块。
+
 part of 'life_home.dart';
 
 extension _LifeHomeMutations on _LifeHomePageState {
@@ -78,6 +80,9 @@ extension _LifeHomeMutations on _LifeHomePageState {
   void _updateWorkoutPlan(WorkoutPlan plan) {
     final index = _workoutState.plans.indexWhere((item) => item.id == plan.id);
     if (index == -1) {
+      // 三点菜单的新建/复制计划会产生新 id，这里负责把它纳入首页状态。
+      _updateState(() => _workoutState.plans.add(plan));
+      _syncLinkedSummaryToWidget();
       return;
     }
     _updateState(() => _workoutState.plans[index] = plan);
@@ -238,6 +243,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     required String model,
     required String apiKey,
     AiFinanceParseStrategy? parseStrategy,
+    String? customPrompt,
   }) {
     _updateState(() {
       _financeState.updateAiConfig(
@@ -245,6 +251,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
         model: model,
         apiKey: apiKey,
         parseStrategy: parseStrategy,
+        customPrompt: customPrompt,
       );
     });
     _syncLinkedSummaryToWidget();

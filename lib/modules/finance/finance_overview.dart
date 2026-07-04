@@ -1,3 +1,5 @@
+// 中文注释：财务模块源码，负责账目、资产、预算、财产健康值和 AI 记账。
+
 part of 'finance.dart';
 
 class _FinanceOverviewView extends StatelessWidget {
@@ -28,8 +30,6 @@ class _FinanceOverviewView extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(
           18, 0, 18, moduleSwitchBarReservedHeight + 24),
       children: [
-        _FinanceHealthCard(records: records),
-        const SizedBox(height: 14),
         _NetAssetCard(
           accounts: accounts,
           income: income,
@@ -37,6 +37,8 @@ class _FinanceOverviewView extends StatelessWidget {
           onOpenAssets: onOpenAssets,
           onAddRecord: onAddRecord,
         ),
+        const SizedBox(height: 14),
+        _FinanceHealthCard(records: records),
         const SizedBox(height: 14),
         _FinanceBudgetInsightCard(records: records),
         const SizedBox(height: 14),

@@ -1,3 +1,5 @@
+// 中文注释：计划模块源码，负责待办状态、日期选择和计划页交互。
+
 part of 'plan.dart';
 
 class PlanModulePage extends StatefulWidget {
@@ -94,7 +96,7 @@ class _PlanModulePageState extends State<PlanModulePage>
                   onOpenMore: _openMoreSheet,
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: 6),
                   child: widget.moduleNav,
                 ),
                 _PlanDateToolbar(
@@ -120,6 +122,7 @@ class _PlanModulePageState extends State<PlanModulePage>
                       _selectedTab = 2;
                     }),
                     onToggleTodo: _toggleTodo,
+                    onUpdateTodo: widget.onUpdateTodo,
                     onPostponeTodo: widget.onPostponeTodo,
                     onArchiveTodo: widget.onArchiveTodo,
                     onDeleteTodo: widget.onDeleteTodo,

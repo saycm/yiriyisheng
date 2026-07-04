@@ -1,3 +1,5 @@
+// 中文注释：锻炼模块源码，负责动作库、训练计划、训练记录和更多菜单。
+
 part of '../../models/models.dart';
 
 class WorkoutAction {

@@ -1,3 +1,5 @@
+# 中文注释：旧版 Python 服务端参考实现，仅用于回滚和接口对照。
+
 #!/usr/bin/env python3
 import base64
 import hashlib

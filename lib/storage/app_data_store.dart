@@ -1,3 +1,5 @@
+// 中文注释：本地存储层，负责 SQLite 持久化和桌面小组件数据同步。
+
 part of 'storage.dart';
 
 abstract class LifeSummaryStore {
@@ -15,6 +17,7 @@ abstract class LifeSummaryStore {
     required String aiFinanceModel,
     required String aiFinanceApiKey,
     required AiFinanceParseStrategy aiFinanceParseStrategy,
+    required String aiFinanceCustomPrompt,
   });
 }
 
@@ -132,6 +135,8 @@ class AppDataStore implements LifeSummaryStore {
         ),
         aiFinanceApiKey: await _readStringMeta(db, 'aiFinanceApiKey', ''),
         aiFinanceParseStrategy: await _readAiFinanceParseStrategy(db),
+        aiFinanceCustomPrompt:
+            await _readStringMeta(db, 'aiFinanceCustomPrompt', ''),
       );
     } catch (error, stackTrace) {
       debugPrint('App data restore failed: $error');
@@ -153,6 +158,7 @@ class AppDataStore implements LifeSummaryStore {
     required String aiFinanceModel,
     required String aiFinanceApiKey,
     required AiFinanceParseStrategy aiFinanceParseStrategy,
+    required String aiFinanceCustomPrompt,
   }) async {
     if (!_isSupportedPlatform) {
       return;
@@ -171,6 +177,7 @@ class AppDataStore implements LifeSummaryStore {
         aiFinanceModel: aiFinanceModel,
         aiFinanceApiKey: aiFinanceApiKey,
         aiFinanceParseStrategy: aiFinanceParseStrategy,
+        aiFinanceCustomPrompt: aiFinanceCustomPrompt,
       ),
     );
     await _pendingSave;
@@ -188,6 +195,7 @@ class AppDataStore implements LifeSummaryStore {
     required String aiFinanceModel,
     required String aiFinanceApiKey,
     required AiFinanceParseStrategy aiFinanceParseStrategy,
+    required String aiFinanceCustomPrompt,
   }) async {
     try {
       final db = await _open();
@@ -201,6 +209,7 @@ class AppDataStore implements LifeSummaryStore {
           'aiFinanceParseStrategy': jsonEncode(
             aiFinanceParseStrategy.toJson(),
           ),
+          'aiFinanceCustomPrompt': aiFinanceCustomPrompt,
         });
 
         final todoIds = <String>[];

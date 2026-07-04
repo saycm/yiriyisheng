@@ -1,3 +1,5 @@
+// 中文注释：跨模块共享 UI 组件，负责统一卡片、导航、弹层和模块外壳。
+
 // ignore_for_file: use_key_in_widget_constructors
 part of 'shared.dart';
 
@@ -269,10 +271,10 @@ class ModuleGlassHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
       child: GlassSurface(
-        borderRadius: 18,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        borderRadius: 16,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         child: Row(
           key: const ValueKey('module_glass_header'),
           children: [
@@ -290,7 +292,7 @@ class ModuleGlassHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: AppColors.ink,
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -322,24 +324,24 @@ class _GlassIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       onTap: onTap,
       child: Container(
-        width: 42,
-        height: 42,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
           color: AppColors.surface.withValues(alpha: 0.58),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Colors.white.withValues(alpha: 0.88)),
           boxShadow: [
             BoxShadow(
               color: color.withValues(alpha: 0.14),
-              blurRadius: 14,
-              offset: const Offset(0, 7),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Icon(icon, color: color, size: 22),
+        child: Icon(icon, color: color, size: 20),
       ),
     );
   }
@@ -408,8 +410,8 @@ class ModuleLinkStrip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Center(
         child: GlassSurface(
-          borderRadius: 18,
-          padding: const EdgeInsets.all(4),
+          borderRadius: 16,
+          padding: const EdgeInsets.all(3),
           color: AppColors.surface.withValues(alpha: 0.58),
           child: FittedBox(
             key: const ValueKey('module_link_glass_container'),
@@ -449,32 +451,32 @@ class CapsuleNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final outerPadding = compact
-        ? 4.0
+        ? 3.0
         : softCompact
             ? 4.0
             : 7.0;
     final outerRadius = compact
-        ? 16.0
+        ? 14.0
         : softCompact
             ? 14.0
             : 18.0;
     final itemRadius = compact
-        ? 12.0
+        ? 10.0
         : softCompact
             ? 11.0
             : 15.0;
     final itemWidth = compact
-        ? 42.0
+        ? 40.0
         : softCompact
             ? 50.0
             : 88.0;
     final itemVerticalPadding = compact
-        ? 3.0
+        ? 2.0
         : softCompact
             ? 3.0
             : 9.0;
     final iconSize = compact
-        ? 17.0
+        ? 16.0
         : softCompact
             ? 15.0
             : 23.0;

@@ -1,9 +1,15 @@
+// 中文注释：锻炼模块源码，负责动作库、训练计划、训练记录和更多菜单。
+
 part of 'workout.dart';
 
 class _WorkoutHeader extends StatelessWidget {
-  const _WorkoutHeader({required this.onOpenModules});
+  const _WorkoutHeader({
+    required this.onOpenModules,
+    required this.onOpenMore,
+  });
 
   final VoidCallback onOpenModules;
+  final VoidCallback onOpenMore;
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +17,7 @@ class _WorkoutHeader extends StatelessWidget {
       module: LifeModule.workout,
       title: '锻炼',
       onOpenModules: onOpenModules,
-      onOpenMore: () {},
+      onOpenMore: onOpenMore,
     );
   }
 }
