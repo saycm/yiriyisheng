@@ -1,5 +1,7 @@
 // 中文注释：测试辅助工具，负责复用测试里的滚动、点击和平台通道模拟。
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -144,6 +146,54 @@ void mockSystemHealthPermissionFlow() {
     () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null),
   );
+}
+
+VoidCallback mockSystemHealthDelayedSnapshot() {
+  const channel = MethodChannel('pingsheng_life/system_health');
+  final firstLoad = Completer<Map<String, Object?>>();
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(channel, (call) async {
+    if (call.method == 'loadHealthSnapshot') {
+      return firstLoad.future;
+    }
+    if (call.method == 'requestHealthPermissions') {
+      return {'granted': true, 'grantedCount': 6};
+    }
+    if (call.method == 'openHealthConnectSettings') {
+      return null;
+    }
+    throw PlatformException(code: 'not_implemented');
+  });
+  addTearDown(
+    () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null),
+  );
+  return () {
+    if (firstLoad.isCompleted) {
+      return;
+    }
+    firstLoad.complete({
+      'status': 'ok',
+      'message': '已连接 Health Connect 和本机传感器。',
+      'lastUpdated': '2026-06-05T08:30:00.000Z',
+      'sensors': {
+        'stepCounterAvailable': true,
+        'heartRateSensorAvailable': true,
+        'accelerometerAvailable': true,
+      },
+      'days': [
+        {
+          'dateIso': '2026-06-05',
+          'steps': 6320,
+          'activeCaloriesKcal': 610.0,
+          'basalCaloriesKcal': 1591.0,
+          'sleepMinutes': 408,
+          'heartRateBpm': 82,
+          'respiratoryRate': 15.8,
+        },
+      ],
+    });
+  };
 }
 
 Future<void> dragPageUp(WidgetTester tester) async {

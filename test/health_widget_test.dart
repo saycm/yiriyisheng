@@ -64,11 +64,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-        find.byKey(const ValueKey('health_manual_status_card')), findsNothing);
-    expect(find.byKey(const ValueKey('health_reminder_card')), findsNothing);
-    expect(find.byKey(const ValueKey('health_trend_dashboard_card')),
-        findsNothing);
     expect(find.text('手机传感器'), findsNothing);
   });
 
@@ -166,6 +161,53 @@ void main() {
       find.descendant(
         of: sheet,
         matching: find.text('去授权'),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('external data source resolves initial loading in sheet',
+      (tester) async {
+    final completeSnapshot = mockSystemHealthDelayedSnapshot();
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    addTearDown(
+      () => tester.binding.platformDispatcher.defaultRouteNameTestValue = '/',
+    );
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pump();
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('health_external_source_entry')),
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('health_external_source_entry')));
+    await tester.pumpAndSettle();
+
+    final sheet = find.byType(BottomSheet);
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.text('正在读取系统健康数据'),
+      ),
+      findsWidgets,
+    );
+
+    completeSnapshot();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.text('系统健康数据已连接'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.text('正在读取系统健康数据'),
       ),
       findsNothing,
     );

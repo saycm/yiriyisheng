@@ -422,48 +422,6 @@ class _HealthModulePageState extends State<HealthModulePage> {
     }
   }
 
-  // Keep legacy health cards available for the external data source sheet.
-  // ignore: unused_element
-  Object? get _legacyHealthCardRefs => (
-        _HealthManualStatusCard,
-        _HealthReminderCard,
-        _HealthTrendDashboardCard,
-      );
-
-  // ignore: unused_element
-  List<String> _healthReminders(HealthDay day) {
-    final steps = _metricNumber(day.metrics, '今日步数');
-    final sleep = day.metrics.firstWhere((metric) => metric.title == '昨晚睡眠');
-    final reminders = <String>[];
-    if (steps != null && steps < 6000) {
-      reminders.add('步数偏少，可以安排一次轻量走动');
-    }
-    if (sleep.hasData && sleep.value.startsWith(RegExp(r'[0-5]h'))) {
-      reminders.add('昨晚睡眠偏少，今天训练强度建议降低');
-    }
-    if (_fatigueLevel >= 4) {
-      reminders.add('连续疲劳时优先恢复和拉伸');
-    }
-    if (widget.workoutGroups == 0 && DateTime.now().hour >= 15) {
-      reminders.add('久坐时间较长时，先做 5 分钟活动');
-    }
-    if (widget.foodCalories > 1800) {
-      reminders.add('今日摄入较高，晚间注意清淡');
-    }
-    if (reminders.isEmpty) {
-      reminders.add('状态稳定，继续保持今天的节奏');
-    }
-    return reminders;
-  }
-
-  int? _metricNumber(List<HealthMetric> metrics, String title) {
-    final metric = metrics.firstWhere((item) => item.title == title);
-    if (!metric.hasData) {
-      return null;
-    }
-    return int.tryParse(metric.value.replaceAll(',', ''));
-  }
-
   List<HealthDay> _buildHealthDays(HealthSystemSnapshot snapshot) {
     // 健康页只接受系统健康/传感器返回值；缺权限时保留真实日期但不填假指标。
     final samples = snapshot.days.isEmpty
@@ -1347,6 +1305,19 @@ class _HealthExternalSourceSheetState
     extends State<_HealthExternalSourceSheet> {
   late HealthSystemSnapshot _snapshot = widget.snapshot;
   late bool _loading = widget.loading;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.loading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _refresh();
+      });
+    }
+  }
 
   Future<void> _refresh() async {
     setState(() => _loading = true);
