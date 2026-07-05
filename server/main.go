@@ -48,7 +48,8 @@ var (
 	phoneRE          = regexp.MustCompile(`^1[0-9]{10}$`)
 	hiddenWhitespace = regexp.MustCompile(`[\s\x{00A0}\x{200B}-\x{200D}\x{FEFF}\x{3000}]`)
 	phoneRemovable   = regexp.MustCompile(`[\s\x{00A0}\x{200B}-\x{200D}\x{FEFF}\x{3000}\-()（）]`)
-	dbMu             sync.Mutex
+	// 这个服务是单进程部署，写库前用互斥锁保护“读-改-写”完整事务。
+	dbMu sync.Mutex
 )
 
 type apiError struct {
@@ -137,6 +138,7 @@ func main() {
 
 func routes() http.Handler {
 	mux := http.NewServeMux()
+	// 所有 API 先进入统一入口，便于集中处理 CORS、错误格式和 404。
 	mux.HandleFunc("/", handleAPI)
 	return corsMiddleware(mux)
 }
@@ -156,6 +158,7 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 	if err := routeAPI(w, r); err != nil {
 		var apiErr apiError
 		if errors.As(err, &apiErr) {
+			// 业务错误直接返回给 App，客户端会显示其中的中文 message。
 			sendJSON(w, apiErr.Status, map[string]any{
 				"error": map[string]any{
 					"code":    apiErr.Code,
@@ -164,6 +167,7 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
+		// 未预期错误只记录服务端日志，避免把内部路径或 SQL 信息暴露给客户端。
 		log.Printf("internal_error: %v", err)
 		sendJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": map[string]any{
@@ -177,6 +181,7 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 func routeAPI(w http.ResponseWriter, r *http.Request) error {
 	path := r.URL.Path
 	switch {
+	// 路由表故意集中在一个 switch 中，方便小型服务快速查看所有公开接口。
 	case r.Method == http.MethodGet && path == "/health":
 		sendJSON(w, http.StatusOK, map[string]any{
 			"ok":        true,
@@ -227,6 +232,7 @@ func register(w http.ResponseWriter, r *http.Request, kind string) error {
 	dbMu.Lock()
 	defer dbMu.Unlock()
 
+	// 注册是“校验唯一性 -> 建用户 -> 发 token -> 落库”的原子流程。
 	db, err := readDB()
 	if err != nil {
 		return err
@@ -312,6 +318,7 @@ func refresh(w http.ResponseWriter, r *http.Request) error {
 			break
 		}
 	}
+	// Refresh token 只允许使用一次：旧 token 删除，再签发一组新 token。
 	db.RefreshTokens = append(db.RefreshTokens[:tokenIndex], db.RefreshTokens[tokenIndex+1:]...)
 	if userIndex == -1 {
 		_ = writeDB(db)
@@ -384,6 +391,7 @@ func me(w http.ResponseWriter, r *http.Request) error {
 
 func checkUpdate(w http.ResponseWriter, r *http.Request) error {
 	input := map[string]any{}
+	// 支持 GET 查询和 POST JSON 两种形式，方便 App 与脚本共用同一接口。
 	for key, values := range r.URL.Query() {
 		if len(values) > 0 {
 			input[key] = values[len(values)-1]
@@ -461,6 +469,7 @@ func serveDownload(w http.ResponseWriter, r *http.Request) error {
 	if name == "" || strings.ContainsAny(name, `/\`) || !strings.HasSuffix(name, ".apk") {
 		return apiError{Status: http.StatusNotFound, Code: "not_found", Message: "Download not found."}
 	}
+	// 下载接口只允许取 downloadDir 内的 apk，防止通过路径穿越读取其他文件。
 	dir, err := filepath.Abs(downloadDir())
 	if err != nil {
 		return err
@@ -523,6 +532,7 @@ func addCORSHeaders(w http.ResponseWriter) {
 }
 
 func readDB() (dbFile, error) {
+	// 对外仍返回 dbFile 结构，内部已经从旧 JSON 文件迁移到 SQLite。
 	db, err := openDataDB()
 	if err != nil {
 		return dbFile{}, err
@@ -563,6 +573,7 @@ func openDataDB() (*sql.DB, error) {
 		return nil, err
 	}
 	db.SetMaxOpenConns(1)
+	// modernc sqlite 是纯 Go 驱动，单连接能减少文件锁争用。
 	if err := initSQLite(db); err != nil {
 		_ = db.Close()
 		return nil, err
@@ -571,6 +582,7 @@ func openDataDB() (*sql.DB, error) {
 }
 
 func initSQLite(db *sql.DB) error {
+	// 表结构在启动时幂等创建，部署新版本不需要额外迁移命令。
 	statements := []string{
 		`PRAGMA foreign_keys = ON`,
 		`PRAGMA busy_timeout = 5000`,
@@ -621,6 +633,7 @@ func initSQLite(db *sql.DB) error {
 }
 
 func migrateLegacyJSON(db *sql.DB) error {
+	// 旧版本用 data/db.json；首次打开空 SQLite 时迁移一次，随后写 meta 标记。
 	value, ok, err := metaValue(db, "legacy_json_migrated")
 	if err != nil {
 		return err
@@ -678,6 +691,7 @@ func readLegacyDBFile(path string) (dbFile, bool, error) {
 }
 
 func readSQLiteDB(db *sql.DB) (dbFile, error) {
+	// 读取时重新组装成历史 dbFile 结构，让认证和更新逻辑不用关心底层存储。
 	result := dbFile{
 		Users:         []user{},
 		RefreshTokens: []refreshToken{},
@@ -768,6 +782,7 @@ func readUpdatePolicy(db *sql.DB) (updatePolicy, error) {
 
 func replaceDBInTx(tx *sql.Tx, db dbFile) error {
 	db = normalizeDBFile(db)
+	// 写入策略是整库替换，数据规模很小，代码更直接，也避免局部同步遗漏。
 	statements := []string{
 		`DELETE FROM refresh_tokens`,
 		`DELETE FROM users`,
@@ -926,6 +941,7 @@ func defaultDB() dbFile {
 }
 
 func sanitizeUpdatePolicy(input map[string]any, fallback updatePolicy, keepUpdatedAt bool) updatePolicy {
+	// 管理接口允许部分字段更新；缺省值沿用现有策略或默认策略。
 	latest := parseVersionCode(input["latestVersionCode"])
 	if latest == nil {
 		latest = &fallback.LatestVersionCode
@@ -981,6 +997,7 @@ func policyToMap(policy updatePolicy) map[string]any {
 }
 
 func normalizeIdentifier(body map[string]any, kind string) (string, error) {
+	// 注册和登录共用账号规范化逻辑，避免“同一邮箱不同写法”产生重复账号。
 	if kind == "email" {
 		return normalizeEmail(stringValue(body["email"]))
 	}
@@ -1019,6 +1036,7 @@ func normalizePhone(value string) (string, error) {
 }
 
 func toHalfWidthASCII(value string) string {
+	// 用户可能从中文输入法粘贴全角数字/字母，这里统一成半角再校验。
 	var builder strings.Builder
 	for _, r := range value {
 		switch {
@@ -1041,6 +1059,7 @@ func validatePassword(password string) (string, error) {
 }
 
 func hashPassword(password string) (string, error) {
+	// 密码使用 PBKDF2 加盐哈希；数据库里永远不保存明文密码。
 	saltBytes := make([]byte, 16)
 	if _, err := rand.Read(saltBytes); err != nil {
 		return "", err
@@ -1062,6 +1081,7 @@ func verifyPassword(password string, stored string) bool {
 	if err != nil {
 		return false
 	}
+	// 用 hmac.Equal 做常量时间比较，避免普通字符串比较泄露时序差异。
 	return hmac.Equal([]byte(hex.EncodeToString(digest)), []byte(parts[2]))
 }
 
@@ -1125,6 +1145,7 @@ func authResponse(item user, tokens tokenPair) map[string]any {
 }
 
 func cleanExpiredRefreshTokens(db *dbFile) {
+	// 每次签发/刷新前顺手清理过期刷新令牌，保持 token 表轻量。
 	now := time.Now().UTC()
 	kept := db.RefreshTokens[:0]
 	for _, token := range db.RefreshTokens {
@@ -1137,6 +1158,7 @@ func cleanExpiredRefreshTokens(db *dbFile) {
 }
 
 func issueTokenPair(db *dbFile, item user) (tokenPair, error) {
+	// Access token 短期有效，Refresh token 长期保存哈希，用于无感续期。
 	cleanExpiredRefreshTokens(db)
 	refresh, err := randomURLToken(48)
 	if err != nil {
@@ -1169,6 +1191,7 @@ func hashRefreshToken(token string) string {
 }
 
 func signAccessToken(item user) (string, error) {
+	// 这里实现的是轻量 HMAC token：payload + 签名，足够当前私有服务使用。
 	issuedAt := time.Now().Unix()
 	payload := accessPayload{
 		Subject: item.ID,
@@ -1185,6 +1208,7 @@ func signAccessToken(item user) (string, error) {
 }
 
 func verifyAccessToken(token string) (accessPayload, error) {
+	// 验证顺序：格式 -> 签名 -> JSON -> 过期时间，任何一步失败都视为无效 token。
 	parts := strings.Split(token, ".")
 	if len(parts) != 2 || !hmac.Equal([]byte(parts[1]), []byte(signValue(parts[0]))) {
 		return accessPayload{}, apiError{Status: http.StatusUnauthorized, Code: "invalid_token", Message: "Bearer token is invalid."}
@@ -1232,14 +1256,17 @@ func nowISO() string {
 }
 
 func dataFile() string {
+	// 旧 JSON 数据文件路径只用于一次性迁移。
 	return envString("DATA_FILE", defaultDataFile)
 }
 
 func databaseFile() string {
+	// SQLite 主库路径，可通过环境变量在服务器部署时切换。
 	return envString("DATABASE_FILE", defaultDatabaseFile)
 }
 
 func downloadDir() string {
+	// APK 下载目录默认是 server/downloads，发布脚本上传的新包会放这里。
 	return envString("DOWNLOAD_DIR", defaultDownloadDir)
 }
 

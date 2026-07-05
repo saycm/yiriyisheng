@@ -31,6 +31,7 @@ class _PingShengAppState extends State<PingShengApp> {
   void initState() {
     super.initState();
     _settingsController = AppSettingsController();
+    // 设置加载是异步的，先用默认主题启动，读到偏好后再刷新外层 MaterialApp。
     unawaited(_settingsController.load());
   }
 
@@ -43,6 +44,7 @@ class _PingShengAppState extends State<PingShengApp> {
   @override
   Widget build(BuildContext context) {
     Widget entryBuilder(BuildContext context) {
+      // 测试、预览和正式登录共用同一个 App 壳，通过开关选择入口。
       if (widget.authPreview) {
         return const AuthPreviewPage();
       }

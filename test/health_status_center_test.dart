@@ -1,3 +1,5 @@
+// 中文注释：健康状态中心测试，验证评分、主要原因和建议文案的稳定性。
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pingsheng_life/modules/health/health.dart';
 

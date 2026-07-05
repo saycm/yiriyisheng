@@ -1,3 +1,5 @@
+// 中文注释：健康状态页面组件，负责展示评分、快速记录、影响因素和建议。
+
 part of 'health.dart';
 
 class _HealthHeader extends StatelessWidget {
@@ -31,6 +33,7 @@ class _HealthStatusScoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 顶部卡片只回答“今天状态如何”和“为什么”，详细输入放在快速记录卡中。
     return Container(
       key: const ValueKey('health_status_score_card'),
       padding: const EdgeInsets.all(18),
@@ -175,6 +178,7 @@ class _HealthQuickRecordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 快速记录用枚举值驱动，修改后父级立即重算 HealthStatusResult。
     return Container(
       key: const ValueKey('health_quick_record_card'),
       padding: const EdgeInsets.all(10),

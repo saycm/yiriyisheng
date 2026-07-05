@@ -39,6 +39,7 @@ class _WeekPlanView extends StatelessWidget {
     );
     final weekTodos = _weekTodos(days);
     final unscheduledTodos = _unscheduledTodos(today, days);
+    // 周视图把任务分成“本周已有日期”和“未安排/过期待整理”，后续面板都基于这两组数据。
     final selectedTodos = todos
         .where((todo) => todo.isActive && todo.isDueOn(normalizedSelectedDate))
         .toList()
@@ -136,6 +137,7 @@ class _WeekPlanView extends StatelessWidget {
   }
 
   List<TodoItem> _unscheduledTodos(DateTime today, List<DateTime> days) {
+    // 未安排区不仅包含无日期任务，也包含过期任务和延期到本周外的任务。
     return todos.where((todo) {
       if (!todo.isActive) {
         return false;
@@ -186,6 +188,7 @@ class _WeekPlanView extends StatelessWidget {
     List<DateTime> days,
     List<TodoItem> unscheduledTodos,
   ) {
+    // 自动安排会边更新外部状态，边维护 plannedTodos，保证下一项能看到最新负载。
     final plannedTodos = List<TodoItem>.of(todos);
     final originalTodos = <TodoItem>[];
     var scheduledCount = 0;

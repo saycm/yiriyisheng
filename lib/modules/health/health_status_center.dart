@@ -1,3 +1,5 @@
+// 中文注释：健康状态中心，负责把主观记录和生活数据计算成今日状态评分。
+
 part of 'health.dart';
 
 enum HealthSleepFeeling { good, normal, poor }
@@ -31,6 +33,7 @@ class HealthStatusInput {
 }
 
 class HealthStatusImpact {
+  // 单个维度对总分的贡献，用于页面上的分项进度和解释文案。
   const HealthStatusImpact({
     required this.title,
     required this.label,
@@ -66,6 +69,7 @@ class HealthStatusCalculator {
   const HealthStatusCalculator();
 
   HealthStatusResult calculate({required HealthStatusInput input}) {
+    // 评分模型保持简单透明：睡眠、精力、压力、身体为主，饮食和锻炼作为负载修正。
     final sleepScore = _sleepScore(input.sleep);
     final energyScore = _energyScore(input.energy);
     final stressScore = _stressScore(input.stress);
@@ -238,6 +242,7 @@ class HealthStatusCalculator {
   }
 
   List<String> _suggestions(HealthStatusInput input, int score) {
+    // 建议按最影响当天安排的因素追加，页面只展示短句，避免医疗化判断。
     final suggestions = <String>[];
     if (score >= 85) {
       suggestions.add('状态不错，可以安排中等强度任务或训练。');

@@ -90,6 +90,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // widget_summary 通道连接 Flutter 状态和 Android 桌面小组件共享摘要。
         widgetChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WIDGET_CHANNEL)
             .also { channel ->
                 channel.setMethodCallHandler { call, result ->
@@ -104,6 +105,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
                 }
             }
 
+        // 健康通道把 Health Connect 和手机传感器统一成 Flutter 可读的 Map。
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, HEALTH_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -117,6 +119,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
                 }
             }
 
+        // 登录态放进加密 SharedPreferences，避免 access/refresh token 明文落盘。
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AUTH_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -141,6 +144,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
                 }
             }
 
+        // 更新下载交给系统浏览器/下载器处理，Flutter 只负责拿到下载 URL。
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UPDATE_LAUNCHER_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -149,6 +153,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
                 }
             }
 
+        // 应用偏好目前承载主题和每日记录提醒，提醒需要 Android 13 通知权限。
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, APP_PREFERENCES_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -292,6 +297,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
     }
 
     private suspend fun readHealthSnapshot(): Map<String, Any?> {
+        // 先判断 Health Connect 是否可用，再检查授权，避免无意义地请求数据。
         val sdkStatus = HealthConnectClient.getSdkStatus(
             this,
             HEALTH_CONNECT_PROVIDER_PACKAGE
@@ -310,6 +316,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         }
 
         val today = LocalDate.now()
+        // 读取最近 7 天数据，Flutter 侧趋势卡片直接消费这个列表。
         val days = (6 downTo 0).map { offset ->
             readHealthDay(client, today.minusDays(offset.toLong()))
         }
@@ -340,6 +347,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         client: HealthConnectClient,
         date: LocalDate
     ): Map<String, Any?> {
+        // Health Connect 聚合接口按日期范围返回总步数、能量、均值心率等指标。
         val zone = ZoneId.systemDefault()
         val start = date.atStartOfDay(zone).toInstant()
         val end = if (date == LocalDate.now()) {
@@ -484,6 +492,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
     }
 
     private fun loadAuthSession(): String? {
+        // 新版本优先读取加密存储；旧明文缓存只作为迁移兜底。
         val secureValue = try {
             secureAuthPrefs().getString(KEY_AUTH_SESSION_JSON, null)
         } catch (_: Exception) {
@@ -543,6 +552,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
     }
 
     private fun startSensorListeners() {
+        // 本机传感器只补充“实时能力/最近读数”，核心健康历史仍来自 Health Connect。
         val manager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return
         sensorManager = manager
         registerSensorIfAllowed(manager, Sensor.TYPE_STEP_COUNTER)
@@ -573,6 +583,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
     }
 
     private fun saveHealthForWidget(today: Map<String, Any?>?) {
+        // 小组件空间有限，只同步一行最有代表性的健康摘要。
         val steps = (today?.get("steps") as? Number)?.toInt()
         val activeCalories = (today?.get("activeCaloriesKcal") as? Number)?.toInt()
         val text = when {

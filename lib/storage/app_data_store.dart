@@ -3,6 +3,7 @@
 part of 'storage.dart';
 
 abstract class LifeSummaryStore {
+  // 首页只依赖这个抽象读写完整快照，测试时可以替换成内存实现。
   Future<LifeSummarySnapshot?> load();
 
   Future<void> save({
@@ -24,6 +25,7 @@ abstract class LifeSummaryStore {
 class AppDataStoreRows {
   const AppDataStoreRows._();
 
+  // 财务记录在 SQLite 中按行保存；复杂字段转 JSON，读取时再还原成模型。
   static Map<String, Object?> financeRecordToRow(
     FinanceRecord record,
     int position,
@@ -64,6 +66,7 @@ class AppDataStore implements LifeSummaryStore {
 
   static const _databaseName = 'pingsheng_life.db';
   static const _databaseVersion = 5;
+  // 多个模块会连续触发保存，用队列串行化，避免 SQLite 写入互相覆盖。
   static Future<void> _pendingSave = Future<void>.value();
 
   @override
@@ -72,6 +75,7 @@ class AppDataStore implements LifeSummaryStore {
       return null;
     }
     try {
+      // 先等上一次保存完成，再读取，保证恢复到的是最新快照。
       await _pendingSave;
       final db = await _open();
       final meta = await db.query(
@@ -164,6 +168,7 @@ class AppDataStore implements LifeSummaryStore {
       return;
     }
     final previousSave = _pendingSave.catchError((Object _) {});
+    // 保存请求排队执行；即便上一轮失败，也不能阻断后续保存。
     _pendingSave = previousSave.then(
       (_) => _saveNow(
         foodCalories: foodCalories,
@@ -200,6 +205,7 @@ class AppDataStore implements LifeSummaryStore {
     try {
       final db = await _open();
       await db.transaction((txn) async {
+        // 元信息保存低频配置和初始化标记，列表数据保存在各自表中。
         await _saveMeta(txn, {
           'initialized': '1',
           'foodCalories': foodCalories.toString(),
@@ -236,6 +242,7 @@ class AppDataStore implements LifeSummaryStore {
           };
           await _upsertByTextKey(txn, 'todos', 'todoId', todo.id, row);
         }
+        // 用当前内存 id 集合作为准，删除数据库里已经不存在的旧待办。
         await _deleteMissingTextKeys(txn, 'todos', 'todoId', todoIds);
 
         for (var index = 0; index < financeRecords.length; index++) {
@@ -408,6 +415,7 @@ class AppDataStore implements LifeSummaryStore {
     List<String> keys,
   ) async {
     if (keys.isEmpty) {
+      // 空列表代表当前模块没有任何数据，整表清空才和内存状态一致。
       await txn.delete(table);
       return;
     }
@@ -472,6 +480,7 @@ class AppDataStore implements LifeSummaryStore {
         await _createWorkoutTrainingTables(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
+        // 版本升级只追加字段/表，保留用户已有的本地数据。
         if (oldVersion < 2) {
           await _addColumnIfMissing(db, 'todos', 'todoId TEXT');
           await _addColumnIfMissing(db, 'todos', 'priority TEXT');
@@ -499,6 +508,7 @@ class AppDataStore implements LifeSummaryStore {
   }
 
   Future<void> _createWorkoutTrainingTables(DatabaseExecutor db) async {
+    // 训练计划、进行中训练、历史记录独立建表，便于页面按模块恢复。
     await db.execute('''
       CREATE TABLE IF NOT EXISTS workout_plans (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -599,11 +609,13 @@ class AppDataStore implements LifeSummaryStore {
     try {
       return AiFinanceParseStrategy.fromJson(jsonDecode(raw));
     } on FormatException {
+      // 旧版本或手动损坏的配置不让页面崩溃，回到默认解析策略。
       return AiFinanceParseStrategy.defaults;
     }
   }
 
   TodoItem _todoFromRow(Map<String, Object?> row) {
+    // 数据库里只存可序列化字段，颜色和枚举在恢复模型时重新推导。
     final category = row['category'] as String? ?? '生活';
     final linkedModules = linkedModulesFromJson(
       _decodeJsonList(row['linkedModulesJson']),

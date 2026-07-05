@@ -51,6 +51,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             appWidgetManager: AppWidgetManager,
             appWidgetIds: IntArray
         ) {
+            // 系统可能一次要求刷新多个小组件实例，逐个写入 RemoteViews。
             for (appWidgetId in appWidgetIds) {
                 updateWidget(context, appWidgetManager, appWidgetId)
             }
@@ -61,6 +62,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int
         ) {
+            // 小组件没有 Flutter 运行时，只能读取 MainActivity 写入的 SharedPreferences 摘要。
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val foodCalories = prefs.getInt(KEY_FOOD_CALORIES, 0)
             val pendingTodos = prefs.getInt(KEY_PENDING_TODOS, 4)
@@ -107,7 +109,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
                 }
             )
 
-            // 需要输入内容的操作进入 App 的真实编辑流程；无需输入的饮食快捷项仍在小组件内完成。
+            // 需要输入内容的操作进入 App 的真实编辑流程；刷新动作留在小组件内完成。
             views.setOnClickPendingIntent(R.id.widget_title, quickIntent(context, ACTION_REFRESH, 1))
             views.setOnClickPendingIntent(
                 R.id.widget_summary_card,
@@ -147,6 +149,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             requestCode: Int,
             action: String? = null
         ): PendingIntent {
+            // 需要用户输入的动作只传 route/action，由 Flutter 打开对应编辑弹层。
             val targetRoute = if (action == null) route else "$route?action=$action"
             val openAppIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -175,6 +178,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
         }
 
         private fun todayExpense(records: JSONArray): Double {
+            // 小组件只展示今日支出概览，收入记录不会计入支出金额。
             var total = 0.0
             for (index in 0 until records.length()) {
                 val record = records.optJSONObject(index) ?: continue
@@ -240,6 +244,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
         }
 
         private fun safeJsonArray(raw: String?, fallback: String): JSONArray {
+            // SharedPreferences 可能被旧版本写入空值，解析失败时回到展示用默认数据。
             return try {
                 JSONArray(raw.orEmpty().ifBlank { fallback })
             } catch (_: Exception) {

@@ -150,6 +150,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
   }
 
   int _finishedGroupsFor(WorkoutAction action) {
+    // 有进行中训练时优先读会话进度；没有会话时才读首页保存的全局完成组数。
     final session = widget.activeWorkoutSession;
     if (session != null && session.actionProgress.containsKey(action.name)) {
       return session.groupsFor(action.name);
@@ -791,6 +792,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
   }
 
   void _finishNextGroup() {
+    // 单动作页完成一组后，同时更新休息计时、当前动作进度和父级持久化状态。
     final action = _activeAction;
     if (action == null) {
       return;

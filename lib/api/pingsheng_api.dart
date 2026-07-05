@@ -87,6 +87,7 @@ class _PingShengApi {
     Map<String, Object?>? body,
     String? accessToken,
   }) async {
+    // 统一拼接基础地址、请求头、JSON 编码和错误翻译，页面层只处理业务结果。
     final base = Uri.parse(apiBaseUrl);
     final uri = base.replace(
       path: '${base.path}$path',
@@ -249,6 +250,7 @@ class _AuthSession {
 class _AuthSessionStore {
   const _AuthSessionStore();
 
+  // 真实存储在 Android 原生层，Dart 侧只通过通道读写序列化后的会话。
   static const _channel = MethodChannel('pingsheng_life/auth_session');
 
   Future<_AuthSession?> load() async {

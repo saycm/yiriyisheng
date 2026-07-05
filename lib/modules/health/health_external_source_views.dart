@@ -1,3 +1,5 @@
+// 中文注释：健康外部数据源页面，负责展示 Health Connect 和手机传感器连接状态。
+
 part of 'health.dart';
 
 class _HealthSensorCard extends StatelessWidget {
@@ -7,6 +9,7 @@ class _HealthSensorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 传感器数据是辅助信息，缺失时显示能力状态，不把空值当成 0。
     final values = [
       (
         '计步器',
@@ -146,6 +149,7 @@ class _HealthExternalSourceSheetState
   }
 
   Future<void> _refresh() async {
+    // 弹层内刷新只更新本地快照，不直接修改健康状态中心的主观记录。
     setState(() => _loading = true);
     final snapshot = await widget.onRefreshSnapshot();
     if (!mounted) {
@@ -158,6 +162,7 @@ class _HealthExternalSourceSheetState
   }
 
   Future<void> _requestPermission() async {
+    // 授权后立即重新读取，用户能看到权限变化是否真正带来了系统数据。
     setState(() => _loading = true);
     final snapshot = await widget.onRequestPermissionAndRefresh();
     if (!mounted) {

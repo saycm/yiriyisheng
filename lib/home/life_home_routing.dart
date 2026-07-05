@@ -3,6 +3,7 @@
 part of 'life_home.dart';
 
 LifeModule _lifeModuleFromRoute(String route) {
+  // 小组件、系统路由和底部导航最终都映射到同一组 LifeModule 枚举。
   final path = _lifeHomeRoutePath(route);
   return switch (path) {
     '/finance' => LifeModule.finance,
@@ -20,6 +21,7 @@ String _lifeHomeRoutePath(String route) {
 }
 
 WidgetQuickAction? _widgetQuickActionFromRoute(String route) {
+  // /plan?action=add_todo 这类路由只保存动作名，具体弹层由模块页面消费。
   final uri = Uri.tryParse(route);
   return _widgetQuickActionFromName(uri?.queryParameters['action']);
 }

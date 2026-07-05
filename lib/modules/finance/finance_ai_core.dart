@@ -23,6 +23,7 @@ enum AiFinanceNoteLength {
 }
 
 class AiFinanceParseStrategy {
+  // 解析策略是用户可调的“提示词开关”，最终会参与构建 AI 请求提示。
   const AiFinanceParseStrategy({
     this.splitMultipleBills = true,
     this.mergeSameMerchant = true,
@@ -274,6 +275,7 @@ class AiFinanceBillInfo {
 }
 
 class AiFinanceJsonParser {
+  // AI 返回可能包含 markdown 代码块或说明文字，这里负责提取可靠 JSON 片段。
   const AiFinanceJsonParser();
 
   List<AiFinanceBillInfo> parse(String response) {

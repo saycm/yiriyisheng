@@ -83,6 +83,7 @@ extension AppThemePreferenceX on AppThemePreference {
 class AppSettingsController extends ChangeNotifier {
   AppSettingsController();
 
+  // 主题和提醒设置需要落到原生层，方便 Android 重启后仍能恢复。
   static const _channel = MethodChannel('pingsheng_life/app_preferences');
 
   AppThemePreference _themePreference = AppThemePreference.system;
@@ -93,6 +94,7 @@ class AppSettingsController extends ChangeNotifier {
 
   Future<void> load() async {
     try {
+      // App 启动时先读一次偏好，再通过 notifyListeners 触发 MaterialApp 重建。
       final result = await _channel.invokeMapMethod<String, Object?>(
         'loadAppPreferences',
       );
@@ -154,6 +156,7 @@ class AppSettingsScope extends InheritedNotifier<AppSettingsController> {
 }
 
 const String apiBaseUrl = String.fromEnvironment(
+  // 发布构建可以用 --dart-define 覆盖服务端地址，不需要改源码。
   'PINGSHENG_API_BASE_URL',
   defaultValue: 'http://192.168.20.11:3000',
 );

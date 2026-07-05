@@ -3,6 +3,7 @@
 part of 'plan.dart';
 
 class PlanModulePage extends StatefulWidget {
+  // 计划页不持久化自己的数据，所有待办变更都通过回调交回首页状态层。
   const PlanModulePage({
     super.key,
     required this.moduleNav,

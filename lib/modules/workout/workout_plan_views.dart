@@ -30,6 +30,7 @@ extension _WorkoutPlanIntensityX on _WorkoutPlanIntensity {
 
 const _defaultPlanIntensityActions =
     <String, Map<_WorkoutPlanIntensity, List<String>>>{
+  // 预设计划可按强度裁剪动作；未配置的计划会走下面的 fallback 规则。
   'plan-chest-back': {
     _WorkoutPlanIntensity.light: ['坐姿绳索划船', '弹力带拉开', '俯卧 Y-T-W'],
     _WorkoutPlanIntensity.medium: ['器械推胸', '宽握高位下拉', '坐姿绳索划船', '弹力带拉开'],
@@ -124,6 +125,7 @@ List<WorkoutAction> _workoutPlanActionsForIntensity(
   List<WorkoutAction> actions,
   _WorkoutPlanIntensity intensity,
 ) {
+  // 先限定在计划动作内，再按强度挑选子集，避免推荐到计划外动作。
   final plannedActions = actions
       .where((action) => plan.actionNames.contains(action.name))
       .toList();
@@ -154,6 +156,7 @@ List<String> _fallbackIntensityActionNames(
   List<String> actionNames,
   _WorkoutPlanIntensity intensity,
 ) {
+  // 自定义计划没有强度模板时，用动作数量近似控制训练量。
   final targetCount = switch (intensity) {
     _WorkoutPlanIntensity.light => math.min(3, actionNames.length),
     _WorkoutPlanIntensity.medium => math.min(4, actionNames.length),

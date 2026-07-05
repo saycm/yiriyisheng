@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# 中文注释：小组件结构检查脚本，确保布局和原生 Provider 保持新版交互约束。
+
 from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
@@ -8,6 +11,7 @@ LAYOUT = ROOT / "android/app/src/main/res/layout/pingsheng_widget.xml"
 
 
 def main() -> int:
+    # 这个检查不跑 Android 构建，只用静态 token 防止关键控件或动作被误删。
     xml = LAYOUT.read_text(encoding="utf-8")
     ET.fromstring(xml)
     required_tokens = [
@@ -42,6 +46,7 @@ def main() -> int:
     missing_provider = []
     for token in required_provider_tokens:
         if token == "ACTION_QUICK_WORKOUT":
+            # 旧版本会在小组件内静默加锻炼组数，新版要求进入真实记录流程。
             if token in provider:
                 missing_provider.append("removed " + token)
         elif token not in provider:

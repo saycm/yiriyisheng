@@ -172,6 +172,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
 
     setState(() => _loading = true);
     try {
+      // 文本记账路径：用户输入 -> AI 解析账单 -> 转成 FinanceRecord 后一次性保存。
       final bills = await _client.parseText(
         text: text,
         apiKey: _apiKey,
@@ -222,6 +223,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
         _messages.add(_FinanceAiAssistantMessage.user('已选择图片：${image.name}'));
         _loading = true;
       });
+      // 图片记账路径会把截图转 base64 发给视觉模型，再复用同一套账单保存逻辑。
       final bills = await _client.parseImage(
         imageBytes: await image.readAsBytes(),
         mimeType: _mimeTypeForImageName(image.name),

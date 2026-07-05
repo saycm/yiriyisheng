@@ -41,6 +41,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
+    // 启动门禁顺序：先检查更新，再恢复登录态，最后决定进入首页或登录页。
     unawaited(_bootstrap());
   }
 
@@ -94,10 +95,12 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<_AuthSession?> _resolveStoredSession(_AuthSession stored) async {
     try {
+      // access token 仍有效时直接换取用户信息，避免频繁刷新 token。
       final user = await _api.me(stored.accessToken);
       return stored.copyWith(user: user);
     } catch (_) {
       try {
+        // access token 过期后用 refresh token 换新会话，并写回安全存储。
         final refreshed = await _api.refresh(stored.refreshToken);
         await _store.save(refreshed);
         return refreshed;
@@ -218,6 +221,7 @@ class _AuthPageState extends State<_AuthPage> {
   }
 
   String _normalizeAuthAccount(String value) {
+    // 前端先做一次账号规范化，减少用户因全角字符、中文句号等输入细节失败。
     var normalized = _toHalfWidthAscii(value.trim())
         .replaceAll('。', '.')
         .replaceAll('．', '.')
@@ -363,6 +367,7 @@ class _AuthPageState extends State<_AuthPage> {
       _error = null;
     });
     try {
+      // UI 层只决定注册/登录方式，具体接口路径由 _PingShengApi 封装。
       final session = switch ((_mode, _channel)) {
         (_AuthMode.register, _AuthChannel.email) =>
           await widget.api.registerEmail(
