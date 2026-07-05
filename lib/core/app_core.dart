@@ -37,11 +37,11 @@ const String apiBaseUrl = String.fromEnvironment(
 );
 const String appVersionName = String.fromEnvironment(
   'PINGSHENG_APP_VERSION_NAME',
-  defaultValue: '1.0.42',
+  defaultValue: '1.0.46',
 );
 const int appVersionCode = int.fromEnvironment(
   'PINGSHENG_APP_VERSION_CODE',
-  defaultValue: 43,
+  defaultValue: 47,
 );
 
 final RegExp authHiddenOrWhitespacePattern =
