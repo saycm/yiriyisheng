@@ -287,3 +287,23 @@ func TestDownloadAPK(t *testing.T) {
 		t.Fatalf("download status = %d body = %q", res.StatusCode, raw)
 	}
 }
+
+func TestFeedbackTableIsCreated(t *testing.T) {
+	app := newTestApp(t)
+
+	db, err := openDataDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	var name string
+	err = db.QueryRow(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'feedback_items'`).Scan(&name)
+	if err != nil {
+		t.Fatalf("feedback table was not created: %v", err)
+	}
+	if name != "feedback_items" {
+		t.Fatalf("unexpected table name: %q", name)
+	}
+	_ = app
+}
