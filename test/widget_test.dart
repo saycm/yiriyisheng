@@ -101,8 +101,8 @@ void main() {
 
     expect(find.text('外观模式'), findsNothing);
     expect(find.byKey(const ValueKey('setting_choice_深色')), findsNothing);
-    expect(preferenceCalls.any((call) => call.method == 'saveThemeMode'),
-        isFalse);
+    expect(
+        preferenceCalls.any((call) => call.method == 'saveThemeMode'), isFalse);
 
     final dailyReminder = find.byKey(const ValueKey('setting_daily_reminder'));
     await tester.ensureVisible(dailyReminder);
