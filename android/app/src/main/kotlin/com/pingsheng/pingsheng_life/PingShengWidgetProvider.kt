@@ -95,7 +95,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             views.setProgressBar(R.id.widget_todo_progress, 100, todoProgress, false)
             views.setTextViewText(R.id.widget_finance_expense, expenseText)
             views.setTextViewText(R.id.widget_finance_income, incomeText)
-            views.setTextViewText(R.id.widget_food, "$foodText · $workoutText")
+            views.setTextViewText(R.id.widget_food, "$foodText\n$workoutText")
             views.setTextViewText(R.id.widget_plan, "计划\n加待办")
             views.setTextViewText(R.id.widget_quick_food, "饮食\n记录")
             views.setTextViewText(R.id.widget_quick_finance, "记账\n快捷支出")
