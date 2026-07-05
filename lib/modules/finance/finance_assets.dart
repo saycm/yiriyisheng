@@ -21,42 +21,42 @@ class _FinanceAccountSnapshot {
 }
 
 List<_FinanceAccountSnapshot> _financeAccounts(List<FinanceRecord> records) {
-  // 先用开账余额承接旧版演示数据；后续账户管理会把它改为用户可编辑。
+  // 账户余额只从真实账单推导；没有用户记录时保持 0，避免展示演示金额。
   final specs = [
     (
       name: '银行卡',
       subtitle: '招商储蓄卡',
       icon: Icons.account_balance_rounded,
       color: AppColors.primary,
-      openingBalance: -1800.0,
+      openingBalance: 0.0,
     ),
     (
       name: '微信',
       subtitle: '微信支付',
       icon: Icons.chat_bubble_rounded,
       color: AppColors.success,
-      openingBalance: 1000.0,
+      openingBalance: 0.0,
     ),
     (
       name: '支付宝',
       subtitle: '日常消费',
       icon: Icons.account_balance_wallet_rounded,
       color: const Color(0xFF4B8BFF),
-      openingBalance: 600.0,
+      openingBalance: 0.0,
     ),
     (
       name: '现金',
       subtitle: '零钱与备用金',
       icon: Icons.payments_rounded,
       color: const Color(0xFFB88955),
-      openingBalance: 373.0,
+      openingBalance: 0.0,
     ),
     (
       name: '信用卡',
       subtitle: '本月待还',
       icon: Icons.credit_card_rounded,
       color: AppColors.financeRed,
-      openingBalance: 452.0,
+      openingBalance: 0.0,
     ),
   ];
 

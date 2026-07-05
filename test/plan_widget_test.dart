@@ -7,8 +7,10 @@ import 'package:pingsheng_life/main.dart';
 import 'helpers/widget_test_helpers.dart';
 
 void main() {
+  setUp(mockDefaultWidgetSummary);
+
   testWidgets('plan page opens add todo sheet', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     final now = DateTime.now();
     final monthText = '${now.year}年${now.month.toString().padLeft(2, '0')}月';
@@ -68,7 +70,7 @@ void main() {
 
   testWidgets('today overview hides duplicate quick record button',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     final overview = find.byKey(const ValueKey('today_overview_card'));
     expect(find.descendant(of: overview, matching: find.text('今日总览')),
@@ -97,7 +99,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() async => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
     await tester.pumpAndSettle();
 
     final healthPanel =
@@ -135,7 +137,7 @@ void main() {
   });
 
   testWidgets('inbox quick capture creates undated todo', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_1')));
     await tester.pumpAndSettle();
@@ -159,7 +161,7 @@ void main() {
 
   testWidgets('plan more menu filters category and clears completed todos',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
     await tester.pumpAndSettle();
@@ -208,7 +210,7 @@ void main() {
 
   testWidgets('completed linked todo opens target module action',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await dragUntilFound(
       tester,
@@ -234,7 +236,7 @@ void main() {
 
   testWidgets('today execution highlights top three and later queue',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     expect(find.text('今日执行  4'), findsOneWidget);
     await dragUntilFound(
@@ -263,7 +265,7 @@ void main() {
 
   testWidgets('inbox works as a triage center with quick scheduling',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_1')));
     await tester.pumpAndSettle();
@@ -281,7 +283,7 @@ void main() {
   });
 
   testWidgets('week plan shows redesigned weekly overview', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
     await tester.pumpAndSettle();
@@ -313,7 +315,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(360, 780));
     addTearDown(() async => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
@@ -353,7 +355,7 @@ void main() {
 
   testWidgets('week plan auto schedules inbox todos into this week',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
     await tester.pumpAndSettle();
@@ -403,7 +405,7 @@ void main() {
 
   testWidgets('week plan can move low priority tasks to next week',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
     await tester.pumpAndSettle();
@@ -432,7 +434,7 @@ void main() {
   });
 
   testWidgets('week plan schedules backlog into selected day', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
     await tester.pumpAndSettle();
@@ -459,7 +461,7 @@ void main() {
 
   testWidgets('week task card only completes from explicit action',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
     await tester.pumpAndSettle();
@@ -515,7 +517,7 @@ void main() {
   });
 
   testWidgets('week plan undoes scheduling one backlog item', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
     await tester.pumpAndSettle();
@@ -541,7 +543,7 @@ void main() {
 
   testWidgets('week plan schedules all backlog into selected day and undoes',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await _addInboxTodo(tester, '买打印纸');
     await _addInboxTodo(tester, '整理票据');
@@ -583,7 +585,7 @@ void main() {
 
   testWidgets('week plan warns when selected day is overloaded',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
     await tester.pumpAndSettle();
@@ -614,7 +616,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() async => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
     await tester.pumpAndSettle();
 
     expect(
@@ -651,7 +653,7 @@ void main() {
 
   testWidgets('review uses real plan metrics and next week advice',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_3')));
     await tester.pumpAndSettle();

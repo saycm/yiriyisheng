@@ -237,7 +237,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         val prefs = getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, MODE_PRIVATE)
         return mapOf(
             "foodCalories" to prefs.getInt(PingShengWidgetProvider.KEY_FOOD_CALORIES, 0),
-            "pendingTodos" to prefs.getInt(PingShengWidgetProvider.KEY_PENDING_TODOS, 4),
+            "pendingTodos" to prefs.getInt(PingShengWidgetProvider.KEY_PENDING_TODOS, 0),
             "todosJson" to prefs.getString(
                 PingShengWidgetProvider.KEY_TODOS_JSON,
                 null
@@ -257,7 +257,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
     private fun saveLifeSummary(arguments: Any?) {
         val args = arguments as? Map<*, *> ?: return
         val foodCalories = (args["foodCalories"] as? Number)?.toInt() ?: 0
-        val pendingTodos = (args["pendingTodos"] as? Number)?.toInt() ?: 4
+        val pendingTodos = (args["pendingTodos"] as? Number)?.toInt() ?: 0
         val todosJson = args["todosJson"] as? String ?: ""
         val financeRecordsJson = args["financeRecordsJson"] as? String ?: ""
         val workoutGroups = (args["workoutGroups"] as? Number)?.toInt() ?: 0

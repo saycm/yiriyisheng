@@ -8,6 +8,8 @@ import 'package:pingsheng_life/main.dart';
 import 'helpers/widget_test_helpers.dart';
 
 void main() {
+  setUp(mockDefaultWidgetSummary);
+
   test('ai finance parser handles markdown json array', () {
     const parser = AiFinanceJsonParser();
     final bills = parser.parse('''
@@ -173,7 +175,7 @@ AI 已识别：
   });
 
   testWidgets('finance records filter income and expense', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -241,7 +243,7 @@ AI 已识别：
 
   testWidgets('finance records tab does not show duplicate entry cards',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -255,7 +257,7 @@ AI 已识别：
   });
 
   testWidgets('finance records can be added and edited', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -317,7 +319,7 @@ AI 已识别：
 
   testWidgets('finance record sheet saves account and assets use real ledger',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -355,13 +357,13 @@ AI 已识别：
     expect(wechatAsset, findsOneWidget);
     expect(find.descendant(of: wechatAsset, matching: find.text('微信')),
         findsOneWidget);
-    expect(find.descendant(of: wechatAsset, matching: find.text('¥988.00')),
+    expect(find.descendant(of: wechatAsset, matching: find.text('¥-12.00')),
         findsOneWidget);
   });
 
   testWidgets('finance assets place negative sign after currency symbol',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -374,14 +376,14 @@ AI 已识别：
       scrollable: find.byType(Scrollable).last,
     );
 
-    expect(find.text('¥-48.00'), findsOneWidget);
-    expect(find.text('--¥48.00'), findsNothing);
-    expect(find.text('-¥48.00'), findsNothing);
+    expect(find.text('¥-500.00'), findsOneWidget);
+    expect(find.text('--¥500.00'), findsNothing);
+    expect(find.text('-¥500.00'), findsNothing);
   });
 
   testWidgets('finance ai accounting opens and requires api key',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -414,7 +416,7 @@ AI 已识别：
   });
 
   testWidgets('finance ai sheet quick commands fill input', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -434,7 +436,7 @@ AI 已识别：
 
   testWidgets('finance ai exposes image capability and hides voice input',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -551,7 +553,7 @@ AI 已识别：
   });
 
   testWidgets('finance glm ai config survives module switches', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -611,7 +613,7 @@ AI 已识别：
 
   testWidgets('finance ai settings refreshes after provider save',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -663,7 +665,7 @@ AI 已识别：
 
   testWidgets('finance overview opens assets and switches trend range',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -710,27 +712,27 @@ AI 已识别：
     );
 
     await tester.scrollUntilVisible(
-      find.text('7天支出 ¥44'),
+      find.text('7天支出 ¥524'),
       160,
       scrollable: find.byType(Scrollable).last,
     );
     await tester.pumpAndSettle();
-    expect(find.text('7天支出 ¥44'), findsOneWidget);
+    expect(find.text('7天支出 ¥524'), findsOneWidget);
 
     await tester.ensureVisible(find.text('6个月'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('6个月'));
     await tester.pumpAndSettle();
-    expect(find.text('6个月支出 ¥2652'), findsOneWidget);
+    expect(find.text('6个月支出 ¥524'), findsOneWidget);
 
     await tester.tap(find.text('收入'));
     await tester.pumpAndSettle();
-    expect(find.text('6个月收入 ¥18000'), findsOneWidget);
+    expect(find.text('6个月收入 ¥3000'), findsOneWidget);
   });
 
   testWidgets('finance overview shows budgets fixed costs and alerts',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -772,7 +774,7 @@ AI 已识别：
       await tester.binding.setSurfaceSize(null);
     });
 
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -789,7 +791,7 @@ AI 已识别：
   });
 
   testWidgets('finance overview opens property health detail', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -815,7 +817,7 @@ AI 已识别：
   });
 
   testWidgets('finance page tolerates rapid scroll gestures', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();

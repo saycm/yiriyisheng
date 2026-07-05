@@ -6,19 +6,22 @@ class _TrendCard extends StatelessWidget {
   const _TrendCard({
     required this.showExpense,
     required this.trendRange,
+    required this.records,
     required this.onToggleTrend,
     required this.onChangeRange,
   });
 
   final bool showExpense;
   final String trendRange;
+  final List<FinanceRecord> records;
   final ValueChanged<bool> onToggleTrend;
   final ValueChanged<String> onChangeRange;
 
   @override
   Widget build(BuildContext context) {
-    final values = _trendValues(showExpense, trendRange);
-    final total = values.fold<double>(0, (sum, value) => sum + value).round();
+    final series = _trendSeries(records, showExpense, trendRange);
+    final total =
+        series.values.fold<double>(0, (sum, value) => sum + value).round();
     final unit = showExpense ? '支出' : '收入';
 
     return Container(
@@ -85,8 +88,10 @@ class _TrendCard extends StatelessWidget {
           Expanded(
             child: CustomPaint(
               painter: _TrendPainter(
-                values: values,
+                values: series.values,
                 range: trendRange,
+                startLabel: series.startLabel,
+                endLabel: series.endLabel,
                 color: showExpense
                     ? AppColors.financeRed
                     : const Color(0xFF58CE82),
@@ -98,17 +103,62 @@ class _TrendCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  List<double> _trendValues(bool showExpense, String range) {
-    if (range == '6个月') {
-      return showExpense
-          ? const [410, 358, 492, 283, 591, 518]
-          : const [2800, 3000, 3000, 3200, 3000, 3000];
+class _TrendSeries {
+  const _TrendSeries({
+    required this.values,
+    required this.startLabel,
+    required this.endLabel,
+  });
+
+  final List<double> values;
+  final String startLabel;
+  final String endLabel;
+}
+
+_TrendSeries _trendSeries(
+  List<FinanceRecord> records,
+  bool showExpense,
+  String range,
+) {
+  final now = DateTime.now();
+  final type = showExpense ? '支出' : '收入';
+  final values = <double>[];
+
+  if (range == '6个月') {
+    final months = List.generate(6, (index) {
+      return DateTime(now.year, now.month - 5 + index);
+    });
+    for (final month in months) {
+      values.add(records.where((record) {
+        final date = record.date ?? now;
+        return record.type == type &&
+            date.year == month.year &&
+            date.month == month.month;
+      }).fold<double>(0, (sum, record) => sum + record.amount));
     }
-    return showExpense
-        ? const [0, 0, 0, 2, 12, 15, 1, 14]
-        : const [4, 6, 5, 7, 8, 9, 8, 10];
+    return _TrendSeries(
+      values: values,
+      startLabel: '${months.first.month}月',
+      endLabel: '${months.last.month}月',
+    );
   }
+
+  final days = List.generate(7, (index) {
+    return DateUtils.dateOnly(now.subtract(Duration(days: 6 - index)));
+  });
+  for (final day in days) {
+    values.add(records.where((record) {
+      final recordDay = DateUtils.dateOnly(record.date ?? now);
+      return record.type == type && DateUtils.isSameDay(recordDay, day);
+    }).fold<double>(0, (sum, record) => sum + record.amount));
+  }
+  return _TrendSeries(
+    values: values,
+    startLabel: '${days.first.month}/${days.first.day}',
+    endLabel: '${days.last.month}/${days.last.day}',
+  );
 }
 
 class _SegmentButton extends StatelessWidget {
@@ -151,11 +201,15 @@ class _TrendPainter extends CustomPainter {
   _TrendPainter({
     required this.values,
     required this.range,
+    required this.startLabel,
+    required this.endLabel,
     required this.color,
   });
 
   final List<double> values;
   final String range;
+  final String startLabel;
+  final String endLabel;
   final Color color;
 
   @override
@@ -185,9 +239,6 @@ class _TrendPainter extends CustomPainter {
     final highLabel = maxValue.round().toString();
     final middleLabel = (maxValue * 2 / 3).round().toString();
     final lowLabel = (maxValue / 3).round().toString();
-    final startLabel = range == '6个月' ? '1月' : '5/17';
-    final endLabel = range == '6个月' ? '6月' : '5/23';
-
     _drawText(canvas, highLabel, Offset(size.width - 24, top - 2), textStyle);
     _drawText(canvas, middleLabel,
         Offset(size.width - 24, top + chartHeight / 3 - 5), textStyle);
@@ -259,6 +310,8 @@ class _TrendPainter extends CustomPainter {
   bool shouldRepaint(covariant _TrendPainter oldDelegate) {
     return values != oldDelegate.values ||
         range != oldDelegate.range ||
+        startLabel != oldDelegate.startLabel ||
+        endLabel != oldDelegate.endLabel ||
         color != oldDelegate.color;
   }
 }

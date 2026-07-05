@@ -65,10 +65,10 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             // 小组件没有 Flutter 运行时，只能读取 MainActivity 写入的 SharedPreferences 摘要。
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val foodCalories = prefs.getInt(KEY_FOOD_CALORIES, 0)
-            val pendingTodos = prefs.getInt(KEY_PENDING_TODOS, 4)
+            val pendingTodos = prefs.getInt(KEY_PENDING_TODOS, 0)
             val financeRecords = safeJsonArray(
                 prefs.getString(KEY_FINANCE_RECORDS_JSON, null),
-                defaultFinanceRecordsJson()
+                "[]"
             )
             val todayExpense = todayExpense(financeRecords)
             val todayIncome = todayIncome(financeRecords)
@@ -214,39 +214,6 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             return match?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
         }
 
-        private fun defaultTodosJson(): String {
-            val defaults = JSONArray()
-            listOf("遛狗" to "生活", "打羽毛球" to "健康", "做报表" to "工作", "理财" to "财务")
-                .forEach { item ->
-                    defaults.put(
-                        JSONObject()
-                            .put("title", item.first)
-                            .put("category", item.second)
-                            .put("done", false)
-                    )
-                }
-            return defaults.toString()
-        }
-
-        private fun defaultFinanceRecordsJson(): String {
-            val defaults = JSONArray()
-            listOf(
-                Triple("三餐", "原味板烧鸡腿麦满分", 18.0),
-                Triple("数码分期", "手机分期还款", 500.0),
-                Triple("工资", "本月收入", 3000.0),
-                Triple("咖啡", "优品豆浆（小杯）", 6.0)
-            ).forEach { item ->
-                defaults.put(
-                    JSONObject()
-                        .put("title", item.first)
-                        .put("subtitle", item.second)
-                        .put("amount", item.third)
-                        .put("type", if (item.first == "工资") "收入" else "支出")
-                )
-            }
-            return defaults.toString()
-        }
-
         private fun safeJsonObject(raw: String?): JSONObject {
             return try {
                 JSONObject(raw.orEmpty().ifBlank { "{}" })
@@ -256,7 +223,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
         }
 
         private fun safeJsonArray(raw: String?, fallback: String): JSONArray {
-            // SharedPreferences 可能被旧版本写入空值，解析失败时回到展示用默认数据。
+            // SharedPreferences 可能被旧版本写入空值，解析失败时回到真实空状态。
             return try {
                 JSONArray(raw.orEmpty().ifBlank { fallback })
             } catch (_: Exception) {

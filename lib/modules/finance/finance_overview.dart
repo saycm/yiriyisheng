@@ -44,6 +44,7 @@ class _FinanceOverviewView extends StatelessWidget {
         _TrendCard(
           showExpense: showExpense,
           trendRange: trendRange,
+          records: records,
           onToggleTrend: onToggleTrend,
           onChangeRange: onChangeTrendRange,
         ),

@@ -3,13 +3,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pingsheng_life/main.dart';
 
 import 'helpers/widget_test_helpers.dart';
 
 void main() {
+  setUp(mockDefaultWidgetSummary);
+
   testWidgets('module sheet switches to finance overview', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -27,7 +28,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('资产工作台'), findsOneWidget);
-    expect(find.text('¥3,101.00'), findsOneWidget);
+    expect(find.text('¥2,476.00'), findsWidgets);
     expect(find.text('¥1,555.00'), findsNothing);
     await dragUntilFound(
       tester,
@@ -70,7 +71,7 @@ void main() {
       );
     });
 
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -139,7 +140,7 @@ void main() {
 
   testWidgets('module sheet presents compact module center content',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -172,7 +173,7 @@ void main() {
 
   testWidgets('module sheet shows recent activity after app actions',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await dragUntilFound(
       tester,
@@ -197,7 +198,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() async => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
     await tester.pumpAndSettle();
 
     final header = find.byKey(const ValueKey('module_glass_header'));
@@ -240,7 +241,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() async => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
     await tester.pumpAndSettle();
 
     final modules = [
@@ -278,7 +279,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() async => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
@@ -305,7 +306,7 @@ void main() {
 
   testWidgets('module guide reflects current navigation and linked modules',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -327,7 +328,7 @@ void main() {
 
   testWidgets('module link strip jumps between every main module',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     expect(find.text('今日执行  4'), findsOneWidget);
 
@@ -361,10 +362,10 @@ void main() {
       tester.binding.platformDispatcher.clearDefaultRouteNameTestValue,
     );
 
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     expect(find.text('资产工作台'), findsOneWidget);
-    expect(find.text('¥3,101.00'), findsOneWidget);
+    expect(find.text('¥2,476.00'), findsWidgets);
     expect(find.text('¥1,555.00'), findsNothing);
   });
 
@@ -376,7 +377,7 @@ void main() {
       tester.binding.platformDispatcher.clearDefaultRouteNameTestValue,
     );
 
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('记一笔'), findsWidgets);
@@ -391,7 +392,7 @@ void main() {
       tester.binding.platformDispatcher.clearDefaultRouteNameTestValue,
     );
 
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('自定义食物'), findsWidgets);
@@ -424,7 +425,7 @@ void main() {
           .setMockMethodCallHandler(channel, null),
     );
 
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
@@ -491,14 +492,14 @@ void main() {
     expect(args['foodCalories'], 248);
     expect(args['pendingTodos'], 1);
     expect(args['todosJson'], contains('写周报'));
-    expect(args['financeRecordsJson'], contains('工资'));
+    expect(args['financeRecordsJson'], '[]');
     expect(args['workoutGroups'], 2);
     expect(args['workoutGroupsJson'], contains('蝴蝶机夹胸'));
   });
 
   testWidgets('workout bottom nav hides overview and health hides duplicates',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -543,7 +544,7 @@ void main() {
 
   testWidgets('food and workout records update health linked summary',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_2')));
     await tester.pumpAndSettle();

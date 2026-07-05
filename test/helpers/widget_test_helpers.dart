@@ -1,10 +1,112 @@
 // 中文注释：测试辅助工具，负责复用测试里的滚动、点击和平台通道模拟。
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pingsheng_life/main.dart';
+
+void mockDefaultWidgetSummary() {
+  const channel = MethodChannel('pingsheng_life/widget_summary');
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(channel, (call) async {
+    switch (call.method) {
+      case 'loadLifeSummary':
+        final today = DateTime.now();
+        final todayIso = _dateOnly(today).toIso8601String();
+        final tomorrowIso =
+            _dateOnly(today.add(const Duration(days: 1))).toIso8601String();
+        return {
+          'foodCalories': 0,
+          'pendingTodos': 6,
+          'todosJson': jsonEncode([
+            _todoJson('遛狗', '生活', 'shouldDo', todayIso),
+            _todoJson('打羽毛球', '健康', 'mustDo', todayIso,
+                linkedModules: ['workout', 'health']),
+            _todoJson('做报表', '工作', 'mustDo', todayIso,
+                status: 'inProgress'),
+            _todoJson('还信用卡', '财务', 'mustDo', todayIso,
+                linkedModules: ['finance'], note: '完成后补一条还款记录。'),
+            _todoJson('早睡', '健康', 'shouldDo', tomorrowIso,
+                repeatRule: 'daily', linkedModules: ['health']),
+            _todoJson('整理学习清单', '学习', 'canDelay', null,
+                note: '无日期任务先放进待办箱。'),
+          ]),
+          'financeRecordsJson': jsonEncode([
+            _financeJson('三餐', '原味板烧鸡腿麦满分', 18, '支出', '现金'),
+            _financeJson('数码分期', '手机分期还款', 500, '支出', '信用卡'),
+            _financeJson('工资', '本月收入', 3000, '收入', '银行卡'),
+            _financeJson('咖啡', '优品豆浆（小杯）', 6, '支出', '支付宝'),
+          ]),
+          'workoutGroups': 0,
+          'workoutGroupsJson': '{}',
+        };
+      case 'saveLifeSummary':
+        return null;
+      default:
+        return null;
+    }
+  });
+  addTearDown(
+    () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null),
+  );
+}
+
+Map<String, Object?> _todoJson(
+  String title,
+  String category,
+  String priority,
+  String? dueDate, {
+  String status = 'pending',
+  String? repeatRule,
+  String? note,
+  List<String> linkedModules = const [],
+}) {
+  return {
+    'id': 'test_${title.hashCode}',
+    'title': title,
+    'category': category,
+    'priority': priority,
+    'status': status,
+    'dueDate': dueDate,
+    'note': note,
+    'repeatRule': repeatRule,
+    'linkedModules': linkedModules,
+    'postponedCount': 0,
+    'createdAt': DateTime.now().toIso8601String(),
+    'completedAt': null,
+  };
+}
+
+Map<String, Object?> _financeJson(
+  String title,
+  String subtitle,
+  double amount,
+  String type,
+  String account,
+) {
+  return {
+    'title': title,
+    'subtitle': subtitle,
+    'amount': amount,
+    'type': type,
+    'date': DateTime.now().toIso8601String(),
+    'account': account,
+    'tags': const [],
+  };
+}
+
+DateTime _dateOnly(DateTime value) {
+  return DateTime(value.year, value.month, value.day);
+}
+
+Future<void> pumpPingShengApp(WidgetTester tester) async {
+  await tester.pumpWidget(const PingShengApp());
+  await tester.pumpAndSettle();
+}
 
 void mockSystemHealthSnapshot() {
   const channel = MethodChannel('pingsheng_life/system_health');
