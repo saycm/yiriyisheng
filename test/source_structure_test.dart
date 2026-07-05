@@ -66,4 +66,49 @@ void main() {
     expect(mainActivity, isNot(contains('pingsheng_life/voice_recorder')));
     expect(mainActivity, isNot(contains('AudioRecord')));
   });
+
+  test('week plan is split into focused part files', () {
+    final plan = File('lib/modules/plan/plan.dart').readAsStringSync();
+    final weekFiles = [
+      'lib/modules/plan/widgets/week/week_plan_view.dart',
+      'lib/modules/plan/widgets/week/week_plan_actions.dart',
+      'lib/modules/plan/widgets/week/week_feedback.dart',
+      'lib/modules/plan/widgets/week/week_command_center.dart',
+      'lib/modules/plan/widgets/week/week_day_board.dart',
+      'lib/modules/plan/widgets/week/week_backlog_section.dart',
+      'lib/modules/plan/widgets/week/week_selected_tasks_panel.dart',
+    ];
+
+    for (final path in weekFiles) {
+      expect(File(path).existsSync(), isTrue, reason: path);
+      expect(
+        File(path).readAsStringSync(),
+        contains("part of '../../plan.dart';"),
+        reason: path,
+      );
+    }
+
+    expect(plan, isNot(contains("part 'widgets/week_plan_view.dart';")));
+    expect(
+      plan,
+      contains("part 'widgets/week/week_plan_view.dart';"),
+    );
+    expect(_lineCount('lib/modules/plan/widgets/week/week_plan_view.dart'),
+        lessThan(260));
+  });
+
+  test('app data store is split into rows and table helpers', () {
+    final storage = File('lib/storage/storage.dart').readAsStringSync();
+    final rows = File('lib/storage/app_data_rows.dart');
+    final tables = File('lib/storage/app_data_tables.dart');
+    final store = File('lib/storage/app_data_store.dart');
+
+    expect(rows.existsSync(), isTrue);
+    expect(tables.existsSync(), isTrue);
+    expect(rows.readAsStringSync(), contains("part of 'storage.dart';"));
+    expect(tables.readAsStringSync(), contains("part of 'storage.dart';"));
+    expect(storage, contains("part 'app_data_rows.dart';"));
+    expect(storage, contains("part 'app_data_tables.dart';"));
+    expect(_lineCount(store.path), lessThan(420));
+  });
 }
