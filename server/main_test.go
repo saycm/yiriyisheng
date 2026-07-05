@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -399,5 +400,26 @@ func TestAdminFeedbackRejectsInvalidStatus(t *testing.T) {
 	}, map[string]string{"X-Admin-Token": "test-admin-token"})
 	if status != http.StatusBadRequest {
 		t.Fatalf("invalid status response = %d, payload = %#v", status, payload)
+	}
+}
+
+func TestFeedbackAdminPage(t *testing.T) {
+	app := newTestApp(t)
+
+	res, err := app.server.Client().Get(app.server.URL + "/admin/feedback")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	raw, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(raw)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("admin page status = %d body = %s", res.StatusCode, body)
+	}
+	if !strings.Contains(body, "问题反馈后台") || !strings.Contains(body, "/v1/admin/feedback") {
+		t.Fatalf("admin page missing expected content: %s", body)
 	}
 }
