@@ -12,4 +12,5 @@ import '../modules/finance/finance_ai_core.dart';
 
 part 'app_data_rows.dart';
 part 'app_data_store.dart';
+part 'app_data_tables.dart';
 part 'widget_store.dart';
