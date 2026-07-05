@@ -635,7 +635,7 @@ func initSQLite(db *sql.DB) error {
 			value TEXT NOT NULL
 		)`,
 		`CREATE TABLE IF NOT EXISTS feedback_items (
-			id TEXT PRIMARY KEY,
+			id TEXT PRIMARY KEY NOT NULL,
 			type TEXT NOT NULL,
 			content TEXT NOT NULL,
 			contact TEXT NOT NULL,
