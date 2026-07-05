@@ -7,7 +7,7 @@
 ```text
 lib/
   main.dart                    Flutter 入口，使用 part 组合各模块
-  app/                         App 外壳、路由、版本和全局常量
+  core/                        App 外壳、路由、版本和全局常量
   auth/                        注册登录、更新检查、登录态恢复
   api/                         Go 服务端 HTTP API 客户端
   home/                        首页状态、模块切换、模块联动汇总
@@ -125,10 +125,10 @@ flutter build apk --release `
 
 ## 更新发布流程
 
-1. 更新 `pubspec.yaml` 的 `version`，同时同步 `lib/app/app.dart` 默认版本常量。
+1. 更新 `pubspec.yaml` 的 `version`，同时同步 `lib/core/app_core.dart` 默认版本常量。
 2. 运行 `flutter analyze`、`flutter test`、`go test ./...`。
 3. 构建 release APK。
-4. 将 APK 放到服务端运行目录的 `downloads/` 下，例如 `server/downloads/pingsheng-1.0.6.apk`。
+4. 将 APK 放到 Go 服务端实际运行目录的 `downloads/` 下；如果 systemd `WorkingDirectory=/opt/pingsheng-life-server` 且没有设置 `DOWNLOAD_DIR`，路径就是 `/opt/pingsheng-life-server/downloads/pingsheng-1.0.6.apk`。
 5. 启动或重启 Go 服务端。
 6. 调用 `/v1/admin/update-policy` 更新 `latestVersionCode`、`latestVersionName`、`downloadUrl`、`releaseNotes` 和 `minSupportedVersionCode`。
 7. 使用旧版本 App 验证是否能看到更新提示或强制更新页。

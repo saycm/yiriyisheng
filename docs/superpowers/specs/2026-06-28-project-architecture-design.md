@@ -155,7 +155,7 @@ ui_design/
 
 ### 5.1 App 外壳
 
-[lib/app/app.dart](E:\claudecode\pingsheng_life_source\lib\app\app.dart) 是应用外壳，负责：
+[lib/core/app_core.dart](E:\claudecode\pingsheng_life_source\lib\core\app_core.dart) 是应用外壳与全局配置入口，负责：
 
 - `PingShengApp` 定义
 - `MaterialApp` 配置
@@ -924,7 +924,7 @@ P0 的目标不是重写，而是把代码边界拉清楚：
 - [README.md](E:\claudecode\pingsheng_life_source\README.md)
 - [pubspec.yaml](E:\claudecode\pingsheng_life_source\pubspec.yaml)
 - [lib/main.dart](E:\claudecode\pingsheng_life_source\lib\main.dart)
-- [lib/app/app.dart](E:\claudecode\pingsheng_life_source\lib\app\app.dart)
+- [lib/core/app_core.dart](E:\claudecode\pingsheng_life_source\lib\core\app_core.dart)
 - [lib/auth/auth.dart](E:\claudecode\pingsheng_life_source\lib\auth\auth.dart)
 - [lib/api/pingsheng_api.dart](E:\claudecode\pingsheng_life_source\lib\api\pingsheng_api.dart)
 - [lib/home/life_home_page.dart](E:\claudecode\pingsheng_life_source\lib\home\life_home_page.dart)

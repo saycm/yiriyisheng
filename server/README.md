@@ -43,7 +43,7 @@ data/db.json
 | `PORT` | `3000` | HTTP 监听端口 |
 | `DATABASE_FILE` | `data/pingsheng-life.db` | SQLite 数据库路径 |
 | `DATA_FILE` | `data/db.json` | 旧 JSON 迁移来源 |
-| `DOWNLOAD_DIR` | `downloads` | APK 下载目录 |
+| `DOWNLOAD_DIR` | `downloads` | APK 下载目录；相对路径按服务进程工作目录解析 |
 | `TOKEN_SECRET` | `change-this-dev-token-secret` | Access token 签名密钥 |
 | `ADMIN_TOKEN` | `change-this-admin-token` | 管理接口令牌 |
 | `ACCESS_TOKEN_TTL_SECONDS` | `900` | Access token 有效期 |
@@ -96,7 +96,7 @@ go build -o pingsheng-life-server.exe .
 CentOS/systemd 建议使用独立运行目录，例如：
 
 ```text
-/opt/pingsheng-life/
+/opt/pingsheng-life-server/
   pingsheng-life-server
   data/
   downloads/
@@ -106,9 +106,9 @@ CentOS/systemd 建议使用独立运行目录，例如：
 
 ```bash
 export PORT=3000
-export DATABASE_FILE=/opt/pingsheng-life/data/pingsheng-life.db
-export DATA_FILE=/opt/pingsheng-life/data/db.json
-export DOWNLOAD_DIR=/opt/pingsheng-life/downloads
+export DATABASE_FILE=/opt/pingsheng-life-server/data/pingsheng-life.db
+export DATA_FILE=/opt/pingsheng-life-server/data/db.json
+export DOWNLOAD_DIR=/opt/pingsheng-life-server/downloads
 export TOKEN_SECRET="replace-with-a-long-random-secret"
 export ADMIN_TOKEN="replace-with-a-private-admin-token"
 ```
@@ -216,7 +216,3 @@ X-Admin-Token: <ADMIN_TOKEN>
 ## 发布产物
 
 `downloads/` 下的 APK、`data/` 下的数据库和编译出的服务端二进制都是运行时产物，已由根目录 `.gitignore` 排除。部署时把这些文件放在服务器运行目录或制品库，不提交到 Git。
-
-## 旧 Python 服务
-
-`server/src/server.py` 是旧版 Python 服务，仅作为回滚和接口参考保留。当前主服务是 `server/main.go`。

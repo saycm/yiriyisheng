@@ -17,3 +17,4 @@ part 'workout_history_views.dart';
 part 'workout_more_sheet.dart';
 part 'workout_module.dart';
 part 'workout_plan_views.dart';
+part 'workout_seed_data.dart';
