@@ -27,8 +27,7 @@ class _FinanceOverviewView extends StatelessWidget {
     final expense = _financeTotal(records, '支出');
     final accounts = _financeAccounts(records);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
-          18, 0, 18, moduleSwitchBarReservedHeight + 24),
+      padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
       children: [
         _NetAssetCard(
           accounts: accounts,

@@ -206,7 +206,29 @@ class _ModuleQuickNav extends StatelessWidget {
 }
 
 const double moduleSwitchBarBottomGap = 8;
-const double moduleSwitchBarReservedHeight = 76;
+const double moduleSwitchBarReservedHeight = 64;
+
+class ModuleBottomNavSlot extends StatelessWidget {
+  const ModuleBottomNavSlot({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          18,
+          8,
+          18,
+          moduleSwitchBarBottomGap,
+        ),
+        child: child,
+      ),
+    );
+  }
+}
 
 class GlassSurface extends StatelessWidget {
   const GlassSurface({
@@ -453,42 +475,42 @@ class CapsuleNav extends StatelessWidget {
     final outerPadding = compact
         ? 3.0
         : softCompact
-            ? 4.0
+            ? 3.0
             : 7.0;
     final outerRadius = compact
         ? 14.0
         : softCompact
-            ? 14.0
+            ? 12.0
             : 18.0;
     final itemRadius = compact
         ? 10.0
         : softCompact
-            ? 11.0
+            ? 9.0
             : 15.0;
     final itemWidth = compact
         ? 40.0
         : softCompact
-            ? 50.0
+            ? 44.0
             : 88.0;
     final itemVerticalPadding = compact
         ? 2.0
         : softCompact
-            ? 3.0
+            ? 2.0
             : 9.0;
     final iconSize = compact
         ? 16.0
         : softCompact
-            ? 15.0
+            ? 14.0
             : 23.0;
     final labelSize = compact
         ? 9.0
         : softCompact
-            ? 9.0
+            ? 8.5
             : 12.0;
     final iconLabelGap = compact
         ? 0.0
         : softCompact
-            ? 1.0
+            ? 0.0
             : 3.0;
 
     return Container(

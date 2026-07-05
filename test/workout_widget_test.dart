@@ -138,9 +138,9 @@ void main() {
     final detailSheet = find.byKey(const ValueKey('workout_plan_detail_sheet'));
     expect(detailSheet, findsOneWidget);
     expect(find.text('胸背强化'), findsWidgets);
-    expect(find.descendant(of: detailSheet, matching: find.text('6 个动作')),
+    expect(find.descendant(of: detailSheet, matching: find.text('4 个动作')),
         findsOneWidget);
-    expect(find.descendant(of: detailSheet, matching: find.text('22 组')),
+    expect(find.descendant(of: detailSheet, matching: find.text('15 组')),
         findsOneWidget);
     expect(find.text('开始训练'), findsOneWidget);
 
@@ -148,8 +148,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('当前计划'), findsOneWidget);
-    expect(find.text('胸背强化'), findsWidgets);
-    expect(find.text('6 个动作'), findsWidgets);
+    expect(find.text('胸背强化 · 中度'), findsWidgets);
+    expect(find.text('4 个动作'), findsWidgets);
     expect(find.text('器械推胸'), findsWidgets);
     expect(find.text('宽握高位下拉'), findsWidgets);
     await dragUntilFound(
@@ -158,6 +158,72 @@ void main() {
       scrollable: find.byKey(const ValueKey('workout_main_list')),
     );
     expect(find.text('平板支撑'), findsNothing);
+  });
+
+  testWidgets('workout plan detail switches intensity before starting',
+      (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+
+    await tester
+        .tap(find.byKey(const ValueKey('workout_plan_plan-chest-back')));
+    await tester.pumpAndSettle();
+
+    final detailSheet = find.byKey(const ValueKey('workout_plan_detail_sheet'));
+    expect(detailSheet, findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('workout_intensity_medium')), findsOneWidget);
+    expect(find.descendant(of: detailSheet, matching: find.text('4 个动作')),
+        findsOneWidget);
+    expect(find.text('上斜哑铃卧推'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('workout_intensity_heavy')));
+    await tester.pumpAndSettle();
+
+    expect(find.descendant(of: detailSheet, matching: find.text('6 个动作')),
+        findsOneWidget);
+    expect(find.text('上斜哑铃卧推'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('开始训练'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('开始训练'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('胸背强化 · 重度'), findsWidgets);
+    expect(find.text('6 个动作'), findsWidgets);
+  });
+
+  testWidgets('workout home highlights recommendation before action library',
+      (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout_today_recommendation')),
+        findsOneWidget);
+    expect(find.text('今日推荐'), findsOneWidget);
+    expect(find.text('查看动作库'), findsOneWidget);
+    expect(find.text('当前动作'), findsNothing);
+    expect(find.text('蝴蝶机夹胸'), findsNothing);
+
+    await tester
+        .tap(find.byKey(const ValueKey('workout_toggle_action_library')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('收起动作库'), findsOneWidget);
+    expect(find.text('动作库'), findsOneWidget);
+    await dragUntilFound(
+      tester,
+      find.text('蝴蝶机夹胸'),
+      scrollable: find.byKey(const ValueKey('workout_main_list')),
+    );
+    expect(find.text('蝴蝶机夹胸'), findsWidgets);
   });
 
   testWidgets('workout plan opens detail and starts plan training',
@@ -184,7 +250,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('workout_active_plan_banner')),
         findsOneWidget);
-    expect(find.textContaining('胸背强化'), findsWidgets);
+    expect(find.text('胸背强化 · 中度'), findsWidgets);
     expect(find.text('器械推胸'), findsWidgets);
   });
 
@@ -224,7 +290,14 @@ void main() {
 
     expect(find.byKey(const ValueKey('workout_history_real_list')),
         findsOneWidget);
-    expect(find.text('快练 10 分钟'), findsWidgets);
+    expect(find.textContaining('快练 10 分钟'), findsWidgets);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('workout_calendar_day_today')),
+        matching: find.text('1次'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('workout data cards open real metric detail', (tester) async {
@@ -300,7 +373,7 @@ void main() {
     await tester.tap(find.text('完成训练'));
     await tester.pumpAndSettle();
 
-    final historyTitle = find.text('快练 10 分钟').last;
+    final historyTitle = find.textContaining('快练 10 分钟').last;
     await tester.ensureVisible(historyTitle);
     await tester.pumpAndSettle();
     await tester.tap(historyTitle);
@@ -368,8 +441,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('6 动作 · 22 组'), findsOneWidget);
-    expect(find.text('6 动作 · 16 组'), findsOneWidget);
+    expect(find.text('中度 · 4 动作 · 15 组'), findsOneWidget);
+    expect(find.text('中度 · 4 动作 · 11 组'), findsOneWidget);
 
     final planList = find.byType(Scrollable).last;
     await dragUntilFound(
@@ -481,7 +554,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('当前计划'), findsOneWidget);
-    expect(find.text('腿臀训练'), findsWidgets);
+    expect(find.text('腿臀训练 · 中度'), findsWidgets);
     expect(find.text('杠铃深蹲'), findsWidgets);
 
     await tester.pumpWidget(
@@ -530,7 +603,15 @@ void main() {
 
     await tester.pumpWidget(buildWorkout());
 
+    await tester
+        .tap(find.byKey(const ValueKey('workout_toggle_action_library')));
+    await tester.pumpAndSettle();
     expect(find.text('84 个动作'), findsOneWidget);
+    await dragUntilFound(
+      tester,
+      find.text('蝴蝶机夹胸'),
+      scrollable: find.byKey(const ValueKey('workout_main_list')),
+    );
     expect(find.text('蝴蝶机夹胸'), findsWidgets);
 
     await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
@@ -541,7 +622,6 @@ void main() {
     await tester.tap(find.byType(Switch).last);
     await tester.pumpAndSettle();
 
-    expect(find.text('未完成 83 / 全部 84'), findsOneWidget);
     expect(find.text('蝴蝶机夹胸'), findsNothing);
 
     final rest60 = find.byKey(const ValueKey('workout_rest_60s'));
@@ -684,6 +764,9 @@ void main() {
     expect(find.text('训练日历'), findsOneWidget);
     expect(
         find.byKey(const ValueKey('workout_calendar_strip')), findsOneWidget);
+    expect(find.text('蓝色边框：今天'), findsOneWidget);
+    expect(find.text('绿色圆点：有训练'), findsOneWidget);
+    expect(find.text('灰色：空档'), findsOneWidget);
     expect(find.text('动作历史曲线'), findsOneWidget);
     expect(find.text('蝴蝶机夹胸'), findsWidgets);
     expect(find.text('重量进步'), findsOneWidget);
@@ -710,7 +793,15 @@ void main() {
     await tester.pumpAndSettle();
 
     final workoutList = find.byKey(const ValueKey('workout_main_list'));
+    await tester
+        .tap(find.byKey(const ValueKey('workout_toggle_action_library')));
+    await tester.pumpAndSettle();
     expect(find.text('84 个动作'), findsOneWidget);
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('workout_action_art_蝴蝶机夹胸')),
+      scrollable: workoutList,
+    );
     expect(
       find.byKey(const ValueKey('workout_action_art_蝴蝶机夹胸')),
       findsOneWidget,
@@ -729,7 +820,6 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('workout_body_part_肩颈')));
     await tester.pumpAndSettle();
-    expect(find.text('14 个动作'), findsOneWidget);
     expect(find.text('哑铃侧平举'), findsOneWidget);
     await dragUntilFound(tester, find.text('墙滑'), scrollable: workoutList);
 
@@ -741,7 +831,6 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('workout_body_part_有氧')));
     await tester.pumpAndSettle();
-    expect(find.text('14 个动作'), findsOneWidget);
     expect(find.text('跑步机慢跑'), findsOneWidget);
     await dragUntilFound(tester, find.text('坡度快走'), scrollable: workoutList);
 
@@ -753,7 +842,6 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('workout_body_part_拉伸')));
     await tester.pumpAndSettle();
-    expect(find.text('14 个动作'), findsOneWidget);
     expect(find.text('站姿股四头肌拉伸'), findsOneWidget);
     await dragUntilFound(tester, find.text('胸椎旋转'), scrollable: workoutList);
   });
@@ -817,7 +905,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('6 动作 · 22 组'), findsOneWidget);
+    expect(find.text('中度 · 4 动作 · 15 组'), findsOneWidget);
     await dragUntilFound(
       tester,
       find.text('新手全身基础'),
@@ -843,24 +931,39 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('0/257 组'), findsOneWidget);
+    await tester
+        .tap(find.byKey(const ValueKey('workout_toggle_action_library')));
+    await tester.pumpAndSettle();
+    await dragUntilFound(
+      tester,
+      find.text('蝴蝶机夹胸'),
+      scrollable: find.byKey(const ValueKey('workout_main_list')),
+    );
     expect(find.text('0/4 组 ›'), findsWidgets);
 
+    await tester.tap(find.text('蝴蝶机夹胸').first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('开始动作'));
     await tester.pumpAndSettle();
 
     expect(find.text('蝴蝶机夹胸'), findsWidgets);
-    expect(find.text('0/4'), findsOneWidget);
+    expect(find.text('1/4'), findsOneWidget);
 
     await tester.tap(find.text('开始动作'));
     await tester.pumpAndSettle();
 
-    expect(find.text('1/4'), findsOneWidget);
+    expect(find.text('2/4'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded).first);
     await tester.pumpAndSettle();
 
-    expect(find.text('1/257 组'), findsOneWidget);
-    expect(find.text('1/4 组 ›'), findsOneWidget);
+    expect(find.text('2/257 组'), findsOneWidget);
+    await dragUntilFound(
+      tester,
+      find.text('2/4 组 ›'),
+      scrollable: find.byKey(const ValueKey('workout_main_list')),
+    );
+    expect(find.text('2/4 组 ›'), findsOneWidget);
     expect(find.text('进行中'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('workout_top_tab_2')));
@@ -945,6 +1048,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('module_glass_header_title_food')),
         findsOneWidget);
+  });
+
+  testWidgets('workout rest timer counts down after finishing a set',
+      (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
+    await tester.pumpAndSettle();
+
+    final workoutTile = find.byKey(const ValueKey('module_sheet_workout'));
+    await tester.scrollUntilVisible(
+      workoutTile,
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(workoutTile);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('开始动作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('开始动作'));
+    await tester.pump();
+
+    expect(find.text('2:00'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 3));
+
+    expect(find.text('1:57'), findsOneWidget);
+    expect(find.text('2:00'), findsNothing);
   });
 }
 

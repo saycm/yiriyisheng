@@ -433,7 +433,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
                       18,
                       6,
                       18,
-                      150 + moduleSwitchBarReservedHeight,
+                      96,
                     ),
                     children: [
                       ModuleLinkedSummaryCard(

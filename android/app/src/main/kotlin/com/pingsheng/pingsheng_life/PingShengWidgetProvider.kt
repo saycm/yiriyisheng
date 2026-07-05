@@ -14,27 +14,16 @@ import org.json.JSONObject
 class PingShengWidgetProvider : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
-            ACTION_QUICK_TODO -> {
-                addQuickTodo(
-                    context,
-                    intent.getStringExtra(EXTRA_TODO_TITLE) ?: "桌面待办",
-                    intent.getStringExtra(EXTRA_TODO_CATEGORY) ?: "生活"
-                )
+            Intent.ACTION_MY_PACKAGE_REPLACED -> {
+                refreshAllWidgets(context)
+                return
+            }
+            ACTION_REFRESH -> {
                 refreshAllWidgets(context)
                 return
             }
             ACTION_QUICK_FOOD -> {
                 addQuickFood(context)
-                refreshAllWidgets(context)
-                return
-            }
-            ACTION_QUICK_FINANCE -> {
-                addQuickFinance(context)
-                refreshAllWidgets(context)
-                return
-            }
-            ACTION_QUICK_WORKOUT -> {
-                addQuickWorkout(context)
                 refreshAllWidgets(context)
                 return
             }
@@ -61,13 +50,8 @@ class PingShengWidgetProvider : AppWidgetProvider() {
         const val KEY_HEALTH_TEXT = "health_text"
         private const val TOTAL_WORKOUT_GROUPS = 19
         private const val QUICK_FOOD_CALORIES = 80
-        private const val QUICK_FINANCE_AMOUNT = 18.0
-        private const val ACTION_QUICK_TODO = "com.pingsheng.pingsheng_life.widget.ADD_TODO"
+        private const val ACTION_REFRESH = "com.pingsheng.pingsheng_life.widget.REFRESH"
         private const val ACTION_QUICK_FOOD = "com.pingsheng.pingsheng_life.widget.ADD_FOOD"
-        private const val ACTION_QUICK_FINANCE = "com.pingsheng.pingsheng_life.widget.ADD_FINANCE"
-        private const val ACTION_QUICK_WORKOUT = "com.pingsheng.pingsheng_life.widget.ADD_WORKOUT"
-        private const val EXTRA_TODO_TITLE = "todo_title"
-        private const val EXTRA_TODO_CATEGORY = "todo_category"
 
         fun updateWidgets(
             context: Context,
@@ -94,6 +78,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             val todayExpense = todayExpense(financeRecords)
             val workoutGroups = prefs.getInt(KEY_WORKOUT_GROUPS, 0)
             val healthText = prefs.getString(KEY_HEALTH_TEXT, "健康待授权").orEmpty()
+            val activeCalories = extractCalories(healthText)
             val foodText = if (foodCalories > 0) {
                 "饮食 ${foodCalories} kcal"
             } else {
@@ -109,40 +94,35 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.pingsheng_widget)
 
             // 桌面小组件读取 App 写入的共享摘要，和 Flutter 页面保持同一份联动数据。
+            val todoProgress = ((pendingTodos.coerceAtMost(8) / 8.0) * 100).toInt()
             views.setTextViewText(R.id.widget_title, "平生今日")
-            views.setTextViewText(R.id.widget_subtitle, "桌面快速记录")
-            views.setTextViewText(R.id.widget_plan, "待办 ${pendingTodos} 项")
-            views.setTextViewText(R.id.widget_finance, financeText)
-            views.setTextViewText(R.id.widget_health, "${healthText} · ${workoutGroups}组")
-            views.setTextViewText(R.id.widget_food, foodText)
-            views.setTextViewText(R.id.widget_workout, workoutText)
+            views.setTextViewText(R.id.widget_subtitle, "$healthText · 轻量记录")
+            views.setTextViewText(R.id.widget_primary_metric_value, "$pendingTodos")
+            views.setTextViewText(R.id.widget_primary_metric_label, "项待处理")
+            views.setProgressBar(R.id.widget_todo_progress, 100, todoProgress, false)
+            views.setTextViewText(R.id.widget_finance, financeText.replace("今日支出 ", ""))
+            views.setTextViewText(R.id.widget_food, "$foodText · $workoutText")
+            views.setTextViewText(R.id.widget_plan, "计划\n加待办")
+            views.setTextViewText(R.id.widget_quick_food, "饮食\n+${QUICK_FOOD_CALORIES} kcal")
+            views.setTextViewText(R.id.widget_quick_finance, "记账\n快捷支出")
+            views.setTextViewText(
+                R.id.widget_active_calories,
+                if (activeCalories > 0) {
+                    "今日消耗\n${activeCalories} kcal"
+                } else {
+                    "今日消耗\n待同步"
+                }
+            )
 
-            // 标题和摘要负责进 App；底部快捷按钮直接写入桌面共享数据，不强制打开 App。
-            views.setOnClickPendingIntent(R.id.widget_title, moduleIntent(context, "/", 1))
-            views.setOnClickPendingIntent(R.id.widget_subtitle, moduleIntent(context, "/", 11))
-            views.setOnClickPendingIntent(R.id.widget_plan, moduleIntent(context, "/plan", 2))
-            views.setOnClickPendingIntent(R.id.widget_finance, moduleIntent(context, "/finance", 3))
+            // 需要输入内容的操作进入 App 的真实编辑流程；无需输入的饮食快捷项仍在小组件内完成。
+            views.setOnClickPendingIntent(R.id.widget_title, quickIntent(context, ACTION_REFRESH, 1))
             views.setOnClickPendingIntent(
-                R.id.widget_health,
-                moduleIntent(context, "/health", 4, "open_health")
-            )
-            views.setOnClickPendingIntent(R.id.widget_food, moduleIntent(context, "/food", 5))
-            views.setOnClickPendingIntent(R.id.widget_workout, moduleIntent(context, "/workout", 6))
-            views.setOnClickPendingIntent(
-                R.id.widget_todo_life,
-                quickTodoIntent(context, "桌面生活待办", "生活", 7)
+                R.id.widget_summary_card,
+                moduleIntent(context, "/finance", 3, "add_finance")
             )
             views.setOnClickPendingIntent(
-                R.id.widget_todo_work,
-                quickTodoIntent(context, "桌面工作待办", "工作", 12)
-            )
-            views.setOnClickPendingIntent(
-                R.id.widget_todo_health,
-                quickTodoIntent(context, "桌面健康待办", "健康", 13)
-            )
-            views.setOnClickPendingIntent(
-                R.id.widget_todo_finance,
-                quickTodoIntent(context, "桌面财务待办", "财务", 14)
+                R.id.widget_plan,
+                moduleIntent(context, "/plan", 2, "add_todo")
             )
             views.setOnClickPendingIntent(
                 R.id.widget_quick_food,
@@ -150,11 +130,11 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             )
             views.setOnClickPendingIntent(
                 R.id.widget_quick_finance,
-                quickIntent(context, ACTION_QUICK_FINANCE, 9)
+                moduleIntent(context, "/finance", 9, "add_finance")
             )
             views.setOnClickPendingIntent(
-                R.id.widget_quick_workout,
-                quickIntent(context, ACTION_QUICK_WORKOUT, 10)
+                R.id.widget_active_calories,
+                quickIntent(context, ACTION_REFRESH, 10)
             )
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
@@ -201,25 +181,6 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             )
         }
 
-        private fun quickTodoIntent(
-            context: Context,
-            title: String,
-            category: String,
-            requestCode: Int
-        ): PendingIntent {
-            val intent = Intent(context, PingShengWidgetProvider::class.java).apply {
-                action = ACTION_QUICK_TODO
-                putExtra(EXTRA_TODO_TITLE, title)
-                putExtra(EXTRA_TODO_CATEGORY, category)
-            }
-            return PendingIntent.getBroadcast(
-                context,
-                requestCode,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-        }
-
         private fun addQuickFood(context: Context) {
             // 桌面一键饮食用于临时补记，进入 App 后仍可通过饮食模块添加完整细节。
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -243,42 +204,6 @@ class PingShengWidgetProvider : AppWidgetProvider() {
                 .apply()
         }
 
-        private fun addQuickTodo(context: Context, title: String, category: String) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val todos = safeJsonArray(prefs.getString(KEY_TODOS_JSON, null), defaultTodosJson())
-            todos.put(
-                JSONObject()
-                    .put("title", title)
-                    .put("category", category)
-                    .put("done", false)
-            )
-            val pendingTodos = (0 until todos.length()).count { index ->
-                !todos.optJSONObject(index).optBoolean("done", false)
-            }
-            prefs.edit()
-                .putString(KEY_TODOS_JSON, todos.toString())
-                .putInt(KEY_PENDING_TODOS, pendingTodos)
-                .apply()
-        }
-
-        private fun addQuickFinance(context: Context) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val records = safeJsonArray(
-                prefs.getString(KEY_FINANCE_RECORDS_JSON, null),
-                defaultFinanceRecordsJson()
-            )
-            records.put(
-                JSONObject()
-                    .put("title", "桌面记账")
-                    .put("subtitle", "快捷支出")
-                    .put("amount", QUICK_FINANCE_AMOUNT)
-                    .put("type", "支出")
-            )
-            prefs.edit()
-                .putString(KEY_FINANCE_RECORDS_JSON, records.toString())
-                .apply()
-        }
-
         private fun todayExpense(records: JSONArray): Double {
             var total = 0.0
             for (index in 0 until records.length()) {
@@ -296,6 +221,11 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             } else {
                 String.format("%.2f", amount)
             }
+        }
+
+        private fun extractCalories(text: String): Int {
+            val match = Regex("""(\d+)\s*kcal""").find(text)
+            return match?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
         }
 
         private fun defaultTodosJson(): String {

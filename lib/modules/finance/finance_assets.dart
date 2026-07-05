@@ -94,8 +94,7 @@ class _FinanceAssetsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final accounts = _financeAccounts(records);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
-          18, 0, 18, moduleSwitchBarReservedHeight + 24),
+      padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
       children: [
         _AssetTotalCard(accounts: accounts),
         const SizedBox(height: 14),
@@ -310,6 +309,7 @@ class _AssetAccountTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      key: ValueKey('finance_asset_account_$title'),
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

@@ -140,6 +140,7 @@ class _LifeHomePageState extends State<LifeHomePage> {
       onDeleteTodo: _deleteTodo,
       onAddTodo: _addTodo,
       onClearCompletedTodos: _clearCompletedTodos,
+      onOpenLinkedTodoAction: _openLinkedModuleAction,
       quickAction: _pendingQuickAction,
       quickActionToken: _quickActionToken,
       onQuickActionHandled: _markQuickActionHandled,

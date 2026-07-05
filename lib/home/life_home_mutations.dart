@@ -91,7 +91,6 @@ extension _LifeHomeMutations on _LifeHomePageState {
 
   void _toggleTodo(TodoItem todo) {
     final wasDone = todo.done;
-    var shouldShowLinkedActions = false;
     _updateState(() {
       todo.done = !todo.done;
       _pushLifeEvent(
@@ -104,17 +103,9 @@ extension _LifeHomeMutations on _LifeHomePageState {
       );
       if (!wasDone && todo.done) {
         _pushLinkedTodoEvent(todo);
-        shouldShowLinkedActions = todo.linkedModules.isNotEmpty;
       }
     });
     _syncLinkedSummaryToWidget();
-    if (shouldShowLinkedActions) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _openTodoLinkedActionSheet(todo);
-        }
-      });
-    }
   }
 
   void _updateTodo(TodoItem todo) {

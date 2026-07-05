@@ -37,6 +37,14 @@ android {
             signingConfig = signingConfigs.debug
         }
     }
+
+    packaging {
+        jniLibs {
+            // Android 14 的系统安装器从浏览器 content:// 下载项安装时，
+            // 对未解压 native libs 的 APK 兼容性不稳定；测试分发包使用传统打包。
+            useLegacyPackaging = true
+        }
+    }
 }
 
 flutter {

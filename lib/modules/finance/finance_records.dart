@@ -28,8 +28,7 @@ class _FinanceRecordsViewState extends State<_FinanceRecordsView> {
         : widget.records.where((record) => record.type == _filter).toList();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
-          18, 0, 18, moduleSwitchBarReservedHeight + 24),
+      padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
       children: [
         _FinanceMonthSummary(records: widget.records),
         const SizedBox(height: 14),

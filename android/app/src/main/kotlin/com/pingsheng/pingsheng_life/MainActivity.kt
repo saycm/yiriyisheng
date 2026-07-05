@@ -20,6 +20,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
@@ -52,7 +53,9 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
     private val mainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var widgetChannel: MethodChannel? = null
     private var healthPermissionLauncher: ActivityResultLauncher<Set<String>>? = null
+    private var notificationPermissionLauncher: ActivityResultLauncher<String>? = null
     private var pendingHealthPermissionResult: MethodChannel.Result? = null
+    private var pendingReminderResult: MethodChannel.Result? = null
     private var sensorManager: SensorManager? = null
     private var latestStepCounter: Float? = null
     private var latestHeartRate: Float? = null
@@ -72,6 +75,10 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
                     )
                 )
                 pendingHealthPermissionResult = null
+            }
+        notificationPermissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                finishDailyRecordReminderRequest(granted)
             }
         super.onCreate(savedInstanceState)
     }
@@ -142,6 +149,25 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
                 }
             }
 
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, APP_PREFERENCES_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "loadAppPreferences" -> result.success(
+                        DailyRecordReminderReceiver.loadPreferences(this)
+                    )
+                    "saveThemeMode" -> {
+                        val themeMode = call.argument<String>("themeMode") ?: "system"
+                        DailyRecordReminderReceiver.saveThemeMode(this, themeMode)
+                        result.success(null)
+                    }
+                    "setDailyRecordReminder" -> setDailyRecordReminder(
+                        call.argument<Boolean>("enabled") == true,
+                        result
+                    )
+                    else -> result.notImplemented()
+                }
+            }
+
     }
 
     override fun onResume() {
@@ -159,6 +185,10 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
             mapOf("granted" to false, "grantedCount" to 0)
         )
         pendingHealthPermissionResult = null
+        pendingReminderResult?.success(
+            mapOf("enabled" to false, "permissionGranted" to false)
+        )
+        pendingReminderResult = null
         mainScope.cancel()
         super.onDestroy()
     }
@@ -418,6 +448,41 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         }
     }
 
+    private fun setDailyRecordReminder(enabled: Boolean, result: MethodChannel.Result) {
+        if (!enabled) {
+            DailyRecordReminderReceiver.setReminderEnabled(this, false)
+            result.success(mapOf("enabled" to false, "permissionGranted" to true))
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            if (pendingReminderResult != null) {
+                result.error("reminder_request_busy", "已有通知权限请求正在进行", null)
+                return
+            }
+            pendingReminderResult = result
+            notificationPermissionLauncher?.launch(Manifest.permission.POST_NOTIFICATIONS)
+                ?: finishDailyRecordReminderRequest(false)
+            return
+        }
+        DailyRecordReminderReceiver.setReminderEnabled(this, true)
+        result.success(mapOf("enabled" to true, "permissionGranted" to true))
+    }
+
+    private fun finishDailyRecordReminderRequest(granted: Boolean) {
+        val result = pendingReminderResult ?: return
+        pendingReminderResult = null
+        if (granted) {
+            DailyRecordReminderReceiver.setReminderEnabled(this, true)
+            result.success(mapOf("enabled" to true, "permissionGranted" to true))
+        } else {
+            DailyRecordReminderReceiver.setReminderEnabled(this, false)
+            result.success(mapOf("enabled" to false, "permissionGranted" to false))
+        }
+    }
+
     private fun loadAuthSession(): String? {
         val secureValue = try {
             secureAuthPrefs().getString(KEY_AUTH_SESSION_JSON, null)
@@ -554,6 +619,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         private const val HEALTH_CHANNEL = "pingsheng_life/system_health"
         private const val AUTH_CHANNEL = "pingsheng_life/auth_session"
         private const val UPDATE_LAUNCHER_CHANNEL = "pingsheng_life/update_launcher"
+        private const val APP_PREFERENCES_CHANNEL = "pingsheng_life/app_preferences"
         private const val AUTH_PREFS_NAME = "pingsheng_auth"
         private const val AUTH_SECURE_PREFS_NAME = "pingsheng_auth_secure"
         private const val KEY_AUTH_SESSION_JSON = "auth_session_json"

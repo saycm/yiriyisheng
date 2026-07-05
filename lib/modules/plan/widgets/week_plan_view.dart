@@ -3,6 +3,7 @@
 part of '../plan.dart';
 
 const int _maxScheduleToSelectedDay = 6;
+OverlayEntry? _weekPlanFeedbackEntry;
 
 class _WeekPlanView extends StatelessWidget {
   const _WeekPlanView({
@@ -53,7 +54,7 @@ class _WeekPlanView extends StatelessWidget {
         18,
         0,
         18,
-        moduleSwitchBarReservedHeight + 88,
+        88,
       ),
       children: [
         _WeekCommandCenter(
@@ -70,6 +71,12 @@ class _WeekPlanView extends StatelessWidget {
           onAutoSchedule: unscheduledTodos.isEmpty
               ? null
               : () => _autoScheduleWeek(context, today, days, unscheduledTodos),
+          onBalanceWeek: () => _balanceWeek(context, today, days),
+          onMoveLowPriorityNextWeek: () =>
+              _moveLowPriorityToNextWeek(context, days),
+          onCleanOverdue: overdueCount == 0
+              ? null
+              : () => _cleanOverdueTodos(context, today, days),
         ),
         const SizedBox(height: 12),
         _WeekDayBoard(
@@ -203,6 +210,116 @@ class _WeekPlanView extends StatelessWidget {
     );
   }
 
+  void _balanceWeek(BuildContext context, DateTime today, List<DateTime> days) {
+    final unscheduledTodos = _unscheduledTodos(today, days);
+    if (unscheduledTodos.isNotEmpty) {
+      _autoScheduleWeek(context, today, days, unscheduledTodos);
+      return;
+    }
+    final movableTodos = _weekTodos(days)
+        .where((todo) => todo.priority == TodoPriority.canDelay)
+        .toList()
+      ..sort(_sortPlanTodos);
+    if (movableTodos.isEmpty) {
+      _showPlainWeekSnackBar(context, '本周已经比较均衡，没有需要移动的低优先级任务');
+      return;
+    }
+    final plannedTodos = List<TodoItem>.of(todos);
+    final originalTodos = <TodoItem>[];
+    var movedCount = 0;
+    for (final todo in movableTodos.take(3)) {
+      final targetDay = _bestScheduleDay(days, plannedTodos, today);
+      if (todo.isDueOn(targetDay)) {
+        continue;
+      }
+      final updated = _scheduledCopy(todo, targetDay);
+      originalTodos.add(todo.copyWith());
+      onUpdate(updated);
+      movedCount++;
+      final index = plannedTodos.indexWhere((item) => item.id == todo.id);
+      if (index != -1) {
+        plannedTodos[index] = updated;
+      }
+    }
+    if (movedCount == 0) {
+      _showPlainWeekSnackBar(context, '本周已经比较均衡');
+      return;
+    }
+    _showUndoableScheduleSnackBar(
+      context,
+      message: '已平衡本周 $movedCount 项任务',
+      originalTodos: originalTodos,
+    );
+  }
+
+  void _moveLowPriorityToNextWeek(BuildContext context, List<DateTime> days) {
+    final movableTodos = _weekTodos(days)
+        .where((todo) => todo.priority == TodoPriority.canDelay)
+        .toList()
+      ..sort(_sortPlanTodos);
+    if (movableTodos.isEmpty) {
+      _showPlainWeekSnackBar(context, '本周没有低优先级任务需要移动');
+      return;
+    }
+    final originalTodos = <TodoItem>[];
+    for (final todo in movableTodos) {
+      final dueDate = todo.dueDate;
+      if (dueDate == null) {
+        continue;
+      }
+      originalTodos.add(todo.copyWith());
+      onUpdate(
+        todo.copyWith(
+          dueDate: DateUtils.dateOnly(dueDate.add(const Duration(days: 7))),
+          status: TodoStatus.postponed,
+          postponedCount: todo.postponedCount + 1,
+        ),
+      );
+    }
+    if (originalTodos.isEmpty) {
+      _showPlainWeekSnackBar(context, '本周没有低优先级任务需要移动');
+      return;
+    }
+    _showUndoableScheduleSnackBar(
+      context,
+      message: '已把 ${originalTodos.length} 项低优先级任务移到下周',
+      originalTodos: originalTodos,
+    );
+  }
+
+  void _cleanOverdueTodos(
+    BuildContext context,
+    DateTime today,
+    List<DateTime> days,
+  ) {
+    final overdueTodos = todos.where((todo) {
+      final dueDate = todo.dueDate;
+      return todo.isActive && dueDate != null && dueDate.isBefore(today);
+    }).toList()
+      ..sort(_sortPlanTodos);
+    if (overdueTodos.isEmpty) {
+      _showPlainWeekSnackBar(context, '没有逾期任务需要清理');
+      return;
+    }
+    final plannedTodos = List<TodoItem>.of(todos);
+    final originalTodos = <TodoItem>[];
+    for (final todo in overdueTodos) {
+      final targetDay = _bestScheduleDay(days, plannedTodos, today);
+      final updated = _scheduledCopy(todo, targetDay);
+      originalTodos.add(todo.copyWith());
+      onUpdate(updated);
+      final index = plannedTodos.indexWhere((item) => item.id == todo.id);
+      if (index != -1) {
+        plannedTodos[index] = updated;
+      }
+    }
+    _showUndoableScheduleSnackBar(
+      context,
+      message: '已重新安排 ${originalTodos.length} 项逾期任务',
+      originalTodos: originalTodos,
+    );
+  }
+
   void _scheduleTodo(BuildContext context, TodoItem todo, DateTime targetDay) {
     onUpdate(_scheduledCopy(todo, targetDay));
     _showUndoableScheduleSnackBar(
@@ -258,19 +375,80 @@ class _WeekPlanView extends StatelessWidget {
     required String message,
     required List<TodoItem> originalTodos,
   }) {
+    _showWeekPlanFeedback(
+      context,
+      message: message,
+      onUndo: () {
+        for (final todo in originalTodos) {
+          onUpdate(todo);
+        }
+      },
+    );
+  }
+
+  void _showPlainWeekSnackBar(BuildContext context, String message) {
+    _showWeekPlanFeedback(context, message: message);
+  }
+
+  void _showWeekPlanFeedback(
+    BuildContext context, {
+    required String message,
+    VoidCallback? onUndo,
+  }) {
+    ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) {
+      _showFallbackWeekSnackBar(context, message, onUndo);
+      return;
+    }
+
+    _weekPlanFeedbackEntry?.remove();
+    _weekPlanFeedbackEntry = null;
+
+    late OverlayEntry entry;
+    var removed = false;
+    void removeEntry() {
+      if (removed) {
+        return;
+      }
+      removed = true;
+      if (identical(_weekPlanFeedbackEntry, entry)) {
+        _weekPlanFeedbackEntry = null;
+      }
+      entry.remove();
+    }
+
+    entry = OverlayEntry(
+      builder: (context) {
+        return _WeekPlanFeedbackToast(
+          message: message,
+          onUndo: onUndo,
+          onClose: removeEntry,
+          onDisposed: () {
+            if (identical(_weekPlanFeedbackEntry, entry)) {
+              _weekPlanFeedbackEntry = null;
+            }
+          },
+        );
+      },
+    );
+    _weekPlanFeedbackEntry = entry;
+    overlay.insert(entry);
+  }
+
+  void _showFallbackWeekSnackBar(
+    BuildContext context,
+    String message,
+    VoidCallback? onUndo,
+  ) {
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
         content: Text(message),
         behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: '撤销',
-          onPressed: () {
-            for (final todo in originalTodos) {
-              onUpdate(todo);
-            }
-          },
-        ),
+        action: onUndo == null
+            ? null
+            : SnackBarAction(label: '撤销', onPressed: onUndo),
       ),
     );
   }
@@ -304,6 +482,173 @@ class _WeekPlanView extends StatelessWidget {
   }
 }
 
+class _WeekPlanFeedbackToast extends StatefulWidget {
+  const _WeekPlanFeedbackToast({
+    required this.message,
+    required this.onClose,
+    required this.onDisposed,
+    this.onUndo,
+  });
+
+  final String message;
+  final VoidCallback onClose;
+  final VoidCallback onDisposed;
+  final VoidCallback? onUndo;
+
+  @override
+  State<_WeekPlanFeedbackToast> createState() => _WeekPlanFeedbackToastState();
+}
+
+class _WeekPlanFeedbackToastState extends State<_WeekPlanFeedbackToast>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+  late final Animation<Offset> _offset;
+  Timer? _dismissTimer;
+  bool _closing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+      reverseDuration: const Duration(milliseconds: 150),
+    );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    _offset = Tween<Offset>(
+      begin: const Offset(0, 0.35),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
+    _controller.forward();
+    _dismissTimer = Timer(const Duration(seconds: 4), _dismiss);
+  }
+
+  @override
+  void dispose() {
+    _dismissTimer?.cancel();
+    _controller.dispose();
+    widget.onDisposed();
+    super.dispose();
+  }
+
+  Future<void> _dismiss() async {
+    if (_closing) {
+      return;
+    }
+    _closing = true;
+    _dismissTimer?.cancel();
+    if (mounted) {
+      await _controller.reverse();
+    }
+    widget.onClose();
+  }
+
+  void _handleUndo() {
+    widget.onUndo?.call();
+    _dismiss();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const bottomOffset = moduleSwitchBarReservedHeight + 12;
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: bottomOffset,
+      child: SafeArea(
+        top: false,
+        child: SlideTransition(
+          position: _offset,
+          child: FadeTransition(
+            opacity: _opacity,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Semantics(
+                liveRegion: true,
+                label: widget.message,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 272),
+                  child: Material(
+                    key: const ValueKey('week_plan_schedule_feedback'),
+                    type: MaterialType.transparency,
+                    child: GlassSurface(
+                      borderRadius: 16,
+                      color: AppColors.surface.withValues(alpha: 0.86),
+                      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.check_rounded,
+                              color: AppColors.success,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              widget.message,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.ink,
+                                fontSize: 12,
+                                height: 1.25,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          if (widget.onUndo != null) ...[
+                            const SizedBox(width: 4),
+                            TextButton(
+                              onPressed: _handleUndo,
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                minimumSize: const Size(48, 40),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                textStyle: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              child: const Text('撤销'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _WeekCommandCenter extends StatelessWidget {
   const _WeekCommandCenter({
     required this.weekTodos,
@@ -312,6 +657,9 @@ class _WeekCommandCenter extends StatelessWidget {
     required this.riskCount,
     required this.insight,
     required this.onAutoSchedule,
+    required this.onBalanceWeek,
+    required this.onMoveLowPriorityNextWeek,
+    required this.onCleanOverdue,
   });
 
   final int weekTodos;
@@ -320,6 +668,9 @@ class _WeekCommandCenter extends StatelessWidget {
   final int riskCount;
   final String insight;
   final VoidCallback? onAutoSchedule;
+  final VoidCallback onBalanceWeek;
+  final VoidCallback onMoveLowPriorityNextWeek;
+  final VoidCallback? onCleanOverdue;
 
   @override
   Widget build(BuildContext context) {
@@ -430,8 +781,84 @@ class _WeekCommandCenter extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _WeekCommandButton(
+                key: const ValueKey('week_plan_balance_week'),
+                onPressed: onBalanceWeek,
+                icon: Icons.balance_rounded,
+                label: '平衡本周',
+              ),
+              _WeekCommandButton(
+                key: const ValueKey('week_plan_clean_overdue'),
+                onPressed: onCleanOverdue,
+                icon: Icons.history_toggle_off_rounded,
+                label: '清理逾期',
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _WeekCommandButton(
+            key: const ValueKey('week_plan_move_low_priority_next_week'),
+            onPressed: onMoveLowPriorityNextWeek,
+            icon: Icons.low_priority_rounded,
+            label: '低优先级移到下周',
+            fullWidth: true,
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _WeekCommandButton extends StatelessWidget {
+  const _WeekCommandButton({
+    super.key,
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    this.fullWidth = false,
+  });
+
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final String label;
+  final bool fullWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final button = OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 17),
+      label: Text(
+        label,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primary,
+        side: BorderSide(color: AppColors.primary.withValues(alpha: 0.24)),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        textStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+    if (fullWidth) {
+      return SizedBox(width: double.infinity, child: button);
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = (constraints.maxWidth - 8) / 2;
+        final width = available < 124.0 ? 124.0 : available;
+        return SizedBox(width: width, child: button);
+      },
     );
   }
 }
@@ -552,7 +979,6 @@ class _WeekDayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final load = _loadInfo(todos.length);
-    final previewTodos = todos.take(2).toList();
 
     return InkWell(
       borderRadius: BorderRadius.circular(8),
@@ -605,36 +1031,27 @@ class _WeekDayCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 7),
-            if (previewTodos.isEmpty)
-              Text(
-                '空档日',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+            const Spacer(),
+            if (todos.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
                   color: selected
-                      ? Colors.white.withValues(alpha: 0.78)
-                      : AppColors.muted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+                      ? Colors.white.withValues(alpha: 0.18)
+                      : load.color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              )
-            else
-              for (final todo in previewTodos)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Text(
-                    '· ${todo.title}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: selected
-                          ? Colors.white.withValues(alpha: 0.90)
-                          : AppColors.ink,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
+                child: Text(
+                  '+${todos.length}',
+                  maxLines: 1,
+                  overflow: TextOverflow.clip,
+                  style: TextStyle(
+                    color: selected ? Colors.white : load.color,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
+              ),
           ],
         ),
       ),

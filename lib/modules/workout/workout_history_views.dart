@@ -113,12 +113,11 @@ class _WorkoutHistoryView extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       key: history.isEmpty ? null : const ValueKey('workout_history_real_list'),
-      padding: const EdgeInsets.fromLTRB(
-          18, 18, 18, moduleSwitchBarReservedHeight + 24),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _WorkoutCalendarCard(),
+          _WorkoutCalendarCard(history: history),
           const SizedBox(height: 12),
           const _WorkoutActionTrendCard(),
           const SizedBox(height: 12),
@@ -178,19 +177,30 @@ class _WorkoutEmptyHistoryCard extends StatelessWidget {
 }
 
 class _WorkoutCalendarCard extends StatelessWidget {
-  const _WorkoutCalendarCard();
+  const _WorkoutCalendarCard({required this.history});
+
+  final List<WorkoutHistoryEntry> history;
 
   @override
   Widget build(BuildContext context) {
-    final days = [
-      ('一', '12', true, AppColors.success),
-      ('二', '13', false, AppColors.muted),
-      ('三', '14', true, AppColors.primary),
-      ('四', '15', false, AppColors.muted),
-      ('五', '16', true, const Color(0xFFFF9559)),
-      ('六', '17', true, AppColors.primary),
-      ('日', '18', false, AppColors.muted),
-    ];
+    final today = DateUtils.dateOnly(DateTime.now());
+    final start = today.subtract(const Duration(days: 6));
+    final days = List.generate(7, (index) {
+      final date = start.add(Duration(days: index));
+      final records = history
+          .where((entry) => DateUtils.isSameDay(entry.finishedAt, date))
+          .toList();
+      final groups = records.fold<int>(
+        0,
+        (total, entry) => total + entry.totalGroups,
+      );
+      return _WorkoutCalendarDayData(
+        date: date,
+        sessions: records.length,
+        groups: groups,
+        isToday: DateUtils.isSameDay(date, today),
+      );
+    });
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -217,14 +227,31 @@ class _WorkoutCalendarCard extends StatelessWidget {
                 .map(
                   (day) => Expanded(
                     child: _WorkoutCalendarDay(
-                      week: day.$1,
-                      date: day.$2,
-                      trained: day.$3,
-                      color: day.$4,
+                      data: day,
                     ),
                   ),
                 )
                 .toList(),
+          ),
+          const SizedBox(height: 12),
+          const Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              _WorkoutCalendarLegendItem(
+                color: AppColors.primary,
+                label: '蓝色边框：今天',
+                outlined: true,
+              ),
+              _WorkoutCalendarLegendItem(
+                color: AppColors.success,
+                label: '绿色圆点：有训练',
+              ),
+              _WorkoutCalendarLegendItem(
+                color: AppColors.muted,
+                label: '灰色：空档',
+              ),
+            ],
           ),
         ],
       ),
@@ -232,51 +259,153 @@ class _WorkoutCalendarCard extends StatelessWidget {
   }
 }
 
-class _WorkoutCalendarDay extends StatelessWidget {
-  const _WorkoutCalendarDay({
-    required this.week,
+class _WorkoutCalendarDayData {
+  const _WorkoutCalendarDayData({
     required this.date,
-    required this.trained,
-    required this.color,
+    required this.sessions,
+    required this.groups,
+    required this.isToday,
   });
 
-  final String week;
-  final String date;
-  final bool trained;
-  final Color color;
+  final DateTime date;
+  final int sessions;
+  final int groups;
+  final bool isToday;
+
+  bool get hasTraining => sessions > 0;
+}
+
+class _WorkoutCalendarDay extends StatelessWidget {
+  const _WorkoutCalendarDay({required this.data});
+
+  final _WorkoutCalendarDayData data;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          week,
-          style: const TextStyle(
-            color: AppColors.muted,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 7),
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color:
-                trained ? color.withValues(alpha: 0.14) : AppColors.background,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: trained ? color.withValues(alpha: 0.35) : AppColors.line,
+    final week =
+        const ['一', '二', '三', '四', '五', '六', '日'][data.date.weekday - 1];
+    final dayKey = data.isToday
+        ? 'workout_calendar_day_today'
+        : 'workout_calendar_day_${data.date.toIso8601String()}';
+    final dateColor = data.isToday
+        ? AppColors.primary
+        : data.hasTraining
+            ? AppColors.ink
+            : AppColors.muted;
+
+    return Semantics(
+      label:
+          '${data.date.month}月${data.date.day}日${data.isToday ? '，今天' : ''}${data.hasTraining ? '，已训练${data.sessions}次，共${data.groups}组' : '，空档'}',
+      child: Column(
+        key: ValueKey(dayKey),
+        children: [
+          Text(
+            week,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          child: Center(
-            child: Text(
-              date,
-              style: TextStyle(
-                color: trained ? color : AppColors.muted,
-                fontWeight: FontWeight.w900,
+          const SizedBox(height: 7),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: data.isToday
+                  ? AppColors.primary.withValues(alpha: 0.12)
+                  : AppColors.background,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: data.isToday
+                    ? AppColors.primary.withValues(alpha: 0.45)
+                    : AppColors.line,
               ),
             ),
+            child: Center(
+              child: Text(
+                '${data.date.day}',
+                style: TextStyle(
+                  color: dateColor,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 5),
+          SizedBox(
+            height: 12,
+            child: data.hasTraining
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 5,
+                        height: 5,
+                        decoration: const BoxDecoration(
+                          color: AppColors.success,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${data.sessions}次',
+                        style: const TextStyle(
+                          color: AppColors.success,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  )
+                : Text(
+                    data.isToday ? '今天' : '',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkoutCalendarLegendItem extends StatelessWidget {
+  const _WorkoutCalendarLegendItem({
+    required this.color,
+    required this.label,
+    this.outlined = false,
+  });
+
+  final Color color;
+  final String label;
+  final bool outlined;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(
+            color: outlined ? Colors.transparent : color,
+            shape: BoxShape.circle,
+            border: outlined ? Border.all(color: color, width: 1.5) : null,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.muted,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],

@@ -12,13 +12,12 @@ class _SettingsSheet extends StatefulWidget {
 class _SettingsSheetState extends State<_SettingsSheet> {
   bool _widgetDirectRecord = true;
   bool _summaryOpensDetail = true;
-  bool _dailyReminder = true;
   bool _lowCalorieHint = false;
   String _defaultMeal = '三餐';
-  String _themeMode = '跟随系统';
 
   @override
   Widget build(BuildContext context) {
+    final settings = AppSettingsScope.of(context);
     return InfoSheetFrame(
       title: '设置',
       child: Column(
@@ -69,20 +68,19 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             icon: Icons.palette_rounded,
             title: '显示与提醒',
           ),
-          _SettingsChoiceCard<String>(
-            title: '外观模式',
-            value: _themeMode,
-            options: const ['跟随系统', '浅色', '深色'],
-            labelBuilder: (value) => value,
-            onChanged: (value) => setState(() => _themeMode = value),
-          ),
           _SettingsSwitchTile(
             tileKey: const ValueKey('setting_daily_reminder'),
             icon: Icons.notifications_active_rounded,
             title: '每日记录提醒',
             subtitle: '计划、饮食和锻炼',
-            value: _dailyReminder,
-            onChanged: (value) => setState(() => _dailyReminder = value),
+            value: settings.dailyRecordReminderEnabled,
+            onChanged: (value) => unawaited(
+              _updateDailyReminder(
+                context,
+                settings,
+                value,
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           const _SettingsSectionTitle(
@@ -95,29 +93,25 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             subtitle: '状态中心、外部数据源、小组件常见问题',
             onTap: () => _showQaSheet(context),
           ),
-          const SizedBox(height: 16),
-          const _SettingsSectionTitle(
-            icon: Icons.sync_rounded,
-            title: '数据',
-          ),
-          _SettingsActionTile(
-            icon: Icons.widgets_outlined,
-            title: '刷新桌面小组件',
-            subtitle: '同步当前联动摘要',
-            onTap: () => _showSettingsSnack(context, '已请求刷新桌面小组件'),
-          ),
-          _SettingsActionTile(
-            icon: Icons.file_download_rounded,
-            title: '导出本地记录',
-            subtitle: '计划、财务、饮食、锻炼',
-            onTap: () => _showSettingsSnack(context, '已生成本地导出任务'),
-          ),
         ],
       ),
     );
   }
 
-  void _showSettingsSnack(BuildContext context, String message) {
+  Future<void> _updateDailyReminder(
+    BuildContext context,
+    AppSettingsController settings,
+    bool enabled,
+  ) async {
+    final granted = await settings.updateDailyRecordReminder(enabled);
+    if (!context.mounted) {
+      return;
+    }
+    final message = enabled
+        ? granted
+            ? '每日记录提醒已开启'
+            : '通知权限未开启，无法提醒'
+        : '每日记录提醒已关闭';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -259,48 +253,57 @@ class _SettingsSwitchTile extends StatelessWidget {
     return Container(
       key: tileKey,
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.line),
       ),
-      child: Row(
-        children: [
-          _SettingsIcon(icon: icon),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => onChanged(!value),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+            child: Row(
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
+                _SettingsIcon(icon: icon),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
+                Switch(
+                  value: value,
+                  activeColor: AppColors.primary,
+                  onChanged: onChanged,
                 ),
               ],
             ),
           ),
-          Switch(
-            value: value,
-            activeColor: AppColors.primary,
-            onChanged: onChanged,
-          ),
-        ],
+        ),
       ),
     );
   }

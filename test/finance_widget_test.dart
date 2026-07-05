@@ -346,8 +346,12 @@ AI 已识别：
     await tester.pumpAndSettle();
 
     expect(find.text('账户余额'), findsOneWidget);
-    expect(find.textContaining('微信'), findsOneWidget);
-    expect(find.text('¥988.00'), findsOneWidget);
+    final wechatAsset = find.byKey(const ValueKey('finance_asset_account_微信'));
+    expect(wechatAsset, findsOneWidget);
+    expect(find.descendant(of: wechatAsset, matching: find.text('微信')),
+        findsOneWidget);
+    expect(find.descendant(of: wechatAsset, matching: find.text('¥988.00')),
+        findsOneWidget);
   });
 
   testWidgets('finance assets place negative sign after currency symbol',

@@ -935,8 +935,10 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
   String _activeBodyPart = '全部';
   String _lastFeedback = '刚好';
   bool _showOnlyUnfinished = false;
+  bool _showActionLibrary = false;
   int _defaultRestSeconds = 120;
   int _restSecondsLeft = 0;
+  Timer? _restTimer;
 
   int get _totalGroups =>
       _actions.fold(0, (total, action) => total + action.groups);
@@ -962,6 +964,15 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
       if (plan.id == session.planId) return plan;
     }
     return null;
+  }
+
+  WorkoutPlan? get _recommendedPlan {
+    for (final plan in widget.workoutPlans) {
+      if (plan.id == 'plan-quick-ten') {
+        return plan;
+      }
+    }
+    return widget.workoutPlans.isEmpty ? null : widget.workoutPlans.first;
   }
 
   WorkoutAction get _nextActionForCurrentScope {
@@ -1039,6 +1050,12 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     _maybeHandleQuickAction();
   }
 
+  @override
+  void dispose() {
+    _stopRestTimer();
+    super.dispose();
+  }
+
   void _maybeHandleQuickAction() {
     if (widget.quickAction != WidgetQuickAction.startWorkout ||
         widget.quickActionToken == _handledQuickActionToken) {
@@ -1073,35 +1090,26 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Column(
-              children: [
-                _WorkoutHeader(
-                  onOpenModules: widget.onOpenModules,
-                  onOpenMore: _openMoreSheet,
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: widget.moduleNav,
-                ),
-                _WorkoutTopTabs(
-                  selected: _selectedTopTab,
-                  onChanged: (index) => setState(() => _selectedTopTab = index),
-                ),
-                Expanded(child: _buildWorkoutContent()),
-              ],
+            _WorkoutHeader(
+              onOpenModules: widget.onOpenModules,
+              onOpenMore: _openMoreSheet,
             ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding:
-                    const EdgeInsets.only(bottom: moduleSwitchBarBottomGap),
-                child: WorkoutBottomNav(
-                  selectedIndex: _selectedBottomTab,
-                  onChanged: _handleBottomNav,
-                  keyPrefix: 'workout_bottom_nav',
-                ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: widget.moduleNav,
+            ),
+            _WorkoutTopTabs(
+              selected: _selectedTopTab,
+              onChanged: (index) => setState(() => _selectedTopTab = index),
+            ),
+            Expanded(child: _buildWorkoutContent()),
+            ModuleBottomNavSlot(
+              child: WorkoutBottomNav(
+                selectedIndex: _selectedBottomTab,
+                onChanged: _handleBottomNav,
+                keyPrefix: 'workout_bottom_nav',
               ),
             ),
           ],
@@ -1147,11 +1155,19 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         ? '未完成 ${visibleActions.length} / 全部 ${bodyPartActions.length}'
         : '${visibleActions.length} 个动作';
     final activePlan = _activePlan;
+    final recommendedPlan = _recommendedPlan;
+    final recommendedVariant = recommendedPlan == null
+        ? null
+        : _workoutPlanVariant(
+            recommendedPlan,
+            _actions,
+            _WorkoutPlanIntensity.medium,
+          );
+    final showActionLibrary = session != null || _showActionLibrary;
 
     return ListView(
       key: const ValueKey('workout_main_list'),
-      padding: const EdgeInsets.fromLTRB(
-          18, 18, 18, moduleSwitchBarReservedHeight + 24),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
       children: [
         if (session != null) ...[
           _WorkoutActivePlanBanner(plan: activePlan, session: session),
@@ -1179,6 +1195,100 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
                 setState(() => _activeAction = _nextActionForCurrentScope),
           ),
           const SizedBox(height: 12),
+          if (recommendedVariant != null) ...[
+            _WorkoutTodayRecommendationCard(
+              variant: recommendedVariant,
+              onStart: () => _startPlanTraining(
+                recommendedVariant.plan,
+                intensity: recommendedVariant.intensity,
+              ),
+              onViewPlan: () => _openPlanDetail(recommendedVariant.plan),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ],
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                session == null ? '动作库' : '当前动作',
+                style: TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            if (session == null)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_showActionLibrary) ...[
+                    Text(
+                      actionCountLabel,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  TextButton.icon(
+                    key: const ValueKey('workout_toggle_action_library'),
+                    onPressed: () => setState(
+                        () => _showActionLibrary = !_showActionLibrary),
+                    icon: Icon(
+                      _showActionLibrary
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                      size: 18,
+                    ),
+                    label: Text(_showActionLibrary ? '收起动作库' : '查看动作库'),
+                  ),
+                ],
+              )
+            else
+              Text(
+                actionCountLabel,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+          ],
+        ),
+        if (showActionLibrary) ...[
+          const SizedBox(height: 10),
+          _WorkoutBodyPartFilter(
+            parts: _bodyParts,
+            selected: _activeBodyPart,
+            onChanged: (part) => setState(() => _activeBodyPart = part),
+          ),
+          const SizedBox(height: 14),
+          const SizedBox(height: 10),
+          if (visibleActions.isEmpty)
+            const _WorkoutEmptyPartCard()
+          else
+            ...visibleActions.map(
+              (action) => _WorkoutActionCard(
+                action: action,
+                finishedGroups: _finishedGroupsFor(action),
+                onTap: () => setState(() {
+                  _activeAction = action;
+                }),
+              ),
+            ),
+        ],
+        const SizedBox(height: 2),
+        _WorkoutTodayStatsCard(
+          finishedGroups: _finishedGroupsTotal,
+          totalGroups: _totalGroups,
+          feedback: _lastFeedback,
+        ),
+        if (session == null) ...[
+          const SizedBox(height: 12),
           ModuleLinkedSummaryCard(
             title: '锻炼联动',
             subtitle: '训练组数会同步到健康和计划，饮食摄入辅助安排强度。',
@@ -1188,56 +1298,6 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
               ('已练', '$_finishedGroupsTotal 组'),
             ],
           ),
-          const SizedBox(height: 12),
-        ],
-        _WorkoutBodyPartFilter(
-          parts: _bodyParts,
-          selected: _activeBodyPart,
-          onChanged: (part) => setState(() => _activeBodyPart = part),
-        ),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                '当前动作',
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-            Text(
-              actionCountLabel,
-              style: const TextStyle(
-                color: AppColors.muted,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        if (visibleActions.isEmpty)
-          const _WorkoutEmptyPartCard()
-        else
-          ...visibleActions.map(
-            (action) => _WorkoutActionCard(
-              action: action,
-              finishedGroups: _finishedGroupsFor(action),
-              onTap: () => setState(() {
-                _activeAction = action;
-              }),
-            ),
-          ),
-        const SizedBox(height: 2),
-        _WorkoutTodayStatsCard(
-          finishedGroups: _finishedGroupsTotal,
-          totalGroups: _totalGroups,
-          feedback: _lastFeedback,
-        ),
-        if (session == null) ...[
           const SizedBox(height: 12),
           _WorkoutFoodLinkCard(
             foodCalories: widget.foodCalories,
@@ -1276,9 +1336,9 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
             Navigator.of(context).pop();
             _openPlanEdit(plan);
           },
-          onStart: () {
+          onStart: (intensity) {
             Navigator.of(context).pop();
-            _startPlanTraining(plan);
+            _startPlanTraining(plan, intensity: intensity);
           },
         );
       },
@@ -1366,6 +1426,30 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
 
   void _setDefaultRestSeconds(int seconds) {
     setState(() => _defaultRestSeconds = seconds);
+  }
+
+  void _startRestTimer() {
+    _stopRestTimer();
+    if (_restSecondsLeft <= 0) {
+      return;
+    }
+    _restTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) {
+        _stopRestTimer();
+        return;
+      }
+      setState(() {
+        _restSecondsLeft = math.max(0, _restSecondsLeft - 1);
+        if (_restSecondsLeft == 0) {
+          _stopRestTimer();
+        }
+      });
+    });
+  }
+
+  void _stopRestTimer() {
+    _restTimer?.cancel();
+    _restTimer = null;
   }
 
   void _editActivePlan() {
@@ -1457,6 +1541,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
       _activeAction = null;
       _restSecondsLeft = 0;
     });
+    _stopRestTimer();
     _showWorkoutSnack('今日进度已重置');
   }
 
@@ -1540,16 +1625,23 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         estimatedMinutes: entry.durationMinutes,
       ),
     );
-    _startPlanTraining(plan);
+    _startPlanTraining(
+      plan,
+      intensity: _workoutIntensityFromSessionName(entry.planName),
+    );
   }
 
-  void _startPlanTraining(WorkoutPlan plan) {
-    final planActions = _actionsForPlan(plan);
+  void _startPlanTraining(
+    WorkoutPlan plan, {
+    _WorkoutPlanIntensity intensity = _WorkoutPlanIntensity.medium,
+  }) {
+    final variant = _workoutPlanVariant(plan, _actions, intensity);
+    final planActions = variant.actions;
     if (planActions.isEmpty) return;
     final progress = {for (final action in planActions) action.name: 0};
     final session = ActiveWorkoutSession(
       planId: plan.id,
-      planName: plan.name,
+      planName: variant.sessionName,
       startedAt: DateTime.now(),
       actionProgress: progress,
     );
@@ -1582,6 +1674,11 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     widget.onUpdateActionGroups(action.name, nextCount);
     setState(() => _restSecondsLeft =
         nextCount >= action.groups ? 0 : _defaultRestSeconds);
+    if (_restSecondsLeft == 0) {
+      _stopRestTimer();
+    } else {
+      _startRestTimer();
+    }
   }
 
   void _finishActivePlan() {
@@ -1628,6 +1725,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
       _activeAction = null;
       _restSecondsLeft = 0;
     });
+    _stopRestTimer();
   }
 
   void _handleBottomNav(int index) {

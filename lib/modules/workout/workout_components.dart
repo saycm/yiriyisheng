@@ -225,6 +225,137 @@ class _WorkoutBadge extends StatelessWidget {
   }
 }
 
+class _WorkoutTodayRecommendationCard extends StatelessWidget {
+  const _WorkoutTodayRecommendationCard({
+    required this.variant,
+    required this.onStart,
+    required this.onViewPlan,
+  });
+
+  final _WorkoutPlanVariant variant;
+  final VoidCallback onStart;
+  final VoidCallback onViewPlan;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('workout_today_recommendation'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '今日推荐',
+                      style: TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      variant.sessionName,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _WorkoutBadge(
+                icon: Icons.timer_rounded,
+                label: '${variant.estimatedMinutes} 分钟',
+                color: const Color(0xFF43C6C8),
+              ),
+              _WorkoutBadge(
+                icon: Icons.fitness_center_rounded,
+                label: '${variant.actions.length} 动作',
+                color: AppColors.primary,
+              ),
+              _WorkoutBadge(
+                icon: Icons.check_circle_rounded,
+                label: '${variant.totalGroups} 组',
+                color: AppColors.success,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onViewPlan,
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.line),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  icon: const Icon(Icons.tune_rounded, size: 18),
+                  label: const Text(
+                    '调整强度',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onStart,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text(
+                    '开始训练',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _WorkoutTodayStatsCard extends StatelessWidget {
   const _WorkoutTodayStatsCard({
     required this.finishedGroups,

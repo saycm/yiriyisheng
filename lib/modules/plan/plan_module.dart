@@ -22,6 +22,7 @@ class PlanModulePage extends StatefulWidget {
     required this.onDeleteTodo,
     required this.onAddTodo,
     required this.onClearCompletedTodos,
+    required this.onOpenLinkedTodoAction,
     required this.quickAction,
     required this.quickActionToken,
     required this.onQuickActionHandled,
@@ -44,6 +45,7 @@ class PlanModulePage extends StatefulWidget {
   final ValueChanged<TodoItem> onDeleteTodo;
   final ValueChanged<TodoItem> onAddTodo;
   final VoidCallback onClearCompletedTodos;
+  final ValueChanged<TodoLinkedModule> onOpenLinkedTodoAction;
   final WidgetQuickAction? quickAction;
   final int quickActionToken;
   final VoidCallback onQuickActionHandled;
@@ -87,70 +89,59 @@ class _PlanModulePageState extends State<PlanModulePage>
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Column(
-              children: [
-                _PlanHeader(
-                  onOpenModules: widget.onOpenModules,
-                  onOpenMore: _openMoreSheet,
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: widget.moduleNav,
-                ),
-                _PlanDateToolbar(
-                  selectedDate: _selectedDate,
-                  onDateChanged: (date) => setState(() {
-                    _selectedDate = date;
-                    _selectedTab = 2;
-                  }),
-                ),
-                Expanded(
-                  child: _PlanBody(
-                    selectedTab: _selectedTab,
-                    selectedDate: _selectedDate,
-                    activeFilter: _categoryFilter,
-                    todos: widget.todos,
-                    events: widget.events,
-                    foodCalories: widget.foodCalories,
-                    workoutGroups: widget.workoutGroups,
-                    todayExpense: widget.todayExpense,
-                    healthStatusText: widget.healthStatusText,
-                    onSelectDate: (date) => setState(() {
-                      _selectedDate = date;
-                      _selectedTab = 2;
-                    }),
-                    onToggleTodo: _toggleTodo,
-                    onUpdateTodo: widget.onUpdateTodo,
-                    onPostponeTodo: widget.onPostponeTodo,
-                    onArchiveTodo: widget.onArchiveTodo,
-                    onDeleteTodo: widget.onDeleteTodo,
-                    onQuickCapture: _addInboxTodo,
-                    onAddTodo: widget.onAddTodo,
-                    onClearCompletedTodos: widget.onClearCompletedTodos,
-                  ),
-                ),
-              ],
+            _PlanHeader(
+              onOpenModules: widget.onOpenModules,
+              onOpenMore: _openMoreSheet,
             ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding:
-                    const EdgeInsets.only(bottom: moduleSwitchBarBottomGap),
-                child: PlanBottomNav(
-                  selectedIndex: _selectedTab,
-                  onChanged: (index) => setState(() => _selectedTab = index),
-                ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: widget.moduleNav,
+            ),
+            _PlanDateToolbar(
+              selectedDate: _selectedDate,
+              onDateChanged: (date) => setState(() {
+                _selectedDate = date;
+                _selectedTab = 2;
+              }),
+            ),
+            Expanded(
+              child: _PlanBody(
+                selectedTab: _selectedTab,
+                selectedDate: _selectedDate,
+                activeFilter: _categoryFilter,
+                todos: widget.todos,
+                events: widget.events,
+                foodCalories: widget.foodCalories,
+                workoutGroups: widget.workoutGroups,
+                todayExpense: widget.todayExpense,
+                healthStatusText: widget.healthStatusText,
+                onSelectDate: (date) => setState(() {
+                  _selectedDate = date;
+                  _selectedTab = 2;
+                }),
+                onToggleTodo: _toggleTodo,
+                onUpdateTodo: widget.onUpdateTodo,
+                onPostponeTodo: widget.onPostponeTodo,
+                onArchiveTodo: widget.onArchiveTodo,
+                onDeleteTodo: widget.onDeleteTodo,
+                onQuickCapture: _addInboxTodo,
+                onAddTodo: widget.onAddTodo,
+                onClearCompletedTodos: widget.onClearCompletedTodos,
+              ),
+            ),
+            ModuleBottomNavSlot(
+              child: PlanBottomNav(
+                selectedIndex: _selectedTab,
+                onChanged: (index) => setState(() => _selectedTab = index),
               ),
             ),
           ],
         ),
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(
-          bottom: moduleSwitchBarReservedHeight + 12,
-        ),
+        padding: const EdgeInsets.only(bottom: 12),
         child: FloatingActionButton.small(
           key: const ValueKey('plan_add_todo_fab'),
           onPressed: _showAddTodoSheet,

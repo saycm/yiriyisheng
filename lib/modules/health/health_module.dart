@@ -169,89 +169,71 @@ class _HealthModulePageState extends State<HealthModulePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Column(
-              children: [
-                _HealthHeader(
-                  onOpenModules: widget.onOpenModules,
-                  onOpenSummary: _openSummarySheet,
+            _HealthHeader(
+              onOpenModules: widget.onOpenModules,
+              onOpenSummary: _openSummarySheet,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: widget.moduleNav,
+            ),
+            Expanded(
+              child: ListView(
+                key: const ValueKey('health_main_list'),
+                padding: const EdgeInsets.fromLTRB(
+                  18,
+                  16,
+                  18,
+                  moduleSwitchBarReservedHeight + 24,
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: widget.moduleNav,
-                ),
-                Expanded(
-                  child: ListView(
-                    key: const ValueKey('health_main_list'),
-                    padding: const EdgeInsets.fromLTRB(
-                      18,
-                      16,
-                      18,
-                      moduleSwitchBarReservedHeight + 24,
-                    ),
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _HealthDateStrip(
-                            days: days,
-                            selectedDay: selectedDay,
-                            onSelect: (day) {
-                              setState(
-                                  () => _selectedIndex = days.indexOf(day));
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          _HealthStatusScoreCard(
-                            result: _statusResult,
-                            onRecord: _openManualRecordSheet,
-                          ),
-                          const SizedBox(height: 14),
-                          _HealthQuickRecordCard(
-                            sleep: _sleepFeeling,
-                            energy: _energyFeeling,
-                            stress: _stressFeeling,
-                            body: _bodyFeeling,
-                            mood: _moodFeeling,
-                            onSleepChanged: _updateSleepFeeling,
-                            onEnergyChanged: _updateEnergyFeeling,
-                            onStressChanged: _updateStressFeeling,
-                            onBodyChanged: _updateBodyFeeling,
-                            onMoodChanged: _updateMoodFeeling,
-                          ),
-                          const SizedBox(height: 14),
-                          _HealthImpactCard(impacts: _statusResult.impacts),
-                          const SizedBox(height: 14),
-                          _HealthStatusSuggestionCard(
-                            suggestions: _statusResult.suggestions,
-                          ),
-                          const SizedBox(height: 14),
-                          _HealthStatusTrendCard(result: _statusResult),
-                          const SizedBox(height: 14),
-                          _HealthExternalSourceEntry(
-                            snapshot: _systemHealth,
-                            loading: _loadingHealth,
-                            onTap: _openExternalSourceSheet,
-                          ),
-                        ],
+                      _HealthDateStrip(
+                        days: days,
+                        selectedDay: selectedDay,
+                        onSelect: (day) {
+                          setState(() => _selectedIndex = days.indexOf(day));
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _HealthStatusScoreCard(
+                        result: _statusResult,
+                        onRecord: _openManualRecordSheet,
+                      ),
+                      const SizedBox(height: 14),
+                      _HealthQuickRecordCard(
+                        sleep: _sleepFeeling,
+                        energy: _energyFeeling,
+                        stress: _stressFeeling,
+                        body: _bodyFeeling,
+                        mood: _moodFeeling,
+                        onSleepChanged: _updateSleepFeeling,
+                        onEnergyChanged: _updateEnergyFeeling,
+                        onStressChanged: _updateStressFeeling,
+                        onBodyChanged: _updateBodyFeeling,
+                        onMoodChanged: _updateMoodFeeling,
+                      ),
+                      const SizedBox(height: 14),
+                      _HealthImpactCard(impacts: _statusResult.impacts),
+                      const SizedBox(height: 14),
+                      _HealthStatusSuggestionCard(
+                        suggestions: _statusResult.suggestions,
+                      ),
+                      const SizedBox(height: 14),
+                      _HealthStatusTrendCard(result: _statusResult),
+                      const SizedBox(height: 14),
+                      _HealthExternalSourceEntry(
+                        snapshot: _systemHealth,
+                        loading: _loadingHealth,
+                        onTap: _openExternalSourceSheet,
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding:
-                    const EdgeInsets.only(bottom: moduleSwitchBarBottomGap),
-                child: WorkoutBottomNav(
-                  selectedIndex: 0,
-                  keyPrefix: 'health_bottom_nav',
-                  items: const [(Icons.monitor_heart_rounded, '总览')],
-                  onChanged: (_) {},
-                ),
+                ],
               ),
             ),
           ],

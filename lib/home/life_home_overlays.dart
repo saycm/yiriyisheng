@@ -57,23 +57,6 @@ extension _LifeHomeOverlays on _LifeHomePageState {
     });
   }
 
-  void _openTodoLinkedActionSheet(TodoItem todo) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return _TodoLinkedActionSheet(
-          todo: todo,
-          onSelect: (module) {
-            Navigator.of(context).pop();
-            _openLinkedModuleAction(module);
-          },
-        );
-      },
-    );
-  }
-
   void _openLinkedModuleAction(TodoLinkedModule linkedModule) {
     final target = linkedModule.lifeModule;
     final action = linkedModule.quickAction;

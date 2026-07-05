@@ -12,6 +12,7 @@ class _InboxView extends StatelessWidget {
     required this.onArchive,
     required this.onDelete,
     required this.onQuickCapture,
+    required this.onUpdate,
   });
 
   final List<TodoItem> inboxTodos;
@@ -22,17 +23,28 @@ class _InboxView extends StatelessWidget {
   final ValueChanged<TodoItem> onArchive;
   final ValueChanged<TodoItem> onDelete;
   final ValueChanged<String> onQuickCapture;
+  final ValueChanged<TodoItem> onUpdate;
 
   @override
   Widget build(BuildContext context) {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final triageGroups = _inboxTriageGroups(inboxTodos, today);
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         18,
         0,
         18,
-        moduleSwitchBarReservedHeight + 88,
+        88,
       ),
       children: [
+        _InboxTriageHeader(
+          total: inboxTodos.length,
+          noDateCount: triageGroups.noDate.length,
+          lowPriorityCount: triageGroups.lowPriority.length,
+          staleCount: triageGroups.stale.length,
+        ),
+        const SizedBox(height: 12),
         _InboxQuickCaptureCard(
           onTap: () => _openQuickCaptureSheet(context),
         ),
@@ -52,14 +64,10 @@ class _InboxView extends StatelessWidget {
             subtitle: '没有日期的任务会先收集在这里，想清楚后再安排到今天或本周。',
           )
         else
-          ...inboxTodos.map(
-            (todo) => _TodoCard(
-              todo: todo,
-              onTap: () => onToggle(todo),
-              onPostpone: () => onPostpone(todo),
-              onArchive: () => onArchive(todo),
-              onDelete: () => onDelete(todo),
-            ),
+          ..._buildTriageSections(
+            context,
+            groups: triageGroups,
+            today: today,
           ),
         const SizedBox(height: 18),
         _PlanArchiveSection(
@@ -74,6 +82,77 @@ class _InboxView extends StatelessWidget {
           emptyText: '暂时不处理但不想删除的任务可以归档。',
         ),
       ],
+    );
+  }
+
+  List<Widget> _buildTriageSections(
+    BuildContext context, {
+    required _InboxTriageGroups groups,
+    required DateTime today,
+  }) {
+    final sections = <Widget>[];
+    void addSection(String title, String subtitle, List<TodoItem> todos) {
+      if (todos.isEmpty) {
+        return;
+      }
+      if (sections.isNotEmpty) {
+        sections.add(const SizedBox(height: 12));
+      }
+      sections.add(
+        _InboxTriageSection(
+          title: title,
+          subtitle: subtitle,
+          todos: todos,
+          onToggle: onToggle,
+          onArchive: onArchive,
+          onDelete: onDelete,
+          onScheduleToday: (todo) => _scheduleTodo(
+            context,
+            todo,
+            today,
+            '已安排到今天',
+          ),
+          onScheduleTomorrow: (todo) => _scheduleTodo(
+            context,
+            todo,
+            today.add(const Duration(days: 1)),
+            '已安排到明天',
+          ),
+          onScheduleWeek: (todo) => _scheduleTodo(
+            context,
+            todo,
+            today.add(Duration(days: 7 - today.weekday)),
+            '已安排到本周',
+          ),
+          onPostpone: onPostpone,
+        ),
+      );
+    }
+
+    addSection('无日期', '还没决定哪天做，先排到今天、明天或本周。', groups.noDate);
+    addSection('无分类', '分类信息不完整，后续可以补充到更准确的领域。', groups.noCategory);
+    addSection('已过期', '这些任务已经错过原日期，需要重新安排。', groups.stale);
+    addSection('低优先级', '可推迟事项不要挤占今天的核心精力。', groups.lowPriority);
+    return sections;
+  }
+
+  void _scheduleTodo(
+    BuildContext context,
+    TodoItem todo,
+    DateTime targetDay,
+    String message,
+  ) {
+    onUpdate(
+      todo.copyWith(
+        dueDate: DateUtils.dateOnly(targetDay),
+        status: TodoStatus.notStarted,
+      ),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -92,6 +171,305 @@ class _InboxView extends StatelessWidget {
       },
     );
   }
+}
+
+class _InboxTriageHeader extends StatelessWidget {
+  const _InboxTriageHeader({
+    required this.total,
+    required this.noDateCount,
+    required this.lowPriorityCount,
+    required this.staleCount,
+  });
+
+  final int total;
+  final int noDateCount;
+  final int lowPriorityCount;
+  final int staleCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('plan_inbox_triage_center'),
+      padding: const EdgeInsets.all(14),
+      decoration: airyCardDecoration(
+        color: AppColors.surface.withValues(alpha: 0.96),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.rule_folder_rounded, color: AppColors.primary),
+              SizedBox(width: 8),
+              Text(
+                '收集整理中心',
+                style: TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '先把脑子里的事收进来，再决定今天做、本周做，还是暂时归档。',
+            style: TextStyle(
+              color: AppColors.muted,
+              fontSize: 12,
+              height: 1.35,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _InboxTriageMetric(label: '待整理', value: total)),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: _InboxTriageMetric(label: '无日期', value: noDateCount)),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: _InboxTriageMetric(
+                      label: '低优先级', value: lowPriorityCount)),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: _InboxTriageMetric(label: '已过期', value: staleCount)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InboxTriageMetric extends StatelessWidget {
+  const _InboxTriageMetric({required this.label, required this.value});
+
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.primarySoft,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.primary,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '$value',
+            style: const TextStyle(
+              color: AppColors.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InboxTriageSection extends StatelessWidget {
+  const _InboxTriageSection({
+    required this.title,
+    required this.subtitle,
+    required this.todos,
+    required this.onToggle,
+    required this.onArchive,
+    required this.onDelete,
+    required this.onScheduleToday,
+    required this.onScheduleTomorrow,
+    required this.onScheduleWeek,
+    required this.onPostpone,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<TodoItem> todos;
+  final ValueChanged<TodoItem> onToggle;
+  final ValueChanged<TodoItem> onArchive;
+  final ValueChanged<TodoItem> onDelete;
+  final ValueChanged<TodoItem> onScheduleToday;
+  final ValueChanged<TodoItem> onScheduleTomorrow;
+  final ValueChanged<TodoItem> onScheduleWeek;
+  final ValueChanged<TodoItem> onPostpone;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '$title  ${todos.length}',
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const Icon(Icons.tune_rounded,
+                  color: AppColors.primary, size: 18),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 12,
+              height: 1.35,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          for (final todo in todos)
+            _InboxTriageTodoTile(
+              todo: todo,
+              onToggle: () => onToggle(todo),
+              onArchive: () => onArchive(todo),
+              onDelete: () => onDelete(todo),
+              onScheduleToday: () => onScheduleToday(todo),
+              onScheduleTomorrow: () => onScheduleTomorrow(todo),
+              onScheduleWeek: () => onScheduleWeek(todo),
+              onPostpone: () => onPostpone(todo),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InboxTriageTodoTile extends StatelessWidget {
+  const _InboxTriageTodoTile({
+    required this.todo,
+    required this.onToggle,
+    required this.onArchive,
+    required this.onDelete,
+    required this.onScheduleToday,
+    required this.onScheduleTomorrow,
+    required this.onScheduleWeek,
+    required this.onPostpone,
+  });
+
+  final TodoItem todo;
+  final VoidCallback onToggle;
+  final VoidCallback onArchive;
+  final VoidCallback onDelete;
+  final VoidCallback onScheduleToday;
+  final VoidCallback onScheduleTomorrow;
+  final VoidCallback onScheduleWeek;
+  final VoidCallback onPostpone;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  todo.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              _PriorityChip(priority: todo.priority),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _ScheduleActionChip(label: '排今天', onTap: onScheduleToday),
+              _ScheduleActionChip(label: '排明天', onTap: onScheduleTomorrow),
+              _ScheduleActionChip(label: '排本周', onTap: onScheduleWeek),
+              _ScheduleActionChip(label: '稍后', onTap: onPostpone),
+              _ScheduleActionChip(label: '归档', onTap: onArchive),
+              _ScheduleActionChip(label: '完成', onTap: onToggle),
+              _ScheduleActionChip(label: '删除', onTap: onDelete),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+typedef _InboxTriageGroups = ({
+  List<TodoItem> noDate,
+  List<TodoItem> noCategory,
+  List<TodoItem> stale,
+  List<TodoItem> lowPriority,
+});
+
+_InboxTriageGroups _inboxTriageGroups(List<TodoItem> todos, DateTime today) {
+  final noDate = <TodoItem>[];
+  final noCategory = <TodoItem>[];
+  final stale = <TodoItem>[];
+  final lowPriority = <TodoItem>[];
+  for (final todo in todos) {
+    if (todo.dueDate == null) {
+      noDate.add(todo);
+    }
+    if (todo.category.trim().isEmpty || todo.category == '自定义') {
+      noCategory.add(todo);
+    }
+    final dueDate = todo.dueDate;
+    if (dueDate != null && dueDate.isBefore(today)) {
+      stale.add(todo);
+    }
+    if (todo.priority == TodoPriority.canDelay) {
+      lowPriority.add(todo);
+    }
+  }
+  return (
+    noDate: noDate..sort(_sortPlanTodos),
+    noCategory: noCategory..sort(_sortPlanTodos),
+    stale: stale..sort(_sortPlanTodos),
+    lowPriority: lowPriority..sort(_sortPlanTodos),
+  );
 }
 
 class _InboxQuickCaptureCard extends StatelessWidget {

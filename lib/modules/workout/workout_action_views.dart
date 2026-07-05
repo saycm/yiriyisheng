@@ -197,8 +197,7 @@ class _WorkoutActionDetailPage extends StatelessWidget {
       body: SafeArea(
         child: ListView(
           key: const ValueKey('workout_action_detail_list'),
-          padding: const EdgeInsets.fromLTRB(
-              18, 10, 18, 112 + moduleSwitchBarReservedHeight),
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
           children: [
             Row(
               children: [

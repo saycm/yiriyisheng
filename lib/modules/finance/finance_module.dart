@@ -97,34 +97,25 @@ class _FinanceModulePageState extends State<FinanceModulePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Column(
-              children: [
-                _FinanceHeader(
-                  onOpenModules: widget.onOpenModules,
-                  onAiRecord: _openAiRecordSheet,
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: widget.moduleNav,
-                ),
-                _FinanceHeaderActions(
-                  onAiRecord: _openAiRecordSheet,
-                  onAddRecord: () => _openRecordSheet(),
-                ),
-                Expanded(child: _buildContent()),
-              ],
+            _FinanceHeader(
+              onOpenModules: widget.onOpenModules,
+              onAiRecord: _openAiRecordSheet,
             ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding:
-                    const EdgeInsets.only(bottom: moduleSwitchBarBottomGap),
-                child: FinanceBottomNav(
-                  selectedIndex: _selectedTab,
-                  onChanged: (index) => setState(() => _selectedTab = index),
-                ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: widget.moduleNav,
+            ),
+            _FinanceHeaderActions(
+              onAiRecord: _openAiRecordSheet,
+              onAddRecord: () => _openRecordSheet(),
+            ),
+            Expanded(child: _buildContent()),
+            ModuleBottomNavSlot(
+              child: FinanceBottomNav(
+                selectedIndex: _selectedTab,
+                onChanged: (index) => setState(() => _selectedTab = index),
               ),
             ),
           ],

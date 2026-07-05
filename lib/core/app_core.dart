@@ -1,6 +1,7 @@
 // 中文注释：全局基础配置，集中放置颜色、版本和跨模块常量。
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 enum LifeModule { plan, finance, food, workout, health }
 
@@ -31,17 +32,138 @@ class AppColors {
   static const roseSoft = Color(0xFFFFEEF2);
 }
 
+enum AppThemePreference { system, light, dark }
+
+extension AppThemePreferenceX on AppThemePreference {
+  String get storageKey {
+    switch (this) {
+      case AppThemePreference.light:
+        return 'light';
+      case AppThemePreference.dark:
+        return 'dark';
+      case AppThemePreference.system:
+        return 'system';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case AppThemePreference.light:
+        return '浅色';
+      case AppThemePreference.dark:
+        return '深色';
+      case AppThemePreference.system:
+        return '跟随系统';
+    }
+  }
+
+  ThemeMode get themeMode {
+    switch (this) {
+      case AppThemePreference.light:
+        return ThemeMode.light;
+      case AppThemePreference.dark:
+        return ThemeMode.dark;
+      case AppThemePreference.system:
+        return ThemeMode.system;
+    }
+  }
+
+  static AppThemePreference fromStorageKey(String? raw) {
+    switch (raw) {
+      case 'light':
+        return AppThemePreference.light;
+      case 'dark':
+        return AppThemePreference.dark;
+      default:
+        return AppThemePreference.system;
+    }
+  }
+}
+
+class AppSettingsController extends ChangeNotifier {
+  AppSettingsController();
+
+  static const _channel = MethodChannel('pingsheng_life/app_preferences');
+
+  AppThemePreference _themePreference = AppThemePreference.system;
+  bool _dailyRecordReminderEnabled = false;
+
+  AppThemePreference get themePreference => _themePreference;
+  bool get dailyRecordReminderEnabled => _dailyRecordReminderEnabled;
+
+  Future<void> load() async {
+    try {
+      final result = await _channel.invokeMapMethod<String, Object?>(
+        'loadAppPreferences',
+      );
+      _themePreference = AppThemePreferenceX.fromStorageKey(
+        result?['themeMode'] as String?,
+      );
+      _dailyRecordReminderEnabled =
+          result?['dailyRecordReminderEnabled'] as bool? ?? false;
+      notifyListeners();
+    } on MissingPluginException {
+      // 桌面测试环境没有原生设置通道，保留默认设置即可。
+    }
+  }
+
+  Future<void> updateThemePreference(AppThemePreference preference) async {
+    _themePreference = preference;
+    notifyListeners();
+    try {
+      await _channel.invokeMethod<void>('saveThemeMode', {
+        'themeMode': preference.storageKey,
+      });
+    } on MissingPluginException {
+      // 非 Android 环境只更新当前会话，不影响主流程。
+    }
+  }
+
+  Future<bool> updateDailyRecordReminder(bool enabled) async {
+    try {
+      final result = await _channel.invokeMapMethod<String, Object?>(
+        'setDailyRecordReminder',
+        {'enabled': enabled},
+      );
+      _dailyRecordReminderEnabled =
+          result?['enabled'] as bool? ?? (enabled && result != null);
+      notifyListeners();
+      return result?['permissionGranted'] as bool? ??
+          _dailyRecordReminderEnabled;
+    } on MissingPluginException {
+      _dailyRecordReminderEnabled = enabled;
+      notifyListeners();
+      return enabled;
+    }
+  }
+}
+
+class AppSettingsScope extends InheritedNotifier<AppSettingsController> {
+  const AppSettingsScope({
+    super.key,
+    required AppSettingsController controller,
+    required super.child,
+  }) : super(notifier: controller);
+
+  static AppSettingsController of(BuildContext context) {
+    final scope =
+        context.dependOnInheritedWidgetOfExactType<AppSettingsScope>();
+    assert(scope?.notifier != null, 'AppSettingsScope not found');
+    return scope!.notifier!;
+  }
+}
+
 const String apiBaseUrl = String.fromEnvironment(
   'PINGSHENG_API_BASE_URL',
   defaultValue: 'http://192.168.20.11:3000',
 );
 const String appVersionName = String.fromEnvironment(
   'PINGSHENG_APP_VERSION_NAME',
-  defaultValue: '1.0.46',
+  defaultValue: '1.0.53',
 );
 const int appVersionCode = int.fromEnvironment(
   'PINGSHENG_APP_VERSION_CODE',
-  defaultValue: 47,
+  defaultValue: 54,
 );
 
 final RegExp authHiddenOrWhitespacePattern =

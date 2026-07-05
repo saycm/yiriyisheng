@@ -46,14 +46,16 @@ class _PlanBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = DateUtils.dateOnly(DateTime.now());
-    final todayTodos = todos.where((todo) {
+    final actionableTodayTodos = todos.where((todo) {
       final dueDate = todo.dueDate;
       return todo.isActive && dueDate != null && !dueDate.isAfter(today);
     }).toList()
       ..sort(_sortPlanTodos);
     final filteredTodayTodos = activeFilter == '全部'
-        ? todayTodos
-        : todayTodos.where((todo) => todo.category == activeFilter).toList();
+        ? actionableTodayTodos
+        : actionableTodayTodos
+            .where((todo) => todo.category == activeFilter)
+            .toList();
 
     if (selectedTab == 1) {
       return _InboxView(
@@ -69,6 +71,7 @@ class _PlanBody extends StatelessWidget {
         onArchive: onArchiveTodo,
         onDelete: onDeleteTodo,
         onQuickCapture: onQuickCapture,
+        onUpdate: onUpdateTodo,
       );
     }
     if (selectedTab == 2) {
@@ -91,14 +94,14 @@ class _PlanBody extends StatelessWidget {
         workoutGroups: workoutGroups,
       );
     }
-    return _TodoList(
-      title: '今日计划',
+    return _TodayExecutionView(
+      title: '今日执行',
       emptyTitle: '今天没有待处理事项',
       emptySubtitle: '可以把无日期任务从待办箱安排到今天，或新增一个今日任务。',
       todos: filteredTodayTodos,
       activeFilter: activeFilter,
       header: _TodayOverviewCard(
-        pendingTodos: todayTodos.length,
+        pendingTodos: actionableTodayTodos.length,
         todayExpense: todayExpense,
         foodCalories: foodCalories,
         workoutGroups: workoutGroups,

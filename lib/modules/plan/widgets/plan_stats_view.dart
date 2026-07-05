@@ -21,6 +21,14 @@ class _PlanStatsView extends StatelessWidget {
         todos.where((todo) => todo.status != TodoStatus.archived).toList();
     final total = actionable.length;
     final done = todos.where((todo) => todo.done).length;
+    final activeTodos = todos.where((todo) => todo.isActive).toList();
+    final today = DateUtils.dateOnly(DateTime.now());
+    final overdueCount = activeTodos.where((todo) {
+      final dueDate = todo.dueDate;
+      return dueDate != null && dueDate.isBefore(today);
+    }).length;
+    final undatedCount =
+        activeTodos.where((todo) => todo.dueDate == null).length;
     final percent = total == 0 ? 0 : (done * 100 / total).round();
     final postponed = todos
         .where(
@@ -38,11 +46,19 @@ class _PlanStatsView extends StatelessWidget {
     final linkedInsight = foodCalories == 0 && workoutGroups == 0
         ? '记录饮食和锻炼后，计划会自动把摄入、训练和待办放在一起复盘。'
         : '饮食 $foodCalories kcal，锻炼 $workoutGroups 组，今天的计划可以按真实状态微调。';
+    final nextWeekAdvice = _buildNextWeekAdvice(
+      activeCount: activeTodos.length,
+      postponedCount: postponed.length,
+      overdueCount: overdueCount,
+      undatedCount: undatedCount,
+      foodCalories: foodCalories,
+      workoutGroups: workoutGroups,
+    );
     final moments = <(String, String)>[
-      ('🍽️', '饮食模块今日已记录 $foodCalories kcal'),
-      ('🏋️', '锻炼模块今日已完成 $workoutGroups 组'),
-      ('📘', '$total 项任务已完成 $done 项，完成率 $percent%'),
-      ('⏳', '${postponed.length} 项任务被延后过'),
+      ('饮食', '今日已记录 $foodCalories kcal'),
+      ('锻炼', '今日已完成 $workoutGroups 组'),
+      ('计划', '$total 项任务已完成 $done 项，完成率 $percent%'),
+      ('延后', '${postponed.length} 项任务被延后过'),
     ];
 
     return ListView(
@@ -50,7 +66,7 @@ class _PlanStatsView extends StatelessWidget {
         18,
         0,
         18,
-        moduleSwitchBarReservedHeight + 88,
+        88,
       ),
       children: [
         _WeeklyProgressCard(
@@ -67,8 +83,13 @@ class _PlanStatsView extends StatelessWidget {
         _PlanReviewMetricsCard(
           completedRate: percent,
           postponedCount: postponed.length,
+          activeCount: activeTodos.length,
+          overdueCount: overdueCount,
+          undatedCount: undatedCount,
           delayedCategories: topDelayed.take(3).toList(),
         ),
+        const SizedBox(height: 16),
+        _NextWeekAdviceCard(advices: nextWeekAdvice),
         const SizedBox(height: 16),
         _LifeEventFeedCard(events: events.take(4).toList()),
         const SizedBox(height: 16),
@@ -108,7 +129,7 @@ class _PlanStatsView extends StatelessWidget {
         const SizedBox(height: 18),
         const _ReviewSectionTitle(
           icon: Icons.layers_rounded,
-          title: '这段时间的几个数字',
+          title: '这周真实数据',
         ),
         const SizedBox(height: 10),
         GridView.count(
@@ -119,17 +140,17 @@ class _PlanStatsView extends StatelessWidget {
           mainAxisSpacing: 12,
           childAspectRatio: 1.58,
           children: [
-            const _NumberCard(
-              icon: Icons.directions_walk_rounded,
-              value: '20,885步',
-              label: '总步数',
-              color: Color(0xFF7D9CFF),
+            _NumberCard(
+              icon: Icons.inbox_rounded,
+              value: '$undatedCount 项',
+              label: '待整理',
+              color: const Color(0xFF7D9CFF),
             ),
-            const _NumberCard(
-              icon: Icons.payments_rounded,
-              value: '499.96元',
-              label: '最大单笔',
-              color: Color(0xFFE85C59),
+            _NumberCard(
+              icon: Icons.warning_amber_rounded,
+              value: '$overdueCount 项',
+              label: '逾期待排',
+              color: AppColors.financeRed,
             ),
             _NumberCard(
               icon: Icons.local_fire_department_rounded,
@@ -189,11 +210,17 @@ class _PlanReviewMetricsCard extends StatelessWidget {
   const _PlanReviewMetricsCard({
     required this.completedRate,
     required this.postponedCount,
+    required this.activeCount,
+    required this.overdueCount,
+    required this.undatedCount,
     required this.delayedCategories,
   });
 
   final int completedRate;
   final int postponedCount;
+  final int activeCount;
+  final int overdueCount;
+  final int undatedCount;
   final List<MapEntry<String, int>> delayedCategories;
 
   @override
@@ -241,17 +268,39 @@ class _PlanReviewMetricsCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: _PlanMetricPill(
-                  label: '拖延任务',
-                  value: '$postponedCount 项',
+                  label: '未完成',
+                  value: '$activeCount 项',
                   icon: Icons.event_repeat_rounded,
                   color: AppColors.financeRed,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _PlanMetricPill(
+                  label: '延后任务',
+                  value: '$postponedCount 项',
+                  icon: Icons.low_priority_rounded,
+                  color: const Color(0xFFFF9559),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _PlanMetricPill(
+                  label: '待整理',
+                  value: '$undatedCount 项',
+                  icon: Icons.inbox_rounded,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           Text(
-            '常被延后的分类：$delayedText',
+            '常被延后的分类：$delayedText；逾期待排 $overdueCount 项。',
             style: const TextStyle(
               color: AppColors.muted,
               fontSize: 12,
@@ -259,6 +308,74 @@ class _PlanReviewMetricsCard extends StatelessWidget {
               height: 1.4,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NextWeekAdviceCard extends StatelessWidget {
+  const _NextWeekAdviceCard({required this.advices});
+
+  final List<String> advices;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.lightbulb_rounded, color: AppColors.primary),
+              SizedBox(width: 8),
+              Text(
+                '下周建议',
+                style: TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          for (final advice in advices)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 9),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    margin: const EdgeInsets.only(top: 6),
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      advice,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 13,
+                        height: 1.4,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -491,7 +608,7 @@ class _WeeklyProgressCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '本周回顾',
+                  '本周复盘',
                   style: TextStyle(
                     color: AppColors.ink,
                     fontSize: 20,
@@ -705,4 +822,34 @@ class _NumberCard extends StatelessWidget {
       ),
     );
   }
+}
+
+List<String> _buildNextWeekAdvice({
+  required int activeCount,
+  required int postponedCount,
+  required int overdueCount,
+  required int undatedCount,
+  required int foodCalories,
+  required int workoutGroups,
+}) {
+  final advices = <String>[];
+  if (undatedCount > 0) {
+    advices.add('先把 $undatedCount 项待整理任务排进具体日期，待办箱不要长期堆着。');
+  }
+  if (overdueCount > 0) {
+    advices.add('下周开始前先处理 $overdueCount 项逾期任务，能做就重排，低价值就归档。');
+  }
+  if (postponedCount > 0) {
+    advices.add('有 $postponedCount 项任务被延后过，建议把低优先级事项集中放到周末或下周。');
+  }
+  if (activeCount >= 6) {
+    advices.add('未完成任务偏多，下周每天最多安排 3 件核心事项，其他放入稍后处理。');
+  }
+  if (foodCalories == 0 || workoutGroups == 0) {
+    advices.add('计划复盘已经接入饮食和锻炼，补记录后能更准确判断当天状态。');
+  }
+  if (advices.isEmpty) {
+    advices.add('下周保持现在的节奏，继续用待办箱收集，用周计划分配每天负载。');
+  }
+  return advices.take(3).toList(growable: false);
 }

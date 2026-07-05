@@ -40,6 +40,36 @@ void main() {
 
   testWidgets('module settings opens and options are interactive',
       (tester) async {
+    final preferenceCalls = <MethodCall>[];
+    const preferencesChannel = MethodChannel('pingsheng_life/app_preferences');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      preferencesChannel,
+      (call) async {
+        preferenceCalls.add(call);
+        switch (call.method) {
+          case 'loadAppPreferences':
+            return {
+              'themeMode': 'system',
+              'dailyRecordReminderEnabled': false,
+            };
+          case 'saveThemeMode':
+            return null;
+          case 'setDailyRecordReminder':
+            return {
+              'enabled': call.arguments['enabled'] as bool,
+              'permissionGranted': true,
+            };
+        }
+        return null;
+      },
+    );
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        preferencesChannel,
+        null,
+      );
+    });
+
     await tester.pumpWidget(const PingShengApp());
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
@@ -66,6 +96,29 @@ void main() {
 
     expect(find.text('默认餐次'), findsOneWidget);
     expect(find.text('晚餐'), findsWidgets);
+    expect(find.text('刷新桌面小组件'), findsNothing);
+    expect(find.text('导出本地记录'), findsNothing);
+
+    expect(find.text('外观模式'), findsNothing);
+    expect(find.byKey(const ValueKey('setting_choice_深色')), findsNothing);
+    expect(preferenceCalls.any((call) => call.method == 'saveThemeMode'),
+        isFalse);
+
+    final dailyReminder = find.byKey(const ValueKey('setting_daily_reminder'));
+    await tester.ensureVisible(dailyReminder);
+    await tester.pumpAndSettle();
+    await tester.tap(dailyReminder);
+    await tester.pumpAndSettle();
+
+    expect(find.text('每日记录提醒已开启'), findsOneWidget);
+    expect(
+      preferenceCalls.any(
+        (call) =>
+            call.method == 'setDailyRecordReminder' &&
+            call.arguments['enabled'] == true,
+      ),
+      isTrue,
+    );
 
     final qaTile = find.text('Q&A');
     await tester.scrollUntilVisible(
@@ -177,7 +230,8 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('plan_header_date_button')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('plan_glass_date_picker')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('plan_glass_date_picker')), findsOneWidget);
     expect(find.byType(CalendarDatePicker), findsOneWidget);
   });
 
@@ -213,7 +267,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('plan_header_date_button')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('plan_glass_date_picker')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('plan_glass_date_picker')), findsOneWidget);
     expect(find.byType(CalendarDatePicker), findsOneWidget);
   });
 
@@ -273,7 +328,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
 
-    expect(find.text('今日计划  4'), findsOneWidget);
+    expect(find.text('今日执行  4'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
     await tester.pumpAndSettle();
@@ -296,7 +351,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('module_link_1')));
     await tester.pumpAndSettle();
-    expect(find.text('今日计划  4'), findsOneWidget);
+    expect(find.text('今日执行  4'), findsOneWidget);
   });
 
   testWidgets('home widget initial route opens target module', (tester) async {
@@ -519,6 +574,11 @@ void main() {
     await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded).first);
     await tester.pumpAndSettle();
 
+    await dragUntilFound(
+      tester,
+      find.text('锻炼联动'),
+      scrollable: find.byKey(const ValueKey('workout_main_list')),
+    );
     expect(find.text('锻炼联动'), findsOneWidget);
     expect(find.text('80 kcal'), findsWidgets);
     expect(find.text('1 组'), findsWidgets);

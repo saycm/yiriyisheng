@@ -41,8 +41,7 @@ class _WorkoutDataView extends StatelessWidget {
     final maxWeight = _maxWeightFrom(todayRecords);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
-          18, 18, 18, moduleSwitchBarReservedHeight + 24),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
       children: [
         GridView.count(
           crossAxisCount: 2,
@@ -122,22 +121,6 @@ class _WorkoutDataView extends StatelessWidget {
                 records: recentRecords,
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Container(
-          height: 170,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: CustomPaint(
-            painter: TinyBarsPainter(
-              values: const [8, 10, 7, 12, 6, 14, 9, 13, 10, 11, 15, 12],
-              color: AppColors.primary,
-            ),
-            child: const SizedBox.expand(),
           ),
         ),
       ],

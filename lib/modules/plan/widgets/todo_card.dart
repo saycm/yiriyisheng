@@ -19,11 +19,15 @@ class _TodoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
       margin: const EdgeInsets.only(bottom: 14),
       decoration: airyCardDecoration(
-        color: AppColors.surface.withValues(alpha: 0.97),
-        shadows: [airyShadow(todo.color)],
+        color: todo.done
+            ? AppColors.primarySoft.withValues(alpha: 0.78)
+            : AppColors.surface.withValues(alpha: 0.97),
+        shadows: [airyShadow(todo.done ? AppColors.success : todo.color)],
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
@@ -50,9 +54,28 @@ class _TodoCard extends StatelessWidget {
                         width: 2,
                       ),
                     ),
-                    child: todo.done
-                        ? const Icon(Icons.check, size: 15, color: Colors.white)
-                        : null,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 140),
+                      transitionBuilder: (child, animation) {
+                        return ScaleTransition(
+                          scale: animation,
+                          child: FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: todo.done
+                          ? const Icon(
+                              Icons.check,
+                              key: ValueKey('todo_check_done'),
+                              size: 15,
+                              color: Colors.white,
+                            )
+                          : const SizedBox(
+                              key: ValueKey('todo_check_empty'),
+                            ),
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
