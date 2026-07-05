@@ -307,3 +307,40 @@ func TestFeedbackTableIsCreated(t *testing.T) {
 	}
 	_ = app
 }
+
+func TestCreateFeedback(t *testing.T) {
+	app := newTestApp(t)
+
+	status, payload := app.jsonRequest(t, http.MethodPost, "/v1/feedback", map[string]any{
+		"type":           "界面显示",
+		"content":        "桌面小组件今日支出显示不全",
+		"contact":        "微信 saycm",
+		"platform":       "android",
+		"appVersionName": "1.0.59",
+		"appVersionCode": 60,
+		"deviceInfo":     "Android 15",
+	}, nil)
+	if status != http.StatusCreated {
+		t.Fatalf("create feedback status = %d, payload = %#v", status, payload)
+	}
+	feedback := payload["feedback"].(map[string]any)
+	if feedback["id"] == "" || feedback["status"] != "pending" {
+		t.Fatalf("unexpected feedback receipt: %#v", feedback)
+	}
+}
+
+func TestCreateFeedbackValidatesContent(t *testing.T) {
+	app := newTestApp(t)
+
+	status, payload := app.jsonRequest(t, http.MethodPost, "/v1/feedback", map[string]any{
+		"type":    "问题",
+		"content": "短",
+	}, nil)
+	if status != http.StatusBadRequest {
+		t.Fatalf("short feedback status = %d, payload = %#v", status, payload)
+	}
+	errorBody := payload["error"].(map[string]any)
+	if errorBody["code"] != "invalid_feedback_content" {
+		t.Fatalf("unexpected error: %#v", payload)
+	}
+}
