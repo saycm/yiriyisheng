@@ -179,7 +179,8 @@ void main() {
       find.text('遛狗'),
       scrollable: find.byType(Scrollable).last,
     );
-    await tester.tap(find.text('遛狗'));
+    final dogCard = find.byKey(const ValueKey('todo_card_遛狗'));
+    await tester.tap(find.descendant(of: dogCard, matching: find.text('完成')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);

@@ -240,6 +240,8 @@ void main() {
         findsOneWidget);
     expect(
         find.byKey(const ValueKey('health_status_trend_card')), findsOneWidget);
+    expect(find.byKey(const ValueKey('health_status_trend_chart')),
+        findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
     await tester.pumpAndSettle();
@@ -288,6 +290,34 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('health status trend chart fits narrow screens', (tester) async {
+    mockSystemHealthStatus(
+      status: 'permissionRequired',
+      message: '还没有授予步数、睡眠和心率权限。',
+    );
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    addTearDown(
+      () => tester.binding.platformDispatcher.defaultRouteNameTestValue = '/',
+    );
+    await tester.binding.setSurfaceSize(const Size(360, 780));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('health_status_trend_card')),
+      scrollable: find.byKey(const ValueKey('health_main_list')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('health_status_trend_chart')),
+        findsOneWidget);
+    expect(find.text('睡眠 72'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('health manual body record updates status center',

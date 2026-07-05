@@ -540,15 +540,31 @@ class _HealthStatusTrendCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scoredImpacts =
         result.impacts.where((impact) => impact.maxScore > 0).toList();
-    final frequentTags = result.impacts
-        .where((impact) => impact.label.trim().isNotEmpty)
-        .take(4)
-        .map((impact) => impact.label)
-        .join(' · ');
+    final trendPoints = scoredImpacts
+        .map(
+          (impact) => _HealthTrendPoint(
+            label: impact.title,
+            value: impact.score / impact.maxScore * 100,
+            color: impact.color,
+          ),
+        )
+        .toList();
+    final strongest = trendPoints.isEmpty
+        ? null
+        : trendPoints.reduce(
+            (a, b) => a.value >= b.value ? a : b,
+          );
+    final weakest = trendPoints.isEmpty
+        ? null
+        : trendPoints.reduce(
+            (a, b) => a.value <= b.value ? a : b,
+          );
+    final semanticLabel = trendPoints.isEmpty
+        ? '状态趋势图，暂无可用数据'
+        : '状态趋势图，当前 ${result.score} 分，最高 ${strongest!.label} ${strongest.value.round()} 分，最低 ${weakest!.label} ${weakest.value.round()} 分';
 
     return Container(
       key: const ValueKey('health_status_trend_card'),
-      height: 168,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -558,39 +574,258 @@ class _HealthStatusTrendCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '状态趋势',
-            style: TextStyle(
-              color: AppColors.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: CustomPaint(
-              painter: TinyBarsPainter(
-                values: scoredImpacts
-                    .map((impact) => impact.score.toDouble())
-                    .toList(),
-                color: AppColors.primary,
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '状态趋势',
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
-              child: const SizedBox.expand(),
-            ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${result.score} 分',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Text(
-            frequentTags,
-            maxLines: 1,
+            weakest == null
+                ? '记录状态后会显示睡眠、精力、压力等维度走势。'
+                : '最低项：${weakest.label} ${weakest.value.round()}，优先留意这个维度。',
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: AppColors.muted,
               fontSize: 12,
               fontWeight: FontWeight.w800,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            key: const ValueKey('health_status_trend_chart'),
+            height: 116,
+            width: double.infinity,
+            child: Semantics(
+              label: semanticLabel,
+              image: true,
+              child: CustomPaint(
+                painter: _HealthStatusTrendPainter(points: trendPoints),
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: trendPoints
+                .map(
+                  (point) => _HealthTrendLegendPill(point: point),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HealthTrendPoint {
+  const _HealthTrendPoint({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final double value;
+  final Color color;
+}
+
+class _HealthTrendLegendPill extends StatelessWidget {
+  const _HealthTrendLegendPill({required this.point});
+
+  final _HealthTrendPoint point;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: point.color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            '${point.label} ${point.value.round()}',
+            style: const TextStyle(
+              color: AppColors.ink,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+class _HealthStatusTrendPainter extends CustomPainter {
+  _HealthStatusTrendPainter({required this.points});
+
+  final List<_HealthTrendPoint> points;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const left = 30.0;
+    const right = 8.0;
+    const top = 8.0;
+    const bottom = 22.0;
+    final chartWidth = math.max(1.0, size.width - left - right);
+    final chartHeight = math.max(1.0, size.height - top - bottom);
+    final baselineY = top + chartHeight;
+
+    final gridPaint = Paint()
+      ..color = AppColors.line.withValues(alpha: 0.82)
+      ..strokeWidth = 1;
+    final textStyle = const TextStyle(
+      color: AppColors.muted,
+      fontSize: 9,
+      fontWeight: FontWeight.w800,
+    );
+
+    for (final tick in [100, 50, 0]) {
+      final y = top + chartHeight * (1 - tick / 100);
+      canvas.drawLine(
+          Offset(left, y), Offset(size.width - right, y), gridPaint);
+      _drawText(canvas, tick.toString(), Offset(0, y - 6), textStyle);
+    }
+
+    if (points.isEmpty) {
+      return;
+    }
+
+    final offsets = List.generate(points.length, (index) {
+      final x = points.length == 1
+          ? left + chartWidth / 2
+          : left + chartWidth * index / (points.length - 1);
+      final y = top + chartHeight * (1 - points[index].value / 100);
+      return Offset(x, y.clamp(top, baselineY));
+    });
+
+    final areaPath = Path()
+      ..moveTo(offsets.first.dx, baselineY)
+      ..lineTo(offsets.first.dx, offsets.first.dy);
+    for (final point in offsets.skip(1)) {
+      areaPath.lineTo(point.dx, point.dy);
+    }
+    areaPath
+      ..lineTo(offsets.last.dx, baselineY)
+      ..close();
+
+    final areaPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          AppColors.primary.withValues(alpha: 0.20),
+          AppColors.sky.withValues(alpha: 0.04),
+        ],
+      ).createShader(Rect.fromLTWH(left, top, chartWidth, chartHeight));
+    canvas.drawPath(areaPath, areaPaint);
+
+    final linePath = Path()..moveTo(offsets.first.dx, offsets.first.dy);
+    for (final point in offsets.skip(1)) {
+      linePath.lineTo(point.dx, point.dy);
+    }
+    final linePaint = Paint()
+      ..color = AppColors.primary
+      ..strokeWidth = 2.4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(linePath, linePaint);
+
+    final guidePaint = Paint()
+      ..color = AppColors.line.withValues(alpha: 0.58)
+      ..strokeWidth = 1;
+    for (var index = 0; index < offsets.length; index++) {
+      final point = offsets[index];
+      canvas.drawLine(
+        Offset(point.dx, point.dy + 7),
+        Offset(point.dx, baselineY),
+        guidePaint,
+      );
+      final fillPaint = Paint()..color = points[index].color;
+      final ringPaint = Paint()
+        ..color = AppColors.surface
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
+      canvas.drawCircle(point, 4.6, fillPaint);
+      canvas.drawCircle(point, 4.6, ringPaint);
+      _drawCenteredText(
+        canvas,
+        points[index].label,
+        Offset(point.dx, baselineY + 8),
+        textStyle,
+      );
+    }
+  }
+
+  void _drawText(Canvas canvas, String text, Offset offset, TextStyle style) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(canvas, offset);
+  }
+
+  void _drawCenteredText(
+    Canvas canvas,
+    String text,
+    Offset center,
+    TextStyle style,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout(maxWidth: 34);
+    painter.paint(canvas, Offset(center.dx - painter.width / 2, center.dy));
+  }
+
+  @override
+  bool shouldRepaint(covariant _HealthStatusTrendPainter oldDelegate) {
+    return points != oldDelegate.points;
   }
 }

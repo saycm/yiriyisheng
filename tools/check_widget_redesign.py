@@ -19,6 +19,7 @@ def main() -> int:
         "widget_primary_metric_value",
         "widget_primary_metric_label",
         "widget_active_calories",
+        "widget_finance_status",
         "今日消耗",
         "计划&#10;加待办",
         "饮食&#10;记录",
@@ -27,6 +28,29 @@ def main() -> int:
     missing = [token for token in required_tokens if token not in xml]
     if missing:
         print("Missing widget redesign tokens: " + ", ".join(missing))
+        return 1
+    root = ET.fromstring(xml)
+    android_id = "{http://schemas.android.com/apk/res/android}id"
+    orientation = "{http://schemas.android.com/apk/res/android}orientation"
+    auto_size = "{http://schemas.android.com/apk/res/android}autoSizeTextType"
+    parent_by_child = {child: parent for parent in root.iter() for child in parent}
+    finance = next(
+        (
+            node
+            for node in root.iter()
+            if node.attrib.get(android_id) == "@+id/widget_finance"
+        ),
+        None,
+    )
+    if finance is None:
+        print("Missing widget finance value view.")
+        return 1
+    finance_parent = parent_by_child.get(finance)
+    if finance_parent is None or finance_parent.attrib.get(orientation) != "vertical":
+        print("Widget finance value must sit in a vertical label/value column.")
+        return 1
+    if finance.attrib.get(auto_size) != "uniform":
+        print("Widget finance value must use uniform auto size to avoid clipping.")
         return 1
     provider = (
         ROOT

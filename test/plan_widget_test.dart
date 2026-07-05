@@ -175,7 +175,7 @@ void main() {
 
     await tester.ensureVisible(find.text('做报表'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('做报表'));
+    await _tapTodoAction(tester, '做报表', '完成');
     await tester.pumpAndSettle();
 
     expect(find.text('这个类别没有待办'), findsOneWidget);
@@ -215,7 +215,7 @@ void main() {
       find.text('还信用卡'),
       scrollable: find.byType(Scrollable).last,
     );
-    await tester.tap(find.text('还信用卡'));
+    await _tapTodoAction(tester, '还信用卡', '完成');
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('plan_todo_completion_feedback')),
@@ -306,6 +306,49 @@ void main() {
     expect(find.byKey(const ValueKey('week_plan_selected_tasks_panel')),
         findsOneWidget);
     expect(find.text('待安排任务'), findsOneWidget);
+  });
+
+  testWidgets('week day task badge stays inside day card on narrow screens',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 780));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
+    await tester.pumpAndSettle();
+
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('week_plan_schedule_selected_day')),
+      scrollable: find.byKey(const ValueKey('week_plan_list')),
+    );
+    await tester
+        .tap(find.byKey(const ValueKey('week_plan_schedule_selected_day')));
+    await tester.pumpAndSettle();
+
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('week_plan_day_board')),
+      scrollable: find.byKey(const ValueKey('week_plan_list')),
+      up: false,
+    );
+
+    final badge = find.text('+5');
+    expect(badge, findsOneWidget);
+
+    final dayCard = find.ancestor(
+      of: badge,
+      matching: find.byType(AnimatedContainer),
+    );
+    expect(dayCard, findsOneWidget);
+
+    final badgeRect = tester.getRect(badge);
+    final cardRect = tester.getRect(dayCard);
+    expect(badgeRect.right, lessThanOrEqualTo(cardRect.right));
+    expect(badgeRect.bottom, lessThanOrEqualTo(cardRect.bottom));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('week plan auto schedules inbox todos into this week',
@@ -412,6 +455,63 @@ void main() {
 
     expect(find.text('待办箱  0'), findsOneWidget);
     expect(find.text('整理学习清单'), findsNothing);
+  });
+
+  testWidgets('week task card only completes from explicit action',
+      (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
+    await tester.pumpAndSettle();
+
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('week_plan_schedule_selected_day')),
+      scrollable: find.byKey(const ValueKey('week_plan_list')),
+    );
+    await tester
+        .tap(find.byKey(const ValueKey('week_plan_schedule_selected_day')));
+    await tester.pumpAndSettle();
+
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('week_plan_selected_tasks_panel')),
+      scrollable: find.byKey(const ValueKey('week_plan_list')),
+      up: false,
+    );
+    final selectedPanel =
+        find.byKey(const ValueKey('week_plan_selected_tasks_panel'));
+    final taskTitle = find.descendant(
+      of: selectedPanel,
+      matching: find.text('整理学习清单'),
+    );
+
+    await tester.ensureVisible(taskTitle.first);
+    await tester.pumpAndSettle();
+    await tester.tap(taskTitle.first);
+    await tester.pumpAndSettle();
+
+    final targetCard = find.byKey(const ValueKey('todo_card_整理学习清单'));
+    expect(find.text('已完成：整理学习清单'), findsNothing);
+    expect(
+      find.descendant(of: targetCard, matching: find.text('完成')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: targetCard, matching: find.text('延后明天')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: targetCard, matching: find.text('归档')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.descendant(of: targetCard, matching: find.text('完成')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('已完成：整理学习清单'), findsOneWidget);
   });
 
   testWidgets('week plan undoes scheduling one backlog item', (tester) async {
@@ -588,4 +688,15 @@ Future<void> _addInboxTodo(WidgetTester tester, String title) async {
     await tester.tap(closeButton.last);
     await tester.pumpAndSettle();
   }
+}
+
+Future<void> _tapTodoAction(
+  WidgetTester tester,
+  String title,
+  String action,
+) async {
+  final card = find.byKey(ValueKey('todo_card_$title'));
+  await tester.ensureVisible(card);
+  await tester.pumpAndSettle();
+  await tester.tap(find.descendant(of: card, matching: find.text(action)));
 }
