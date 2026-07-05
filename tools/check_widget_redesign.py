@@ -17,6 +17,7 @@ def main() -> int:
         "widget_active_calories",
         "今日消耗",
         "计划&#10;加待办",
+        "饮食&#10;记录",
         "记账&#10;快捷支出",
     ]
     missing = [token for token in required_tokens if token not in xml]
@@ -34,6 +35,7 @@ def main() -> int:
         "R.id.widget_summary_card",
         "moduleIntent(context, \"/finance\", 3, \"add_finance\")",
         "moduleIntent(context, \"/finance\", 9, \"add_finance\")",
+        "moduleIntent(context, \"/food\", 8, \"add_food\")",
         "R.id.widget_active_calories",
         "ACTION_QUICK_WORKOUT",
     ]
@@ -53,6 +55,9 @@ def main() -> int:
         "quickTodoIntent(context, \"桌面待办\", \"生活\", 2)",
         "quickIntent(context, ACTION_QUICK_FINANCE, 3)",
         "quickIntent(context, ACTION_QUICK_FINANCE, 9)",
+        "ACTION_QUICK_FOOD",
+        "addQuickFood(",
+        "addQuickWorkout(",
         "addQuickTodo(",
         "addQuickFinance(",
     ]

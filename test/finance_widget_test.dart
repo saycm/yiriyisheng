@@ -347,6 +347,11 @@ AI 已识别：
 
     expect(find.text('账户余额'), findsOneWidget);
     final wechatAsset = find.byKey(const ValueKey('finance_asset_account_微信'));
+    await dragUntilFound(
+      tester,
+      wechatAsset,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(wechatAsset, findsOneWidget);
     expect(find.descendant(of: wechatAsset, matching: find.text('微信')),
         findsOneWidget);

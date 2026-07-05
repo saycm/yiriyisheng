@@ -22,11 +22,6 @@ class PingShengWidgetProvider : AppWidgetProvider() {
                 refreshAllWidgets(context)
                 return
             }
-            ACTION_QUICK_FOOD -> {
-                addQuickFood(context)
-                refreshAllWidgets(context)
-                return
-            }
         }
         super.onReceive(context, intent)
     }
@@ -49,9 +44,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
         const val KEY_WORKOUT_GROUPS_JSON = "workout_groups_json"
         const val KEY_HEALTH_TEXT = "health_text"
         private const val TOTAL_WORKOUT_GROUPS = 19
-        private const val QUICK_FOOD_CALORIES = 80
         private const val ACTION_REFRESH = "com.pingsheng.pingsheng_life.widget.REFRESH"
-        private const val ACTION_QUICK_FOOD = "com.pingsheng.pingsheng_life.widget.ADD_FOOD"
 
         fun updateWidgets(
             context: Context,
@@ -103,7 +96,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.widget_finance, financeText.replace("今日支出 ", ""))
             views.setTextViewText(R.id.widget_food, "$foodText · $workoutText")
             views.setTextViewText(R.id.widget_plan, "计划\n加待办")
-            views.setTextViewText(R.id.widget_quick_food, "饮食\n+${QUICK_FOOD_CALORIES} kcal")
+            views.setTextViewText(R.id.widget_quick_food, "饮食\n记录")
             views.setTextViewText(R.id.widget_quick_finance, "记账\n快捷支出")
             views.setTextViewText(
                 R.id.widget_active_calories,
@@ -126,7 +119,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             )
             views.setOnClickPendingIntent(
                 R.id.widget_quick_food,
-                quickIntent(context, ACTION_QUICK_FOOD, 8)
+                moduleIntent(context, "/food", 8, "add_food")
             )
             views.setOnClickPendingIntent(
                 R.id.widget_quick_finance,
@@ -179,29 +172,6 @@ class PingShengWidgetProvider : AppWidgetProvider() {
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-        }
-
-        private fun addQuickFood(context: Context) {
-            // 桌面一键饮食用于临时补记，进入 App 后仍可通过饮食模块添加完整细节。
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val total = prefs.getInt(KEY_FOOD_CALORIES, 0) + QUICK_FOOD_CALORIES
-            prefs.edit().putInt(KEY_FOOD_CALORIES, total).apply()
-        }
-
-        private fun addQuickWorkout(context: Context) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val groupsJson = safeJsonObject(prefs.getString(KEY_WORKOUT_GROUPS_JSON, "{}"))
-            val currentQuickGroups = groupsJson.optInt("桌面快练", 0)
-            val currentTotal = groupsJson.keys().asSequence().sumOf { key ->
-                groupsJson.optInt(key, 0)
-            }
-            val addGroups = if (currentTotal < TOTAL_WORKOUT_GROUPS) 1 else 0
-            groupsJson.put("桌面快练", currentQuickGroups + addGroups)
-            val totalGroups = (currentTotal + addGroups).coerceAtMost(TOTAL_WORKOUT_GROUPS)
-            prefs.edit()
-                .putInt(KEY_WORKOUT_GROUPS, totalGroups)
-                .putString(KEY_WORKOUT_GROUPS_JSON, groupsJson.toString())
-                .apply()
         }
 
         private fun todayExpense(records: JSONArray): Double {

@@ -1169,6 +1169,51 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
       key: const ValueKey('workout_main_list'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
       children: [
+        if (session == null) ...[
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '动作库',
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_showActionLibrary) ...[
+                    Text(
+                      actionCountLabel,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  TextButton.icon(
+                    key: const ValueKey('workout_toggle_action_library'),
+                    onPressed: () => setState(
+                        () => _showActionLibrary = !_showActionLibrary),
+                    icon: Icon(
+                      _showActionLibrary
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                      size: 18,
+                    ),
+                    label: Text(_showActionLibrary ? '收起动作库' : '查看动作库'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
         if (session != null) ...[
           _WorkoutActivePlanBanner(plan: activePlan, session: session),
           const SizedBox(height: 14),
@@ -1207,48 +1252,19 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
             const SizedBox(height: 12),
           ],
         ],
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                session == null ? '动作库' : '当前动作',
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
+        if (session != null)
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '当前动作',
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
-            ),
-            if (session == null)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_showActionLibrary) ...[
-                    Text(
-                      actionCountLabel,
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  TextButton.icon(
-                    key: const ValueKey('workout_toggle_action_library'),
-                    onPressed: () => setState(
-                        () => _showActionLibrary = !_showActionLibrary),
-                    icon: Icon(
-                      _showActionLibrary
-                          ? Icons.expand_less_rounded
-                          : Icons.expand_more_rounded,
-                      size: 18,
-                    ),
-                    label: Text(_showActionLibrary ? '收起动作库' : '查看动作库'),
-                  ),
-                ],
-              )
-            else
               Text(
                 actionCountLabel,
                 style: const TextStyle(
@@ -1257,8 +1273,8 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-          ],
-        ),
+            ],
+          ),
         if (showActionLibrary) ...[
           const SizedBox(height: 10),
           _WorkoutBodyPartFilter(

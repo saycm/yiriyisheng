@@ -174,7 +174,7 @@
                 android:layout_weight="1"
                 android:background="@drawable/pingsheng_widget_quick_blue"
                 android:gravity="center"
-                android:text="饮食&#10;+80 kcal"
+                android:text="饮食&#10;记录"
                 android:textColor="#3654D7"
                 android:textSize="10sp"
                 android:textStyle="bold" />

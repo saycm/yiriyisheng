@@ -297,9 +297,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('module_link_4')));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    final healthNav = find.byKey(const ValueKey('health_bottom_nav_0'));
-    expect(tester.getSize(healthNav).width, lessThanOrEqualTo(66));
-    expect(tester.getSize(healthNav).height, lessThanOrEqualTo(42));
+    expect(
+        find.byKey(const ValueKey('health_status_score_card')), findsOneWidget);
+    expect(find.byKey(const ValueKey('health_bottom_nav_0')), findsNothing);
   });
 
   testWidgets('module guide reflects current navigation and linked modules',
@@ -530,7 +530,7 @@ void main() {
         findsOneWidget);
     expect(
         find.byKey(const ValueKey('health_status_score_card')), findsOneWidget);
-    expect(find.byKey(const ValueKey('health_bottom_nav_0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('health_bottom_nav_0')), findsNothing);
     expect(find.byKey(const ValueKey('health_bottom_nav_1')), findsNothing);
     expect(find.byKey(const ValueKey('health_bottom_nav_2')), findsNothing);
 
