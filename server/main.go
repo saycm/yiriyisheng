@@ -223,6 +223,10 @@ func routeAPI(w http.ResponseWriter, r *http.Request) error {
 		return updatePolicyHandler(w, r)
 	case r.Method == http.MethodPost && path == "/v1/feedback":
 		return createFeedback(w, r)
+	case r.Method == http.MethodGet && path == "/v1/admin/feedback":
+		return listFeedback(w, r)
+	case r.Method == http.MethodPut && strings.HasPrefix(path, "/v1/admin/feedback/"):
+		return updateFeedbackStatus(w, r)
 	case r.Method == http.MethodGet && strings.HasPrefix(path, "/downloads/"):
 		return serveDownload(w, r)
 	default:
@@ -573,6 +577,153 @@ func insertFeedback(db *sql.DB, item feedbackItem) error {
 		item.UpdatedAt,
 	)
 	return err
+}
+
+func listFeedback(w http.ResponseWriter, r *http.Request) error {
+	if err := requireAdmin(r); err != nil {
+		return err
+	}
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	limit := envLimitedInt(r.URL.Query().Get("limit"), 50, 1, 100)
+
+	db, err := openDataDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	items, err := queryFeedback(db, status, limit)
+	if err != nil {
+		return err
+	}
+	sendJSON(w, http.StatusOK, map[string]any{"feedback": items})
+	return nil
+}
+
+func updateFeedbackStatus(w http.ResponseWriter, r *http.Request) error {
+	if err := requireAdmin(r); err != nil {
+		return err
+	}
+	id := strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/v1/admin/feedback/"))
+	if id == "" || strings.Contains(id, "/") {
+		return apiError{Status: http.StatusNotFound, Code: "not_found", Message: "Feedback not found."}
+	}
+	body, err := readJSONBody(r)
+	if err != nil {
+		return err
+	}
+	status := strings.TrimSpace(stringValue(body["status"]))
+	if !isFeedbackStatus(status) {
+		return apiError{Status: http.StatusBadRequest, Code: "invalid_feedback_status", Message: "反馈状态不正确。"}
+	}
+
+	dbMu.Lock()
+	defer dbMu.Unlock()
+
+	db, err := openDataDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	item, err := setFeedbackStatus(db, id, status)
+	if err != nil {
+		return err
+	}
+	sendJSON(w, http.StatusOK, map[string]any{"feedback": item})
+	return nil
+}
+
+func requireAdmin(r *http.Request) error {
+	if r.Header.Get("X-Admin-Token") != adminToken() {
+		return apiError{Status: http.StatusUnauthorized, Code: "unauthorized", Message: "Admin token is required."}
+	}
+	return nil
+}
+
+func isFeedbackStatus(status string) bool {
+	switch status {
+	case "pending", "processing", "resolved", "archived":
+		return true
+	default:
+		return false
+	}
+}
+
+func envLimitedInt(raw string, fallback int, minimum int, maximum int) int {
+	value, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || value < minimum {
+		return fallback
+	}
+	if value > maximum {
+		return maximum
+	}
+	return value
+}
+
+func queryFeedback(db *sql.DB, status string, limit int) ([]feedbackItem, error) {
+	args := []any{}
+	where := ""
+	if status != "" {
+		if !isFeedbackStatus(status) {
+			return []feedbackItem{}, nil
+		}
+		where = " WHERE status = ?"
+		args = append(args, status)
+	}
+	args = append(args, limit)
+	rows, err := db.Query(`SELECT id, type, content, contact, platform, app_version_name, app_version_code, device_info, status, created_at, updated_at FROM feedback_items`+where+` ORDER BY created_at DESC LIMIT ?`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := []feedbackItem{}
+	for rows.Next() {
+		var item feedbackItem
+		if err := rows.Scan(&item.ID, &item.Type, &item.Content, &item.Contact, &item.Platform, &item.AppVersionName, &item.AppVersionCode, &item.DeviceInfo, &item.Status, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func setFeedbackStatus(db *sql.DB, id string, status string) (feedbackItem, error) {
+	updatedAt := nowISO()
+	res, err := db.Exec(`UPDATE feedback_items SET status = ?, updated_at = ? WHERE id = ?`, status, updatedAt, id)
+	if err != nil {
+		return feedbackItem{}, err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return feedbackItem{}, err
+	}
+	if affected == 0 {
+		return feedbackItem{}, apiError{Status: http.StatusNotFound, Code: "not_found", Message: "Feedback not found."}
+	}
+	return getFeedback(db, id)
+}
+
+func getFeedback(db *sql.DB, id string) (feedbackItem, error) {
+	var item feedbackItem
+	err := db.QueryRow(`SELECT id, type, content, contact, platform, app_version_name, app_version_code, device_info, status, created_at, updated_at FROM feedback_items WHERE id = ?`, id).Scan(
+		&item.ID,
+		&item.Type,
+		&item.Content,
+		&item.Contact,
+		&item.Platform,
+		&item.AppVersionName,
+		&item.AppVersionCode,
+		&item.DeviceInfo,
+		&item.Status,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return feedbackItem{}, apiError{Status: http.StatusNotFound, Code: "not_found", Message: "Feedback not found."}
+	}
+	return item, err
 }
 
 func serveDownload(w http.ResponseWriter, r *http.Request) error {

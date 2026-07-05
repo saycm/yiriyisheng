@@ -344,3 +344,60 @@ func TestCreateFeedbackValidatesContent(t *testing.T) {
 		t.Fatalf("unexpected error: %#v", payload)
 	}
 }
+
+func TestAdminFeedbackListAndStatusUpdate(t *testing.T) {
+	app := newTestApp(t)
+
+	status, _ := app.jsonRequest(t, http.MethodPost, "/v1/feedback", map[string]any{
+		"type":           "问题",
+		"content":        "计划点击延后明天的逻辑不符合预期",
+		"platform":       "android",
+		"appVersionName": "1.0.59",
+		"appVersionCode": 60,
+	}, nil)
+	if status != http.StatusCreated {
+		t.Fatalf("create status = %d", status)
+	}
+
+	status, _ = app.jsonRequest(t, http.MethodGet, "/v1/admin/feedback", nil, nil)
+	if status != http.StatusUnauthorized {
+		t.Fatalf("missing admin token status = %d", status)
+	}
+
+	status, payload := app.jsonRequest(t, http.MethodGet, "/v1/admin/feedback", nil, map[string]string{
+		"X-Admin-Token": "test-admin-token",
+	})
+	if status != http.StatusOK {
+		t.Fatalf("list status = %d, payload = %#v", status, payload)
+	}
+	items := payload["feedback"].([]any)
+	if len(items) != 1 {
+		t.Fatalf("feedback item count = %d, payload = %#v", len(items), payload)
+	}
+	item := items[0].(map[string]any)
+	id := item["id"].(string)
+	if item["content"] != "计划点击延后明天的逻辑不符合预期" {
+		t.Fatalf("unexpected feedback item: %#v", item)
+	}
+
+	status, payload = app.jsonRequest(t, http.MethodPut, "/v1/admin/feedback/"+id, map[string]any{
+		"status": "processing",
+	}, map[string]string{"X-Admin-Token": "test-admin-token"})
+	if status != http.StatusOK {
+		t.Fatalf("update status = %d, payload = %#v", status, payload)
+	}
+	updated := payload["feedback"].(map[string]any)
+	if updated["status"] != "processing" {
+		t.Fatalf("status was not updated: %#v", updated)
+	}
+}
+
+func TestAdminFeedbackRejectsInvalidStatus(t *testing.T) {
+	app := newTestApp(t)
+	status, payload := app.jsonRequest(t, http.MethodPut, "/v1/admin/feedback/missing", map[string]any{
+		"status": "deleted",
+	}, map[string]string{"X-Admin-Token": "test-admin-token"})
+	if status != http.StatusBadRequest {
+		t.Fatalf("invalid status response = %d, payload = %#v", status, payload)
+	}
+}
