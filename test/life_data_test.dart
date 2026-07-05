@@ -113,4 +113,36 @@ void main() {
     expect(snapshot.activeWorkoutSession?.groupsFor('蝴蝶机夹胸'), 2);
     expect(snapshot.workoutHistory?.single.totalGroups, 4);
   });
+
+  test('postponing a todo moves from its own date to next workday', () {
+    final fridayTodo = TodoItem(
+      title: '周五任务',
+      category: '工作',
+      color: AppColors.primary,
+      dueDate: DateTime(2026, 7, 3),
+    );
+
+    fridayTodo.postponeToNextWorkday(today: DateTime(2026, 7, 1));
+
+    expect(fridayTodo.dueDate, DateTime(2026, 7, 6));
+    expect(fridayTodo.status, TodoStatus.postponed);
+    expect(fridayTodo.postponedCount, 1);
+
+    fridayTodo.postponeToNextWorkday(today: DateTime(2026, 7, 1));
+
+    expect(fridayTodo.dueDate, DateTime(2026, 7, 7));
+    expect(fridayTodo.postponedCount, 2);
+  });
+
+  test('undated todo postpones from today to next workday', () {
+    final todo = TodoItem(
+      title: '无日期任务',
+      category: '生活',
+      color: AppColors.primary,
+    );
+
+    todo.postponeToNextWorkday(today: DateTime(2026, 7, 3));
+
+    expect(todo.dueDate, DateTime(2026, 7, 6));
+  });
 }

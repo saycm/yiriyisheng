@@ -7,7 +7,6 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.widget.RemoteViews
 import org.json.JSONArray
 import org.json.JSONObject
@@ -72,6 +71,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
                 defaultFinanceRecordsJson()
             )
             val todayExpense = todayExpense(financeRecords)
+            val todayIncome = todayIncome(financeRecords)
             val workoutGroups = prefs.getInt(KEY_WORKOUT_GROUPS, 0)
             val healthText = prefs.getString(KEY_HEALTH_TEXT, "健康待授权").orEmpty()
             val activeCalories = extractCalories(healthText)
@@ -81,12 +81,8 @@ class PingShengWidgetProvider : AppWidgetProvider() {
                 "饮食待记录"
             }
             val workoutText = "锻炼 ${workoutGroups}/${TOTAL_WORKOUT_GROUPS} 组"
-            val financeText = if (todayExpense > 0.0) {
-                "¥${formatMoney(todayExpense)}"
-            } else {
-                "未记账"
-            }
-            val financeStatus = if (todayExpense > 0.0) "已记账" else "待记账"
+            val expenseText = "¥${formatMoney(todayExpense)}"
+            val incomeText = "¥${formatMoney(todayIncome)}"
 
             val views = RemoteViews(context.packageName, R.layout.pingsheng_widget)
 
@@ -97,21 +93,8 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.widget_primary_metric_value, "$pendingTodos")
             views.setTextViewText(R.id.widget_primary_metric_label, "项待处理")
             views.setProgressBar(R.id.widget_todo_progress, 100, todoProgress, false)
-            views.setTextViewText(R.id.widget_finance, financeText)
-            views.setTextViewText(R.id.widget_finance_status, financeStatus)
-            views.setTextColor(
-                R.id.widget_finance_status,
-                Color.parseColor(if (todayExpense > 0.0) "#164B35" else "#7A4D18")
-            )
-            views.setInt(
-                R.id.widget_finance_status,
-                "setBackgroundResource",
-                if (todayExpense > 0.0) {
-                    R.drawable.pingsheng_widget_status_ok
-                } else {
-                    R.drawable.pingsheng_widget_quick_orange
-                }
-            )
+            views.setTextViewText(R.id.widget_finance_expense, expenseText)
+            views.setTextViewText(R.id.widget_finance_income, incomeText)
             views.setTextViewText(R.id.widget_food, "$foodText · $workoutText")
             views.setTextViewText(R.id.widget_plan, "计划\n加待办")
             views.setTextViewText(R.id.widget_quick_food, "饮食\n记录")
@@ -127,10 +110,6 @@ class PingShengWidgetProvider : AppWidgetProvider() {
 
             // 需要输入内容的操作进入 App 的真实编辑流程；刷新动作留在小组件内完成。
             views.setOnClickPendingIntent(R.id.widget_title, quickIntent(context, ACTION_REFRESH, 1))
-            views.setOnClickPendingIntent(
-                R.id.widget_summary_card,
-                moduleIntent(context, "/finance", 3, "add_finance")
-            )
             views.setOnClickPendingIntent(
                 R.id.widget_plan,
                 moduleIntent(context, "/plan", 2, "add_todo")
@@ -195,10 +174,19 @@ class PingShengWidgetProvider : AppWidgetProvider() {
 
         private fun todayExpense(records: JSONArray): Double {
             // 小组件只展示今日支出概览，收入记录不会计入支出金额。
+            return todayFinanceTotal(records, "支出")
+        }
+
+        private fun todayIncome(records: JSONArray): Double {
+            // 收入只作为桌面摘要展示，不在小组件内触发任何记账动作。
+            return todayFinanceTotal(records, "收入")
+        }
+
+        private fun todayFinanceTotal(records: JSONArray, type: String): Double {
             var total = 0.0
             for (index in 0 until records.length()) {
                 val record = records.optJSONObject(index) ?: continue
-                if (record.optString("type") == "支出") {
+                if (record.optString("type") == type) {
                     total += record.optDouble("amount", 0.0)
                 }
             }

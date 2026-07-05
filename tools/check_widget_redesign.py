@@ -19,7 +19,10 @@ def main() -> int:
         "widget_primary_metric_value",
         "widget_primary_metric_label",
         "widget_active_calories",
-        "widget_finance_status",
+        "widget_finance_expense",
+        "widget_finance_income",
+        "今日支出",
+        "今日收入",
         "今日消耗",
         "计划&#10;加待办",
         "饮食&#10;记录",
@@ -34,24 +37,25 @@ def main() -> int:
     orientation = "{http://schemas.android.com/apk/res/android}orientation"
     auto_size = "{http://schemas.android.com/apk/res/android}autoSizeTextType"
     parent_by_child = {child: parent for parent in root.iter() for child in parent}
-    finance = next(
-        (
-            node
-            for node in root.iter()
-            if node.attrib.get(android_id) == "@+id/widget_finance"
-        ),
-        None,
-    )
-    if finance is None:
-        print("Missing widget finance value view.")
-        return 1
-    finance_parent = parent_by_child.get(finance)
-    if finance_parent is None or finance_parent.attrib.get(orientation) != "vertical":
-        print("Widget finance value must sit in a vertical label/value column.")
-        return 1
-    if finance.attrib.get(auto_size) != "uniform":
-        print("Widget finance value must use uniform auto size to avoid clipping.")
-        return 1
+    for finance_id in ("widget_finance_expense", "widget_finance_income"):
+        finance = next(
+            (
+                node
+                for node in root.iter()
+                if node.attrib.get(android_id) == f"@+id/{finance_id}"
+            ),
+            None,
+        )
+        if finance is None:
+            print(f"Missing widget finance value view: {finance_id}.")
+            return 1
+        finance_parent = parent_by_child.get(finance)
+        if finance_parent is None or finance_parent.attrib.get(orientation) != "vertical":
+            print(f"Widget finance value must sit in a vertical label/value column: {finance_id}.")
+            return 1
+        if finance.attrib.get(auto_size) != "uniform":
+            print(f"Widget finance value must use uniform auto size to avoid clipping: {finance_id}.")
+            return 1
     provider = (
         ROOT
         / "android/app/src/main/kotlin/com/pingsheng/pingsheng_life/PingShengWidgetProvider.kt"
@@ -60,8 +64,7 @@ def main() -> int:
         "ACTION_REFRESH",
         "R.id.widget_plan",
         "moduleIntent(context, \"/plan\", 2, \"add_todo\")",
-        "R.id.widget_summary_card",
-        "moduleIntent(context, \"/finance\", 3, \"add_finance\")",
+        "R.id.widget_quick_finance",
         "moduleIntent(context, \"/finance\", 9, \"add_finance\")",
         "moduleIntent(context, \"/food\", 8, \"add_food\")",
         "R.id.widget_active_calories",
@@ -84,6 +87,10 @@ def main() -> int:
         "quickTodoIntent(context, \"桌面待办\", \"生活\", 2)",
         "quickIntent(context, ACTION_QUICK_FINANCE, 3)",
         "quickIntent(context, ACTION_QUICK_FINANCE, 9)",
+        "moduleIntent(context, \"/finance\", 3, \"add_finance\")",
+        "R.id.widget_summary_card",
+        "R.id.widget_expense_card",
+        "R.id.widget_income_card",
         "ACTION_QUICK_FOOD",
         "addQuickFood(",
         "addQuickWorkout(",

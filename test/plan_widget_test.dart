@@ -498,7 +498,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.descendant(of: targetCard, matching: find.text('延后明天')),
+      find.descendant(of: targetCard, matching: find.text('下个工作日')),
       findsOneWidget,
     );
     expect(

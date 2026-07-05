@@ -255,7 +255,7 @@ class _TodoQuickActions extends StatelessWidget {
           onTap: onComplete,
         ),
         _TodoActionButton(
-          label: '延后明天',
+          label: '下个工作日',
           icon: Icons.event_repeat_rounded,
           color: AppColors.sun,
           onTap: done ? null : onPostpone,

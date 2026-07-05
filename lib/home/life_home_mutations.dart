@@ -119,17 +119,21 @@ extension _LifeHomeMutations on _LifeHomePageState {
 
   void _postponeTodo(TodoItem todo) {
     _updateState(() {
-      todo.postponeToTomorrow();
+      final targetDate = todo.postponeToNextWorkday();
       _pushLifeEvent(
         LifeEvent(
           title: '延后待办',
-          detail: '${todo.title} · 明天处理',
+          detail: '${todo.title} · ${_shortTodoDate(targetDate)}处理',
           icon: Icons.event_repeat_rounded,
           color: todo.color,
         ),
       );
     });
     _syncLinkedSummaryToWidget();
+  }
+
+  String _shortTodoDate(DateTime date) {
+    return '${date.month}月${date.day}日';
   }
 
   void _archiveTodo(TodoItem todo) {

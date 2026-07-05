@@ -111,10 +111,23 @@ class TodoItem {
     );
   }
 
-  void postponeToTomorrow() {
-    dueDate = DateUtils.dateOnly(DateTime.now()).add(const Duration(days: 1));
+  DateTime postponeToNextWorkday({DateTime? today}) {
+    final todayDate = DateUtils.dateOnly(today ?? DateTime.now());
+    final rawDueDate = dueDate;
+    final currentDueDate =
+        rawDueDate == null ? null : DateUtils.dateOnly(rawDueDate);
+    final baseDate =
+        currentDueDate == null || currentDueDate.isBefore(todayDate)
+            ? todayDate
+            : currentDueDate;
+    dueDate = nextWorkdayAfter(baseDate);
     status = TodoStatus.postponed;
     postponedCount++;
+    return dueDate!;
+  }
+
+  DateTime postponeToTomorrow() {
+    return postponeToNextWorkday();
   }
 
   void archive() {
@@ -367,6 +380,15 @@ String? dateToJson(DateTime? value) {
   return '${date.year.toString().padLeft(4, '0')}-'
       '${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
+}
+
+DateTime nextWorkdayAfter(DateTime date) {
+  var target = DateUtils.dateOnly(date).add(const Duration(days: 1));
+  while (target.weekday == DateTime.saturday ||
+      target.weekday == DateTime.sunday) {
+    target = target.add(const Duration(days: 1));
+  }
+  return target;
 }
 
 DateTime? dateFromJson(String? value) {
