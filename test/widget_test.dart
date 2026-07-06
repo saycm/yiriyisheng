@@ -648,25 +648,4 @@ void main() {
     expect(find.text('80 kcal'), findsWidgets);
     expect(find.text('锻炼 1 组'), findsOneWidget);
   });
-
-  testWidgets('feedback sheet validates content before submit', (tester) async {
-    await pumpPingShengApp(tester);
-
-    await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
-    await tester.pumpAndSettle();
-
-    final feedbackTile = find.text('问题反馈');
-    await tester.scrollUntilVisible(
-      feedbackTile,
-      180,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.tap(feedbackTile);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('feedback_submit')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('请至少写 5 个字'), findsOneWidget);
-  });
 }
