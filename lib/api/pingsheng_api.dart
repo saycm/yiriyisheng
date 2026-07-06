@@ -147,29 +147,6 @@ class _PingShengApi {
   }
 }
 
-const feedbackApi = FeedbackApi();
-
-class FeedbackApi {
-  const FeedbackApi();
-
-  Future<FeedbackReceipt> submit(FeedbackDraft draft) async {
-    try {
-      return await const _PingShengApi().submitFeedback(draft);
-    } on _ApiException catch (error) {
-      throw FeedbackApiException(error.message);
-    }
-  }
-}
-
-class FeedbackApiException implements Exception {
-  const FeedbackApiException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
-
 class _ApiException implements Exception {
   const _ApiException(this.message, {this.code});
 

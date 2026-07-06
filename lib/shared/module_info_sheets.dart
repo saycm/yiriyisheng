@@ -297,7 +297,7 @@ class _FeedbackSheet extends StatefulWidget {
 }
 
 class _FeedbackSheetState extends State<_FeedbackSheet> {
-  static const _api = feedbackApi;
+  static const _api = _PingShengApi();
   static const _contactFallback = '客服联系方式：请在当前测试群或部署者提供的联系方式中反馈。';
   static const _types = ['问题', '建议', '崩溃', '界面显示', '数据异常', '其他'];
 
@@ -436,7 +436,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
       _receipt = null;
     });
     try {
-      final receipt = await _api.submit(
+      final receipt = await _api.submitFeedback(
         FeedbackDraft(
           type: _type,
           content: content,
@@ -451,7 +451,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
         return;
       }
       setState(() => _receipt = receipt);
-    } on FeedbackApiException catch (error) {
+    } on _ApiException catch (error) {
       if (!mounted) {
         return;
       }
@@ -479,5 +479,102 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
 
   Future<void> _copyContactFallback() async {
     await Clipboard.setData(const ClipboardData(text: _contactFallback));
+  }
+}
+
+class _PingShengApi {
+  const _PingShengApi();
+
+  Future<FeedbackReceipt> submitFeedback(FeedbackDraft draft) async {
+    final base = Uri.parse(apiBaseUrl);
+    final uri = base.replace(path: '${base.path}/v1/feedback');
+    final bodyBytes = utf8.encode(jsonEncode(draft.toJson()));
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+    try {
+      final request = await client.postUrl(uri);
+      request.headers.set(HttpHeaders.acceptHeader, ContentType.json.mimeType);
+      request.headers.contentType = ContentType.json;
+      request.contentLength = bodyBytes.length;
+      request.add(bodyBytes);
+      final response =
+          await request.close().timeout(const Duration(seconds: 12));
+      final raw = await utf8.decodeStream(response);
+      final decoded =
+          raw.trim().isEmpty ? <String, dynamic>{} : jsonDecode(raw);
+      final json =
+          decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final error = json['error'] as Map<String, dynamic>?;
+        throw _ApiException(
+          (error?['message'] as String?) ?? '请求失败：${response.statusCode}',
+        );
+      }
+      return FeedbackReceipt.fromJson(json);
+    } on SocketException {
+      throw const _ApiException('无法连接服务端。');
+    } on TimeoutException {
+      throw const _ApiException('服务端响应超时。');
+    } finally {
+      client.close(force: true);
+    }
+  }
+}
+
+class _ApiException implements Exception {
+  const _ApiException(this.message);
+
+  final String message;
+}
+
+class FeedbackDraft {
+  const FeedbackDraft({
+    required this.type,
+    required this.content,
+    required this.contact,
+    required this.platform,
+    required this.appVersionName,
+    required this.appVersionCode,
+    required this.deviceInfo,
+  });
+
+  final String type;
+  final String content;
+  final String contact;
+  final String platform;
+  final String appVersionName;
+  final int appVersionCode;
+  final String deviceInfo;
+
+  Map<String, Object?> toJson() {
+    return {
+      'type': type,
+      'content': content,
+      'contact': contact,
+      'platform': platform,
+      'appVersionName': appVersionName,
+      'appVersionCode': appVersionCode,
+      'deviceInfo': deviceInfo,
+    };
+  }
+}
+
+class FeedbackReceipt {
+  const FeedbackReceipt({
+    required this.id,
+    required this.status,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String status;
+  final String createdAt;
+
+  factory FeedbackReceipt.fromJson(Map<String, dynamic> json) {
+    final feedback = json['feedback'] as Map<String, dynamic>? ?? {};
+    return FeedbackReceipt(
+      id: feedback['id'] as String? ?? '',
+      status: feedback['status'] as String? ?? '',
+      createdAt: feedback['createdAt'] as String? ?? '',
+    );
   }
 }
