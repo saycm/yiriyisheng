@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pingsheng_life/api/feedback_api.dart';
 
 import 'helpers/widget_test_helpers.dart';
 
@@ -668,5 +669,76 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('请至少写 5 个字'), findsOneWidget);
+  });
+
+  testWidgets('feedback sheet submits to server and shows receipt',
+      (tester) async {
+    debugFeedbackResponseOverride = (body) async {
+      expect(body['type'], '问题');
+      expect(body['content'], '小组件显示不全');
+      return {
+        'feedback': {
+          'id': 'fb-123',
+          'status': 'pending',
+          'createdAt': '2026-07-06T10:00:00Z',
+        },
+      };
+    };
+    addTearDown(() => debugFeedbackResponseOverride = null);
+
+    await pumpPingShengApp(tester);
+    await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
+    await tester.pumpAndSettle();
+    final feedbackTile = find.text('问题反馈');
+    await tester.scrollUntilVisible(
+      feedbackTile,
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(feedbackTile);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('feedback_content')),
+      '小组件显示不全',
+    );
+    await tester.tap(find.byKey(const ValueKey('feedback_submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('已提交'), findsOneWidget);
+    expect(find.textContaining('fb-123'), findsOneWidget);
+  });
+
+  testWidgets('feedback sheet keeps content and offers fallback after failure',
+      (tester) async {
+    debugFeedbackResponseOverride = (body) async {
+      throw Exception('offline');
+    };
+    addTearDown(() => debugFeedbackResponseOverride = null);
+
+    await pumpPingShengApp(tester);
+    await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
+    await tester.pumpAndSettle();
+    final feedbackTile = find.text('问题反馈');
+    await tester.scrollUntilVisible(
+      feedbackTile,
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(feedbackTile);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('feedback_content')),
+      '服务器无法提交反馈',
+    );
+    await tester.tap(find.byKey(const ValueKey('feedback_submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('提交失败'), findsOneWidget);
+    expect(find.text('提交失败，请稍后重试。'), findsOneWidget);
+    expect(find.byKey(const ValueKey('feedback_copy_content')), findsOneWidget);
+    expect(find.byKey(const ValueKey('feedback_copy_contact')), findsOneWidget);
+    expect(find.text('服务器无法提交反馈'), findsOneWidget);
   });
 }
