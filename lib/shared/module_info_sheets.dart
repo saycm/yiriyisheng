@@ -297,12 +297,21 @@ class _FeedbackSheet extends StatefulWidget {
 }
 
 class _FeedbackSheetState extends State<_FeedbackSheet> {
-  final _controller = TextEditingController();
-  bool _sent = false;
+  static const _api = _PingShengApi();
+  static const _contactFallback = '客服联系方式：请在当前测试群或部署者提供的联系方式中反馈。';
+  static const _types = ['问题', '建议', '崩溃', '界面显示', '数据异常', '其他'];
+
+  final _contentController = TextEditingController();
+  final _contactController = TextEditingController();
+  String _type = _types.first;
+  bool _submitting = false;
+  String? _error;
+  FeedbackReceipt? _receipt;
 
   @override
   void dispose() {
-    _controller.dispose();
+    _contentController.dispose();
+    _contactController.dispose();
     super.dispose();
   }
 
@@ -313,12 +322,45 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final type in _types)
+                ChoiceChip(
+                  key: ValueKey('feedback_type_$type'),
+                  label: Text(type),
+                  selected: _type == type,
+                  onSelected:
+                      _submitting ? null : (_) => setState(() => _type = type),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
           TextField(
-            controller: _controller,
+            key: const ValueKey('feedback_content'),
+            controller: _contentController,
             minLines: 5,
             maxLines: 7,
+            enabled: !_submitting,
+            maxLength: 1000,
             decoration: InputDecoration(
               hintText: '写下你遇到的问题或想要的功能',
+              filled: true,
+              fillColor: AppColors.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            key: const ValueKey('feedback_contact'),
+            controller: _contactController,
+            enabled: !_submitting,
+            decoration: InputDecoration(
+              hintText: '联系方式（选填，微信/手机号/邮箱）',
               filled: true,
               fillColor: AppColors.surface,
               border: OutlineInputBorder(
@@ -332,30 +374,207 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
             width: double.infinity,
             height: 52,
             child: FilledButton(
-              onPressed: () {
-                setState(() => _sent = true);
-              },
+              key: const ValueKey('feedback_submit'),
+              onPressed: _submitting ? null : _submit,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
-                '提交反馈',
-                style: TextStyle(fontWeight: FontWeight.w900),
+              child: Text(
+                _submitting ? '提交中...' : '提交反馈',
+                style: const TextStyle(fontWeight: FontWeight.w900),
               ),
             ),
           ),
-          if (_sent) ...[
+          if (_error != null) ...[
             const SizedBox(height: 14),
-            const EmptyCard(
-              title: '已收到',
-              subtitle: '原型里先做本地反馈状态，后续可以接入邮件、接口或工单系统。',
+            EmptyCard(title: '提交失败', subtitle: _error!),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton(
+                  key: const ValueKey('feedback_copy_content'),
+                  onPressed: _copyFeedbackContent,
+                  child: const Text('复制反馈内容'),
+                ),
+                OutlinedButton(
+                  key: const ValueKey('feedback_copy_contact'),
+                  onPressed: _copyContactFallback,
+                  child: const Text('复制联系方式'),
+                ),
+              ],
+            ),
+          ],
+          if (_receipt != null) ...[
+            const SizedBox(height: 14),
+            EmptyCard(
+              title: '已提交',
+              subtitle: '反馈编号 ${_receipt!.id}，我们会尽快处理。',
             ),
           ],
         ],
       ),
+    );
+  }
+
+  Future<void> _submit() async {
+    final content = _contentController.text.trim();
+    if (content.length < 5) {
+      setState(() {
+        _error = '请至少写 5 个字';
+        _receipt = null;
+      });
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+      _receipt = null;
+    });
+    try {
+      final receipt = await _api.submitFeedback(
+        FeedbackDraft(
+          type: _type,
+          content: content,
+          contact: _contactController.text.trim(),
+          platform: 'android',
+          appVersionName: appVersionName,
+          appVersionCode: appVersionCode,
+          deviceInfo: defaultTargetPlatform.name,
+        ),
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _receipt = receipt);
+    } on _ApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = error.message);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = '提交失败，请稍后重试。');
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
+
+  Future<void> _copyFeedbackContent() async {
+    await Clipboard.setData(
+      ClipboardData(
+        text:
+            '类型：$_type\n内容：${_contentController.text.trim()}\n联系方式：${_contactController.text.trim()}',
+      ),
+    );
+  }
+
+  Future<void> _copyContactFallback() async {
+    await Clipboard.setData(const ClipboardData(text: _contactFallback));
+  }
+}
+
+class _PingShengApi {
+  const _PingShengApi();
+
+  Future<FeedbackReceipt> submitFeedback(FeedbackDraft draft) async {
+    final base = Uri.parse(apiBaseUrl);
+    final uri = base.replace(path: '${base.path}/v1/feedback');
+    final bodyBytes = utf8.encode(jsonEncode(draft.toJson()));
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+    try {
+      final request = await client.postUrl(uri);
+      request.headers.set(HttpHeaders.acceptHeader, ContentType.json.mimeType);
+      request.headers.contentType = ContentType.json;
+      request.contentLength = bodyBytes.length;
+      request.add(bodyBytes);
+      final response =
+          await request.close().timeout(const Duration(seconds: 12));
+      final raw = await utf8.decodeStream(response);
+      final decoded =
+          raw.trim().isEmpty ? <String, dynamic>{} : jsonDecode(raw);
+      final json =
+          decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final error = json['error'] as Map<String, dynamic>?;
+        throw _ApiException(
+          (error?['message'] as String?) ?? '请求失败：${response.statusCode}',
+        );
+      }
+      return FeedbackReceipt.fromJson(json);
+    } on SocketException {
+      throw const _ApiException('无法连接服务端。');
+    } on TimeoutException {
+      throw const _ApiException('服务端响应超时。');
+    } finally {
+      client.close(force: true);
+    }
+  }
+}
+
+class _ApiException implements Exception {
+  const _ApiException(this.message);
+
+  final String message;
+}
+
+class FeedbackDraft {
+  const FeedbackDraft({
+    required this.type,
+    required this.content,
+    required this.contact,
+    required this.platform,
+    required this.appVersionName,
+    required this.appVersionCode,
+    required this.deviceInfo,
+  });
+
+  final String type;
+  final String content;
+  final String contact;
+  final String platform;
+  final String appVersionName;
+  final int appVersionCode;
+  final String deviceInfo;
+
+  Map<String, Object?> toJson() {
+    return {
+      'type': type,
+      'content': content,
+      'contact': contact,
+      'platform': platform,
+      'appVersionName': appVersionName,
+      'appVersionCode': appVersionCode,
+      'deviceInfo': deviceInfo,
+    };
+  }
+}
+
+class FeedbackReceipt {
+  const FeedbackReceipt({
+    required this.id,
+    required this.status,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String status;
+  final String createdAt;
+
+  factory FeedbackReceipt.fromJson(Map<String, dynamic> json) {
+    final feedback = json['feedback'] as Map<String, dynamic>? ?? {};
+    return FeedbackReceipt(
+      id: feedback['id'] as String? ?? '',
+      status: feedback['status'] as String? ?? '',
+      createdAt: feedback['createdAt'] as String? ?? '',
     );
   }
 }
