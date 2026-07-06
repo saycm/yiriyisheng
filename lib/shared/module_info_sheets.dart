@@ -422,6 +422,9 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
   }
 
   Future<void> _submit() async {
+    if (_submitting) {
+      return;
+    }
     final content = _contentController.text.trim();
     if (content.length < 5) {
       setState(() {

@@ -1,7 +1,7 @@
 // 中文注释：反馈 API 模型测试，验证提交回执解析稳定。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pingsheng_life/auth/auth.dart';
+import 'package:pingsheng_life/api/feedback_api.dart';
 
 void main() {
   test('feedback receipt parses server response', () {
