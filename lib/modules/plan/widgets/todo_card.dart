@@ -243,34 +243,47 @@ class _TodoQuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    return Row(
       children: [
-        _TodoActionButton(
-          label: done ? '重新打开' : '完成',
-          icon: done ? Icons.undo_rounded : Icons.check_rounded,
-          color: AppColors.primary,
-          filled: true,
-          onTap: onComplete,
+        Expanded(
+          flex: done ? 16 : 12,
+          child: _TodoActionButton(
+            label: done ? '重新打开' : '完成',
+            icon: done ? Icons.undo_rounded : Icons.check_rounded,
+            color: AppColors.primary,
+            filled: true,
+            onTap: onComplete,
+          ),
         ),
-        _TodoActionButton(
-          label: '下个工作日',
-          icon: Icons.event_repeat_rounded,
-          color: AppColors.sun,
-          onTap: done ? null : onPostpone,
+        const SizedBox(width: 6),
+        Expanded(
+          flex: 20,
+          child: _TodoActionButton(
+            label: '下个工作日',
+            icon: Icons.event_repeat_rounded,
+            color: AppColors.sun,
+            onTap: done ? null : onPostpone,
+          ),
         ),
-        _TodoActionButton(
-          label: '归档',
-          icon: Icons.archive_rounded,
-          color: AppColors.muted,
-          onTap: onArchive,
+        const SizedBox(width: 6),
+        Expanded(
+          flex: 12,
+          child: _TodoActionButton(
+            label: '归档',
+            icon: Icons.archive_rounded,
+            color: AppColors.muted,
+            onTap: onArchive,
+          ),
         ),
-        _TodoActionButton(
-          label: '删除',
-          icon: Icons.delete_outline_rounded,
-          color: AppColors.financeRed,
-          onTap: onDelete,
+        const SizedBox(width: 6),
+        Expanded(
+          flex: 12,
+          child: _TodoActionButton(
+            label: '删除',
+            icon: Icons.delete_outline_rounded,
+            color: AppColors.financeRed,
+            onTap: onDelete,
+          ),
         ),
       ],
     );
@@ -303,7 +316,7 @@ class _TodoActionButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         constraints: const BoxConstraints(minHeight: 40),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
           color: filled
               ? color
@@ -318,16 +331,21 @@ class _TodoActionButton extends StatelessWidget {
           ),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: foreground),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                color: foreground,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
+            Icon(icon, size: 15, color: foreground),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ],

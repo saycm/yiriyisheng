@@ -7,6 +7,31 @@ import 'package:pingsheng_life/main.dart';
 import 'helpers/widget_test_helpers.dart';
 
 void main() {
+  testWidgets('health status chips stay readable in dark system theme',
+      (tester) async {
+    mockSystemHealthSnapshot();
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    tester.binding.platformDispatcher.platformBrightnessTestValue =
+        Brightness.dark;
+    addTearDown(() {
+      tester.binding.platformDispatcher.defaultRouteNameTestValue = '/';
+      tester.binding.platformDispatcher.clearPlatformBrightnessTestValue();
+    });
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('记录状态'));
+    await tester.pumpAndSettle();
+
+    final chipContext =
+        tester.element(find.byKey(const ValueKey('health_body_tag_很好')));
+    final chipTheme = Theme.of(chipContext).chipTheme;
+    expect(chipTheme.backgroundColor, AppColors.background);
+    expect(chipTheme.labelStyle?.color, AppColors.ink);
+    expect(chipTheme.selectedColor, AppColors.primarySoft);
+  });
+
   testWidgets('health module link strip fits narrow screens', (tester) async {
     tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
     addTearDown(

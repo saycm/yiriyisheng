@@ -98,17 +98,31 @@ class _AuthGateState extends State<AuthGate> {
       // access token 仍有效时直接换取用户信息，避免频繁刷新 token。
       final user = await _api.me(stored.accessToken);
       return stored.copyWith(user: user);
-    } catch (_) {
+    } on _ApiException catch (error) {
+      if (!_isAuthInvalid(error)) {
+        return stored;
+      }
       try {
         // access token 过期后用 refresh token 换新会话，并写回安全存储。
         final refreshed = await _api.refresh(stored.refreshToken);
         await _store.save(refreshed);
         return refreshed;
-      } catch (_) {
+      } on _ApiException catch (refreshError) {
+        if (!_isAuthInvalid(refreshError)) {
+          return stored;
+        }
         await _store.clear();
         return null;
       }
+    } catch (_) {
+      return stored;
     }
+  }
+
+  bool _isAuthInvalid(_ApiException error) {
+    return error.code == 'invalid_token' ||
+        error.code == 'missing_token' ||
+        error.code == 'invalid_refresh_token';
   }
 
   Future<void> _handleSignedIn(_AuthSession session) async {
@@ -417,13 +431,6 @@ class _AuthPageState extends State<_AuthPage> {
       onChannelChanged: _handleChannelChanged,
       onSubmit: _submit,
     );
-    final parsedBaseUrl = Uri.tryParse(apiBaseUrl);
-    final serverNote = parsedBaseUrl?.host.isNotEmpty == true
-        ? parsedBaseUrl!.host
-        : apiBaseUrl
-            .replaceAll(RegExp(r'^https?://'), '')
-            .replaceAll('/api', '');
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5E7C8),
       body: Stack(
@@ -448,10 +455,10 @@ class _AuthPageState extends State<_AuthPage> {
                       ),
                       Transform.translate(
                         offset: const Offset(0, -24),
-                        child: Text(
-                          '本地服务 · $serverNote',
+                        child: const Text(
+                          '本地数据 · 安全同步',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Color(0xFF8C7A64),
                             fontSize: 12,
                             fontWeight: FontWeight.w800,

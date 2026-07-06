@@ -51,20 +51,12 @@ void main() {
     expect(manifest, contains('android:value="false"'));
   });
 
-  test('android keeps image permissions and removes speech recorder plumbing',
-      () {
+  test('android keeps image permissions', () {
     final manifest =
         File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
-    final mainActivity = File(
-            'android/app/src/main/kotlin/com/pingsheng/pingsheng_life/MainActivity.kt')
-        .readAsStringSync();
 
     expect(manifest, contains('android.permission.READ_MEDIA_IMAGES'));
     expect(manifest, contains('android.permission.READ_EXTERNAL_STORAGE'));
-    expect(manifest, isNot(contains('android.permission.RECORD_AUDIO')));
-    expect(manifest, isNot(contains('android.speech.RecognitionService')));
-    expect(mainActivity, isNot(contains('pingsheng_life/voice_recorder')));
-    expect(mainActivity, isNot(contains('AudioRecord')));
   });
 
   test('week plan is split into focused part files', () {

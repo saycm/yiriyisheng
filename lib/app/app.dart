@@ -98,6 +98,7 @@ class _PingShengAppState extends State<PingShengApp> {
       scaffoldBackgroundColor: AppColors.background,
       splashColor: AppColors.primary.withValues(alpha: 0.08),
       highlightColor: AppColors.primary.withValues(alpha: 0.05),
+      chipTheme: _buildReadableChipTheme(),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
           foregroundColor: AppColors.primary,
@@ -145,11 +146,7 @@ class _PingShengAppState extends State<PingShengApp> {
         elevation: 8,
         shape: CircleBorder(),
       ),
-      chipTheme: ChipThemeData.fromDefaults(
-        brightness: Brightness.dark,
-        secondaryColor: AppColors.primary,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w800),
-      ),
+      chipTheme: _buildReadableChipTheme(),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -160,6 +157,35 @@ class _PingShengAppState extends State<PingShengApp> {
         ),
       ),
       useMaterial3: true,
+    );
+  }
+
+  ChipThemeData _buildReadableChipTheme() {
+    return ChipThemeData.fromDefaults(
+      brightness: Brightness.light,
+      secondaryColor: AppColors.primary,
+      labelStyle: const TextStyle(
+        color: AppColors.ink,
+        fontWeight: FontWeight.w800,
+      ),
+    ).copyWith(
+      backgroundColor: AppColors.background,
+      disabledColor: AppColors.line,
+      selectedColor: AppColors.primarySoft,
+      secondarySelectedColor: AppColors.primarySoft,
+      checkmarkColor: AppColors.primary,
+      labelStyle: const TextStyle(
+        color: AppColors.ink,
+        fontWeight: FontWeight.w800,
+      ),
+      secondaryLabelStyle: const TextStyle(
+        color: AppColors.primary,
+        fontWeight: FontWeight.w900,
+      ),
+      side: const BorderSide(color: AppColors.line),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
     );
   }
 }

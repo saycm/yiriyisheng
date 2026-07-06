@@ -451,8 +451,18 @@ class _FinanceAiComposer extends StatelessWidget {
                   minLines: 1,
                   maxLines: 4,
                   textInputAction: TextInputAction.newline,
+                  cursorColor: AppColors.primary,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
                   decoration: InputDecoration(
                     hintText: '输入一句话记账',
+                    hintStyle: TextStyle(
+                      color: AppColors.muted.withValues(alpha: 0.72),
+                      fontWeight: FontWeight.w700,
+                    ),
                     filled: true,
                     fillColor: AppColors.background,
                     contentPadding: const EdgeInsets.symmetric(

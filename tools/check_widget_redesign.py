@@ -15,15 +15,20 @@ def main() -> int:
     xml = LAYOUT.read_text(encoding="utf-8")
     ET.fromstring(xml)
     required_tokens = [
-        "widget_status_pill",
+        "widget_left_summary",
         "widget_primary_metric_value",
         "widget_primary_metric_label",
+        "widget_todo_load_label",
+        "widget_next_todo",
+        "widget_food",
+        "widget_workout",
         "widget_active_calories",
         "widget_finance_expense",
         "widget_finance_income",
         "今日支出",
         "今日收入",
         "今日消耗",
+        "下一项",
         "计划&#10;加待办",
         "饮食&#10;记录",
         "记账&#10;快捷支出",
@@ -31,6 +36,17 @@ def main() -> int:
     missing = [token for token in required_tokens if token not in xml]
     if missing:
         print("Missing widget redesign tokens: " + ", ".join(missing))
+        return 1
+    forbidden_layout_tokens = [
+        "@+id/widget_status_pill",
+        "widget_subtitle",
+        "平生今日",
+        "轻量记录",
+        "今日同步",
+    ]
+    forbidden_layout = [token for token in forbidden_layout_tokens if token in xml]
+    if forbidden_layout:
+        print("Forbidden widget brand tokens: " + ", ".join(forbidden_layout))
         return 1
     root = ET.fromstring(xml)
     android_id = "{http://schemas.android.com/apk/res/android}id"
@@ -63,6 +79,9 @@ def main() -> int:
     required_provider_tokens = [
         "ACTION_REFRESH",
         "R.id.widget_plan",
+        "R.id.widget_left_summary",
+        "R.id.widget_next_todo",
+        "nextTodoTitle(",
         "moduleIntent(context, \"/plan\", 2, \"add_todo\")",
         "R.id.widget_quick_finance",
         "moduleIntent(context, \"/finance\", 9, \"add_finance\")",
@@ -89,8 +108,12 @@ def main() -> int:
         "quickIntent(context, ACTION_QUICK_FINANCE, 9)",
         "moduleIntent(context, \"/finance\", 3, \"add_finance\")",
         "R.id.widget_summary_card",
+        "R.id.widget_title",
+        "R.id.widget_subtitle",
         "R.id.widget_expense_card",
         "R.id.widget_income_card",
+        "平生今日",
+        "轻量记录",
         "ACTION_QUICK_FOOD",
         "addQuickFood(",
         "addQuickWorkout(",

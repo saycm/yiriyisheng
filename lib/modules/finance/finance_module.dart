@@ -315,8 +315,22 @@ class _FinanceTextField extends StatelessWidget {
       key: ValueKey(keyValue),
       controller: controller,
       keyboardType: keyboardType,
+      cursorColor: AppColors.primary,
+      style: const TextStyle(
+        color: AppColors.ink,
+        fontSize: 15,
+        fontWeight: FontWeight.w800,
+      ),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: const TextStyle(
+          color: AppColors.muted,
+          fontWeight: FontWeight.w700,
+        ),
+        floatingLabelStyle: const TextStyle(
+          color: AppColors.primary,
+          fontWeight: FontWeight.w800,
+        ),
         filled: true,
         fillColor: AppColors.background,
         border: OutlineInputBorder(

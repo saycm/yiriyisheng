@@ -96,14 +96,6 @@ class _ForceUpdatePage extends StatelessWidget {
                   ),
                   if (downloadUrl.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    SelectableText(
-                      downloadUrl,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 12),
                     FilledButton.icon(
                       onPressed: () => unawaited(
                         _openDownload(context, downloadUrl),
@@ -114,23 +106,6 @@ class _ForceUpdatePage extends StatelessWidget {
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         fixedSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: downloadUrl));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('下载地址已复制')),
-                        );
-                      },
-                      icon: const Icon(Icons.content_copy_rounded),
-                      label: const Text('复制下载地址'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        fixedSize: const Size.fromHeight(48),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
                       ),

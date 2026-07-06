@@ -1043,7 +1043,7 @@ void main() {
       find.byKey(const ValueKey('workout_food_link_card')),
       scrollable: workoutList,
     );
-    expect(find.textContaining('加餐'), findsWidgets);
+    expect(find.textContaining('夜宵'), findsWidgets);
     await tester.tap(find.byKey(const ValueKey('workout_open_food_link')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('module_glass_header_title_food')),

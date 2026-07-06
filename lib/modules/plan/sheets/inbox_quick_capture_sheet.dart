@@ -35,6 +35,12 @@ class _InboxQuickCaptureSheetState extends State<_InboxQuickCaptureSheet> {
               key: const ValueKey('plan_inbox_quick_capture_field'),
               controller: _controller,
               autofocus: true,
+              cursorColor: AppColors.primary,
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
               decoration: _planInputDecoration('先写一句话'),
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _save(),

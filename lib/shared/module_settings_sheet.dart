@@ -51,7 +51,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           _SettingsChoiceCard<String>(
             title: '默认餐次',
             value: _defaultMeal,
-            options: const ['早餐', '午餐', '晚餐', '加餐', '三餐'],
+            options: const ['早餐', '午餐', '晚餐', '夜宵', '三餐'],
             labelBuilder: (value) => value,
             onChanged: (value) => setState(() => _defaultMeal = value),
           ),

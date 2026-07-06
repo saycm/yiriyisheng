@@ -256,6 +256,41 @@ AI 已识别：
     expect(find.text('AI 记账'), findsOneWidget);
   });
 
+  testWidgets('finance input text remains visible in dark mode',
+      (tester) async {
+    const preferencesChannel = MethodChannel('pingsheng_life/app_preferences');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(preferencesChannel, (call) async {
+      if (call.method == 'loadAppPreferences') {
+        return {
+          'themeMode': 'dark',
+          'dailyRecordReminderEnabled': false,
+        };
+      }
+      return null;
+    });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(preferencesChannel, null);
+    });
+
+    await pumpPingShengApp(tester);
+
+    await tester.tap(find.byKey(const ValueKey('module_link_0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('finance_bottom_nav_1')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('记一笔').first);
+    await tester.pumpAndSettle();
+
+    final subtitleField = tester.widget<TextField>(
+      find.byKey(const ValueKey('finance_record_subtitle')),
+    );
+    expect(subtitleField.style?.color, AppColors.ink);
+    expect(subtitleField.cursorColor, AppColors.primary);
+  });
+
   testWidgets('finance records can be added and edited', (tester) async {
     await pumpPingShengApp(tester);
 
@@ -317,6 +352,45 @@ AI 已识别：
     expect(find.text('+¥1,288.00'), findsOneWidget);
   });
 
+  testWidgets('finance amount keyboard uses larger touch targets',
+      (tester) async {
+    await pumpPingShengApp(tester);
+
+    await tester.tap(find.byKey(const ValueKey('module_link_0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('finance_bottom_nav_1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('记一笔').first);
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getSize(find.byKey(const ValueKey('finance_amount_key_7'))).height,
+      greaterThanOrEqualTo(44),
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('save_finance_record'))).height,
+      greaterThanOrEqualTo(44),
+    );
+  });
+
+  testWidgets('finance date picker uses white dialog background',
+      (tester) async {
+    await pumpPingShengApp(tester);
+
+    await tester.tap(find.byKey(const ValueKey('module_link_0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('finance_bottom_nav_1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('记一笔').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('finance_record_date')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CalendarDatePicker), findsOneWidget);
+    final dialog = tester.widget<Dialog>(find.byType(Dialog).last);
+    expect(dialog.backgroundColor, AppColors.surface);
+  });
+
   testWidgets('finance record sheet saves account and assets use real ledger',
       (tester) async {
     await pumpPingShengApp(tester);
@@ -357,11 +431,13 @@ AI 已识别：
     expect(wechatAsset, findsOneWidget);
     expect(find.descendant(of: wechatAsset, matching: find.text('微信')),
         findsOneWidget);
-    expect(find.descendant(of: wechatAsset, matching: find.text('¥-12.00')),
+    expect(find.descendant(of: wechatAsset, matching: find.text('-¥12.00')),
         findsOneWidget);
+    expect(find.descendant(of: wechatAsset, matching: find.text('¥-12.00')),
+        findsNothing);
   });
 
-  testWidgets('finance assets place negative sign after currency symbol',
+  testWidgets('finance assets place negative sign before currency symbol',
       (tester) async {
     await pumpPingShengApp(tester);
 
@@ -376,9 +452,9 @@ AI 已识别：
       scrollable: find.byType(Scrollable).last,
     );
 
-    expect(find.text('¥-500.00'), findsOneWidget);
+    expect(find.text('-¥500.00'), findsOneWidget);
+    expect(find.text('¥-500.00'), findsNothing);
     expect(find.text('--¥500.00'), findsNothing);
-    expect(find.text('-¥500.00'), findsNothing);
   });
 
   testWidgets('finance ai accounting opens and requires api key',
@@ -434,8 +510,7 @@ AI 已识别：
     );
   });
 
-  testWidgets('finance ai exposes image capability and hides voice input',
-      (tester) async {
+  testWidgets('finance ai exposes image capability', (tester) async {
     await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_0')));
@@ -443,15 +518,12 @@ AI 已识别：
     await openFinanceAiRecord(tester);
 
     expect(find.byKey(const ValueKey('ai_finance_pick_image')), findsOneWidget);
-    expect(find.byKey(const ValueKey('ai_finance_voice_input')), findsNothing);
 
     await tester.tap(find.byIcon(Icons.settings_rounded));
     await tester.pumpAndSettle();
 
     expect(find.text('图片理解'), findsOneWidget);
-    expect(find.text('语音转文字'), findsNothing);
     expect(find.text('智谱GLM'), findsWidgets);
-    expect(find.text('系统/云端语音识别'), findsNothing);
   });
 
   testWidgets('finance ai prompt editor saves custom prompt', (tester) async {

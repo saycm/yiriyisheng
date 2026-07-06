@@ -274,7 +274,7 @@ void main() {
     expect(find.byType(CalendarDatePicker), findsOneWidget);
   });
 
-  testWidgets('finance workout and health bottom navs use compact capsules',
+  testWidgets('finance and workout bottom navs use compact capsules',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() async => tester.binding.setSurfaceSize(null));
@@ -301,7 +301,6 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(
         find.byKey(const ValueKey('health_status_score_card')), findsOneWidget);
-    expect(find.byKey(const ValueKey('health_bottom_nav_0')), findsNothing);
   });
 
   testWidgets('module guide reflects current navigation and linked modules',
@@ -320,9 +319,10 @@ void main() {
     await tester.tap(guideTile);
     await tester.pumpAndSettle();
 
-    expect(find.text('底部切换模块'), findsOneWidget);
-    expect(find.textContaining('最底部固定显示财务、计划、饮食、锻炼、健康'), findsOneWidget);
-    expect(find.text('看联动和小组件'), findsOneWidget);
+    expect(find.text('先记录，再联动，最后复盘'), findsOneWidget);
+    expect(find.text('第一次打开应该从哪里开始？'), findsOneWidget);
+    expect(find.textContaining('财务、计划、饮食、锻炼、健康'), findsOneWidget);
+    expect(find.text('桌面小组件能做什么？'), findsOneWidget);
     expect(find.textContaining('Health Connect'), findsOneWidget);
   });
 
@@ -495,51 +495,6 @@ void main() {
     expect(args['financeRecordsJson'], '[]');
     expect(args['workoutGroups'], 2);
     expect(args['workoutGroupsJson'], contains('蝴蝶机夹胸'));
-  });
-
-  testWidgets('workout bottom nav hides overview and health hides duplicates',
-      (tester) async {
-    await pumpPingShengApp(tester);
-
-    await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
-    await tester.pumpAndSettle();
-
-    final workoutTile = find.byKey(const ValueKey('module_sheet_workout'));
-    await tester.scrollUntilVisible(
-      workoutTile,
-      180,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(workoutTile);
-    await tester.pumpAndSettle();
-
-    expect(find.text('胸背'), findsOneWidget);
-    expect(find.byKey(const ValueKey('workout_bottom_nav_0')), findsOneWidget);
-    expect(find.byKey(const ValueKey('workout_bottom_nav_1')), findsNothing);
-    expect(find.byKey(const ValueKey('workout_bottom_nav_2')), findsNothing);
-    expect(find.text('总览'), findsNothing);
-
-    await tester.tap(find.byKey(const ValueKey('workout_bottom_nav_0')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('胸背'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('module_link_4')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('module_glass_header_title_health')),
-        findsOneWidget);
-    expect(
-        find.byKey(const ValueKey('health_status_score_card')), findsOneWidget);
-    expect(find.byKey(const ValueKey('health_bottom_nav_0')), findsNothing);
-    expect(find.byKey(const ValueKey('health_bottom_nav_1')), findsNothing);
-    expect(find.byKey(const ValueKey('health_bottom_nav_2')), findsNothing);
-
-    await tester.tap(find.byKey(const ValueKey('module_link_3')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('胸背'), findsOneWidget);
   });
 
   testWidgets('food and workout records update health linked summary',

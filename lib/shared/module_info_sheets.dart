@@ -11,49 +11,75 @@ class _AboutAppSheet extends StatelessWidget {
       title: '关于 App',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          _AboutHero(),
-          SizedBox(height: 18),
-          _FeatureIntroCard(
-            icon: Icons.account_balance_wallet_rounded,
-            title: '财务管理',
-            body: '收支记录、资产统计、趋势分析',
-            color: Color(0xFF7F7AF7),
+        children: [
+          const _AboutHero(),
+          const SizedBox(height: 18),
+          const _InfoSectionTitle(
+            icon: Icons.dashboard_customize_rounded,
+            title: '它是什么',
           ),
-          _FeatureIntroCard(
-            icon: Icons.monitor_heart_rounded,
-            title: '健康数据',
-            body: '运动锻炼、睡眠心率、能量消耗',
-            color: Color(0xFFFF747C),
+          const SizedBox(height: 10),
+          const _AboutSummaryCard(
+            title: '本地优先的生活工作台',
+            body:
+                '平生把计划、财务、饮食、锻炼、健康和桌面小组件放在同一个日常流程里。它不是只做单项记录，而是帮助你回答：今天要做什么、花了什么、吃了什么、练了什么、身体状态能不能承受当前安排。',
           ),
-          _FeatureIntroCard(
+          const SizedBox(height: 18),
+          const _InfoSectionTitle(
+            icon: Icons.apps_rounded,
+            title: '当前模块',
+          ),
+          const SizedBox(height: 10),
+          const _FeatureIntroCard(
             icon: Icons.event_available_rounded,
-            title: '计划待办',
-            body: '日历视图、待办清单、分类管理',
+            title: '计划',
+            body:
+                '今日执行、待办箱、周计划和复盘。待办支持分类、优先级、备注、重复规则和模块联动；任务完成、延后、归档都走明确按钮，减少误触。',
             color: Color(0xFF7D9CFF),
           ),
-          _FeatureIntroCard(
-            icon: Icons.fitness_center_rounded,
-            title: '科学锻炼',
-            body: '训练计划、动作指导、数据追踪',
-            color: AppColors.primary,
+          const _FeatureIntroCard(
+            icon: Icons.account_balance_wallet_rounded,
+            title: '财务',
+            body:
+                '手动记账、AI 记账、收支账本、账户资产、分类预算、固定支出、财产健康和趋势图。资产余额由真实账单推导，趋势按真实收支记录聚合。',
+            color: Color(0xFF7F7AF7),
           ),
-          _FeatureIntroCard(
+          const _FeatureIntroCard(
             icon: Icons.restaurant_rounded,
-            title: '饮食记录',
-            body: '热量计算、食物分类、饮食分析',
+            title: '饮食',
+            body: '按早餐、午餐、晚餐和夜宵记录食物，支持食物分类、自定义食物、模板和热量/营养汇总。饮食数据会进入健康状态和计划复盘。',
             color: AppColors.success,
           ),
-          SizedBox(height: 12),
-          Center(
-            child: Text(
-              '一个 App 管理你的全部生活',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+          const _FeatureIntroCard(
+            icon: Icons.fitness_center_rounded,
+            title: '锻炼',
+            body: '内置动作库、训练计划、动作详情、组数记录、休息计时、训练反馈和历史记录。完成训练后可以联动饮食补充摄入。',
+            color: AppColors.primary,
+          ),
+          const _FeatureIntroCard(
+            icon: Icons.monitor_heart_rounded,
+            title: '健康',
+            body:
+                '状态中心整合手动身体记录、饮食摄入、锻炼负载和计划压力。Health Connect 是可选外部数据源，可补充步数、睡眠、心率、能量和呼吸参考。',
+            color: Color(0xFFFF747C),
+          ),
+          const _FeatureIntroCard(
+            icon: Icons.widgets_rounded,
+            title: '桌面小组件',
+            body:
+                '展示今日待办、饮食、锻炼、今日支出和今日收入摘要。需要输入内容的操作会回到 App 的真实编辑流程，避免小组件误触直接改数据。',
+            color: AppColors.sun,
+          ),
+          const SizedBox(height: 18),
+          const _InfoSectionTitle(
+            icon: Icons.lock_outline_rounded,
+            title: '数据边界',
+          ),
+          const SizedBox(height: 10),
+          const _AboutSummaryCard(
+            title: '核心生活数据保存在本机',
+            body:
+                '待办、账单、饮食、锻炼和健康记录优先写入本地 SQLite。桌面小组件只保存必要摘要；服务端主要负责账号、登录状态、版本更新和 APK 分发。Health Connect 权限是可选项，关闭后不影响手动记录。',
           ),
         ],
       ),
@@ -90,7 +116,7 @@ class _AboutHero extends StatelessWidget {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  '全能生活助手',
+                  '本地优先生活工作台',
                   style: TextStyle(
                     color: AppColors.primary,
                     fontSize: 20,
@@ -99,7 +125,7 @@ class _AboutHero extends StatelessWidget {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  '财务、健康、计划、饮食一站管理',
+                  '计划、财务、饮食、锻炼、健康和小组件联动',
                   style: TextStyle(
                     color: AppColors.muted,
                     fontWeight: FontWeight.w700,
@@ -166,6 +192,7 @@ class _FeatureIntroCard extends StatelessWidget {
                   style: const TextStyle(
                     color: AppColors.muted,
                     fontSize: 13,
+                    height: 1.45,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -186,31 +213,59 @@ class _GuideSheet extends StatelessWidget {
     return InfoSheetFrame(
       title: '使用指导',
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          _GuideStep(
-            number: '1',
-            title: '底部切换模块',
-            body: '主页面最底部固定显示财务、计划、饮食、锻炼、健康，随时点对应入口切换大模块。',
+          _GuideIntroCard(),
+          SizedBox(height: 16),
+          _InfoSectionTitle(
+            icon: Icons.route_rounded,
+            title: '常用流程',
           ),
-          _GuideStep(
-            number: '2',
-            title: '先安排今天',
-            body: '计划模块负责今天要做什么：新增待办、设置分类优先级，或把无日期任务放进待办箱再安排到本周。',
+          SizedBox(height: 10),
+          _GuideQuestion(
+            question: '第一次打开应该从哪里开始？',
+            answer:
+                '先看底部主导航：财务、计划、饮食、锻炼、健康。建议先进入计划，把今天必须做的事放到“今日执行”；没有确定日期的事先放进“待办箱”，再到“周计划”里分配到具体日期。',
           ),
-          _GuideStep(
-            number: '3',
-            title: '记录饮食和训练',
-            body: '饮食按餐次记录食物和热量，锻炼按动作完成组数；训练后可以直接去饮食补一条加餐。',
+          _GuideQuestion(
+            question: '计划模块怎么用才不乱？',
+            answer:
+                '今日执行适合放今天要完成的少量重点事项；待办箱适合收集暂时没排期的任务；周计划适合把待办安排到未来 7 天；复盘会把完成情况、延后任务、饮食和锻炼联动放在一起看。',
           ),
-          _GuideStep(
-            number: '4',
-            title: '看联动和小组件',
-            body: '财务、饮食、锻炼和健康数据会汇总到今日联动，也会同步到桌面小组件；健康页可连接 Health Connect。',
+          _GuideQuestion(
+            question: '待办怎么完成、延后或归档？',
+            answer:
+                '任务卡片不会因为轻点卡片就直接完成。需要点明确的“完成”“延后明天/下个工作日”或“归档”按钮后才会改变状态。完成后如果任务关联了饮食、锻炼等模块，可以继续进入对应记录流程。',
           ),
-          _GuideStep(
-            number: '5',
-            title: '本地优先保存',
-            body: 'App 主数据优先写入本地数据库，小组件只保留摘要；登录态和服务端账号用于后续同步扩展。',
+          _GuideQuestion(
+            question: '财务记录怎么保持真实？',
+            answer:
+                '可以手动新增收入或支出，也可以配置 AI 小助手后用文字或图片识别账单。资产、今日支出、今日收入、分类预算、固定支出压力和趋势图都基于真实账单记录，不再使用演示固定数值。',
+          ),
+          _GuideQuestion(
+            question: '饮食和锻炼为什么会影响健康？',
+            answer:
+                '饮食记录会提供今日摄入和营养参考；锻炼记录会提供完成组数、训练负载和反馈。健康状态中心会把这些数据和手动身体状态一起计算，提示今天适合保持节奏、减压还是降低训练强度。',
+          ),
+          _GuideQuestion(
+            question: 'Health Connect 必须开启吗？',
+            answer:
+                '不是必须。没有授权或设备不支持时，状态中心仍然可以用手动记录、饮食、锻炼和计划数据正常工作。授权后，App 会额外读取步数、睡眠、心率、能量和呼吸等系统健康参考。',
+          ),
+          _GuideQuestion(
+            question: '桌面小组件能做什么？',
+            answer:
+                '小组件主要负责快速查看摘要：待办、饮食、锻炼、今日支出、今日收入和今日消耗。需要输入文字、金额或食物名称的操作会打开 App 对应编辑弹层，避免在桌面上一点就写入错误数据。',
+          ),
+          _GuideQuestion(
+            question: '数据会不会丢？',
+            answer:
+                'App 主数据优先写入本机 SQLite；保存失败时会明确提示。桌面小组件只同步摘要，不是主数据库。服务器目前主要用于账号、登录续期、版本检查、安装包下载和后续扩展能力。',
+          ),
+          _GuideQuestion(
+            question: '更新从哪里来？',
+            answer:
+                'App 启动时会检查服务端更新策略。发现新版本时会展示版本号、更新说明和下载地址；强制更新只在低于最低支持版本时触发。安装包由服务器 downloads 目录提供。',
           ),
         ],
       ),
@@ -218,16 +273,98 @@ class _GuideSheet extends StatelessWidget {
   }
 }
 
-class _GuideStep extends StatelessWidget {
-  const _GuideStep({
-    required this.number,
+class _InfoSectionTitle extends StatelessWidget {
+  const _InfoSectionTitle({
+    required this.icon,
+    required this.title,
+  });
+
+  final IconData icon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.primary, size: 18),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            color: AppColors.ink,
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AboutSummaryCard extends StatelessWidget {
+  const _AboutSummaryCard({
     required this.title,
     required this.body,
   });
 
-  final String number;
   final String title;
   final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: AppColors.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            body,
+            style: const TextStyle(
+              color: AppColors.muted,
+              height: 1.55,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuideIntroCard extends StatelessWidget {
+  const _GuideIntroCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const EmptyCard(
+      title: '先记录，再联动，最后复盘',
+      subtitle: '平生的使用方式不是每个模块各记各的，而是让计划、账本、饮食、锻炼和健康围绕“今天”互相补充。下面按常见问题说明怎么用。',
+    );
+  }
+}
+
+class _GuideQuestion extends StatelessWidget {
+  const _GuideQuestion({
+    required this.question,
+    required this.answer,
+  });
+
+  final String question;
+  final String answer;
 
   @override
   Widget build(BuildContext context) {
@@ -241,22 +378,10 @@ class _GuideStep extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: const BoxDecoration(
-              color: AppColors.primarySoft,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                number,
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
+          const Icon(
+            Icons.help_outline_rounded,
+            color: AppColors.primary,
+            size: 22,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -264,19 +389,19 @@ class _GuideStep extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  question,
                   style: const TextStyle(
                     color: AppColors.ink,
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
-                  body,
+                  answer,
                   style: const TextStyle(
                     color: AppColors.muted,
-                    height: 1.45,
+                    height: 1.55,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -317,8 +442,18 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
             controller: _controller,
             minLines: 5,
             maxLines: 7,
+            cursorColor: AppColors.primary,
+            style: const TextStyle(
+              color: AppColors.ink,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
             decoration: InputDecoration(
               hintText: '写下你遇到的问题或想要的功能',
+              hintStyle: TextStyle(
+                color: AppColors.muted.withValues(alpha: 0.72),
+                fontWeight: FontWeight.w700,
+              ),
               filled: true,
               fillColor: AppColors.surface,
               border: OutlineInputBorder(

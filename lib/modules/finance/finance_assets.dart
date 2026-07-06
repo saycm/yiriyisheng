@@ -81,8 +81,7 @@ List<_FinanceAccountSnapshot> _financeAccounts(List<FinanceRecord> records) {
 }
 
 String _signedMoney(double value) {
-  final amount = formatMoney(value.abs());
-  return value < 0 ? amount.replaceFirst('¥', '¥-') : amount;
+  return formatMoney(value);
 }
 
 class _FinanceAssetsView extends StatelessWidget {

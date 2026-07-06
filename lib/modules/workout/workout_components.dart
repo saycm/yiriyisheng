@@ -510,7 +510,7 @@ class _WorkoutFoodLinkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final message = foodCalories == 0 ? '训练后可以补一条加餐记录。' : '已记录摄入，可按训练强度补蛋白。';
+    final message = foodCalories == 0 ? '训练后可以补一条夜宵记录。' : '已记录摄入，可按训练强度补蛋白。';
 
     return Container(
       key: const ValueKey('workout_food_link_card'),
@@ -539,7 +539,7 @@ class _WorkoutFoodLinkCard extends StatelessWidget {
             key: const ValueKey('workout_open_food_link'),
             onPressed: onOpenFood,
             child: const Text(
-              '记加餐',
+              '记夜宵',
               style: TextStyle(fontWeight: FontWeight.w900),
             ),
           ),

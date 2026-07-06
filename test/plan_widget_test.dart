@@ -461,6 +461,9 @@ void main() {
 
   testWidgets('week task card only completes from explicit action',
       (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+
     await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
@@ -507,6 +510,18 @@ void main() {
       find.descendant(of: targetCard, matching: find.text('归档')),
       findsOneWidget,
     );
+    expect(
+      find.descendant(of: targetCard, matching: find.text('删除')),
+      findsOneWidget,
+    );
+
+    final actionLabels = ['完成', '下个工作日', '归档', '删除'];
+    final actionTops = actionLabels.map((label) {
+      final action =
+          find.descendant(of: targetCard, matching: find.text(label));
+      return tester.getTopLeft(action).dy;
+    }).toSet();
+    expect(actionTops.length, 1);
 
     await tester.tap(
       find.descendant(of: targetCard, matching: find.text('完成')),

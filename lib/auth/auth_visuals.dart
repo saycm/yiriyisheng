@@ -274,7 +274,7 @@ class _AuthFormPanel extends StatelessWidget {
           _AuthTextField(
             controller: passwordController,
             icon: Icons.circle_rounded,
-            label: '设置密码',
+            label: isRegister ? '设置密码' : '输入密码',
             obscureText: true,
             onSubmitted: (_) {
               if (!busy) {

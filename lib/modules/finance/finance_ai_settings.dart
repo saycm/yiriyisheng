@@ -587,6 +587,7 @@ class _FinanceAiPromptEditPageState extends State<_FinanceAiPromptEditPage> {
                           controller: _controller,
                           minLines: 12,
                           maxLines: 20,
+                          cursorColor: AppColors.primary,
                           style: const TextStyle(
                             color: AppColors.ink,
                             fontFamily: 'monospace',
@@ -874,8 +875,22 @@ class _FinanceAiProviderEditPageState
                           key: const ValueKey('ai_provider_api_key'),
                           controller: _apiKeyController,
                           obscureText: true,
+                          cursorColor: AppColors.primary,
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
                           decoration: InputDecoration(
                             labelText: 'API Key',
+                            labelStyle: const TextStyle(
+                              color: AppColors.muted,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            floatingLabelStyle: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                            ),
                             filled: true,
                             fillColor: AppColors.background,
                             border: OutlineInputBorder(

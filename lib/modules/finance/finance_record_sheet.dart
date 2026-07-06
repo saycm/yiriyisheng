@@ -526,6 +526,26 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
       initialDate: _date,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              surface: AppColors.surface,
+              onSurface: AppColors.ink,
+            ),
+            dialogBackgroundColor: AppColors.surface,
+            datePickerTheme: const DatePickerThemeData(
+              backgroundColor: AppColors.surface,
+              headerBackgroundColor: AppColors.surface,
+              headerForegroundColor: AppColors.ink,
+              surfaceTintColor: Colors.transparent,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() => _date = DateUtils.dateOnly(picked));
@@ -679,14 +699,14 @@ class _FinanceAmountKey extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           onTap: onTap,
           child: SizedBox(
-            height: 34,
+            height: 46,
             child: Center(
               child: icon == null
                   ? Text(
                       label!,
                       style: TextStyle(
                         color: foreground,
-                        fontSize: dense ? 12 : 17,
+                        fontSize: dense ? 13 : 19,
                         fontWeight: FontWeight.w900,
                       ),
                     )

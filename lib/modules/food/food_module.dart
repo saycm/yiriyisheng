@@ -66,6 +66,20 @@ enum _FoodMacro { protein, carbs, fat }
 const _foodCategories = ['常用', '主食', '蛋白', '蔬果', '饮品', '零食', '外卖', '自定义'];
 const _customFoodCategoryLabels = ['主食', '蛋白', '蔬果', '饮品', '零食', '外卖', '自定义'];
 
+String foodMealForTime(DateTime time) {
+  final hour = time.hour;
+  if (hour >= 5 && hour < 11) {
+    return '早餐';
+  }
+  if (hour >= 11 && hour < 16) {
+    return '午餐';
+  }
+  if (hour >= 16 && hour < 21) {
+    return '晚餐';
+  }
+  return '夜宵';
+}
+
 String _foodCategoryForGroup(String group) {
   return switch (_normalizeFoodGroup(group)) {
     '常用' => '常用',
@@ -315,11 +329,11 @@ class _FoodModulePageState extends State<FoodModulePage> {
   final TextEditingController _foodSearchController = TextEditingController();
   String _activeFoodCategory = '常用';
   String _category = '三餐';
-  String _activeMeal = '午餐';
+  String _activeMeal = foodMealForTime(DateTime.now());
   String _foodQuery = '';
   int _handledQuickActionToken = 0;
   static const _suggestedCalories = 1800;
-  static const _meals = ['早餐', '午餐', '晚餐', '加餐'];
+  static const _meals = ['早餐', '午餐', '晚餐', '夜宵'];
   static const _mealTemplates = [
     _FoodMealTemplate(
       title: '减脂早餐',
@@ -336,8 +350,8 @@ class _FoodModulePageState extends State<FoodModulePage> {
       icon: Icons.work_rounded,
     ),
     _FoodMealTemplate(
-      title: '训练后加餐',
-      meal: '加餐',
+      title: '训练后夜宵',
+      meal: '夜宵',
       items: ['希腊酸奶', '香蕉'],
       subtitle: '训练后补充',
       icon: Icons.fitness_center_rounded,
@@ -556,8 +570,8 @@ class _FoodModulePageState extends State<FoodModulePage> {
     if (_todayCalories > _suggestedCalories) {
       reminders.add('今日摄入已高于建议');
     }
-    if (widget.workoutGroups > 0 && !mealsRecorded.contains('加餐')) {
-      reminders.add('训练后可以记录一次加餐');
+    if (widget.workoutGroups > 0 && !mealsRecorded.contains('夜宵')) {
+      reminders.add('训练后可以记录一次夜宵');
     }
     if (reminders.isEmpty) {
       reminders.add(_foodLogs.isEmpty ? '先把最近一餐记下来' : '今天饮食节奏正常');

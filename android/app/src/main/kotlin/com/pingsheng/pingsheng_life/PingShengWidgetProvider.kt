@@ -66,21 +66,26 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val foodCalories = prefs.getInt(KEY_FOOD_CALORIES, 0)
             val pendingTodos = prefs.getInt(KEY_PENDING_TODOS, 0)
+            val todos = safeJsonArray(
+                prefs.getString(KEY_TODOS_JSON, null),
+                "[]"
+            )
             val financeRecords = safeJsonArray(
                 prefs.getString(KEY_FINANCE_RECORDS_JSON, null),
                 "[]"
             )
+            val nextTodoTitle = nextTodoTitle(todos)
             val todayExpense = todayExpense(financeRecords)
             val todayIncome = todayIncome(financeRecords)
             val workoutGroups = prefs.getInt(KEY_WORKOUT_GROUPS, 0)
             val healthText = prefs.getString(KEY_HEALTH_TEXT, "健康待授权").orEmpty()
             val activeCalories = extractCalories(healthText)
             val foodText = if (foodCalories > 0) {
-                "饮食 ${foodCalories} kcal"
+                "饮食\n${foodCalories} kcal"
             } else {
-                "饮食待记录"
+                "饮食\n待记录"
             }
-            val workoutText = "锻炼 ${workoutGroups}/${TOTAL_WORKOUT_GROUPS} 组"
+            val workoutText = "锻炼\n${workoutGroups}/${TOTAL_WORKOUT_GROUPS}组"
             val expenseText = "¥${formatMoney(todayExpense)}"
             val incomeText = "¥${formatMoney(todayIncome)}"
 
@@ -88,14 +93,15 @@ class PingShengWidgetProvider : AppWidgetProvider() {
 
             // 桌面小组件读取 App 写入的共享摘要，和 Flutter 页面保持同一份联动数据。
             val todoProgress = ((pendingTodos.coerceAtMost(8) / 8.0) * 100).toInt()
-            views.setTextViewText(R.id.widget_title, "平生今日")
-            views.setTextViewText(R.id.widget_subtitle, "$healthText · 轻量记录")
             views.setTextViewText(R.id.widget_primary_metric_value, "$pendingTodos")
-            views.setTextViewText(R.id.widget_primary_metric_label, "项待处理")
+            views.setTextViewText(R.id.widget_primary_metric_label, "待处理")
+            views.setTextViewText(R.id.widget_todo_load_label, "待办负载 ${todoProgress}%")
+            views.setTextViewText(R.id.widget_next_todo, "下一项 $nextTodoTitle")
             views.setProgressBar(R.id.widget_todo_progress, 100, todoProgress, false)
             views.setTextViewText(R.id.widget_finance_expense, expenseText)
             views.setTextViewText(R.id.widget_finance_income, incomeText)
-            views.setTextViewText(R.id.widget_food, "$foodText\n$workoutText")
+            views.setTextViewText(R.id.widget_food, foodText)
+            views.setTextViewText(R.id.widget_workout, workoutText)
             views.setTextViewText(R.id.widget_plan, "计划\n加待办")
             views.setTextViewText(R.id.widget_quick_food, "饮食\n记录")
             views.setTextViewText(R.id.widget_quick_finance, "记账\n快捷支出")
@@ -109,7 +115,10 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             )
 
             // 需要输入内容的操作进入 App 的真实编辑流程；刷新动作留在小组件内完成。
-            views.setOnClickPendingIntent(R.id.widget_title, quickIntent(context, ACTION_REFRESH, 1))
+            views.setOnClickPendingIntent(
+                R.id.widget_left_summary,
+                quickIntent(context, ACTION_REFRESH, 1)
+            )
             views.setOnClickPendingIntent(
                 R.id.widget_plan,
                 moduleIntent(context, "/plan", 2, "add_todo")
@@ -180,6 +189,21 @@ class PingShengWidgetProvider : AppWidgetProvider() {
         private fun todayIncome(records: JSONArray): Double {
             // 收入只作为桌面摘要展示，不在小组件内触发任何记账动作。
             return todayFinanceTotal(records, "收入")
+        }
+
+        private fun nextTodoTitle(todos: JSONArray): String {
+            for (index in 0 until todos.length()) {
+                val todo = todos.optJSONObject(index) ?: continue
+                val status = todo.optString("status")
+                if (status == "completed" || status == "archived") {
+                    continue
+                }
+                val title = todo.optString("title").trim()
+                if (title.isNotEmpty()) {
+                    return title
+                }
+            }
+            return "暂无待办"
         }
 
         private fun todayFinanceTotal(records: JSONArray, type: String): Double {

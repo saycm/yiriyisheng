@@ -3,10 +3,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pingsheng_life/main.dart';
+import 'package:pingsheng_life/modules/food/food.dart';
 
 import 'helpers/widget_test_helpers.dart';
 
 void main() {
+  test('food meal default follows local time boundaries', () {
+    expect(foodMealForTime(DateTime(2026, 1, 1, 5, 0)), '早餐');
+    expect(foodMealForTime(DateTime(2026, 1, 1, 10, 59)), '早餐');
+    expect(foodMealForTime(DateTime(2026, 1, 1, 11, 0)), '午餐');
+    expect(foodMealForTime(DateTime(2026, 1, 1, 15, 59)), '午餐');
+    expect(foodMealForTime(DateTime(2026, 1, 1, 16, 0)), '晚餐');
+    expect(foodMealForTime(DateTime(2026, 1, 1, 20, 59)), '晚餐');
+    expect(foodMealForTime(DateTime(2026, 1, 1, 21, 0)), '夜宵');
+    expect(foodMealForTime(DateTime(2026, 1, 1, 4, 59)), '夜宵');
+  });
+
   testWidgets('food selected record bar is compact on narrow screens',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -220,7 +232,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final foodList = find.byKey(const ValueKey('food_main_list'));
-    final trainingSnack = find.byKey(const ValueKey('food_template_训练后加餐'));
+    final trainingSnack = find.byKey(const ValueKey('food_template_训练后夜宵'));
     await dragUntilFound(
       tester,
       trainingSnack,
@@ -230,8 +242,8 @@ void main() {
     await tester.tap(trainingSnack);
     await tester.pumpAndSettle();
 
-    expect(find.text('已记录 加餐 2 项，152 千卡'), findsOneWidget);
-    expect(find.textContaining('加餐'), findsWidgets);
+    expect(find.text('已记录 夜宵 2 项，152 千卡'), findsOneWidget);
+    expect(find.textContaining('夜宵'), findsWidgets);
     expect(find.text('希腊酸奶'), findsWidgets);
     expect(find.text('1 次 · 59 kcal'), findsOneWidget);
     expect(find.text('香蕉'), findsWidgets);
@@ -246,7 +258,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('food_repeat_last_meal')));
     await tester.pumpAndSettle();
 
-    expect(find.text('已记录 加餐 2 项，152 千卡'), findsOneWidget);
+    expect(find.text('已记录 夜宵 2 项，152 千卡'), findsOneWidget);
     expect(find.text('2 次 · 118 kcal'), findsOneWidget);
     expect(find.text('2 次 · 186 kcal'), findsOneWidget);
 
