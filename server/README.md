@@ -122,11 +122,6 @@ go test ./...
 
 ## 接口
 
-- `POST /v1/feedback`：App 提交问题反馈
-- `GET /v1/admin/feedback`：管理员查看反馈列表，需要 `X-Admin-Token`
-- `PUT /v1/admin/feedback/<id>`：管理员更新反馈状态，需要 `X-Admin-Token`
-- `GET /admin/feedback`：简易反馈后台页面
-
 健康检查：
 
 ```http

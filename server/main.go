@@ -227,8 +227,6 @@ func routeAPI(w http.ResponseWriter, r *http.Request) error {
 		return listFeedback(w, r)
 	case r.Method == http.MethodPut && strings.HasPrefix(path, "/v1/admin/feedback/"):
 		return updateFeedbackStatus(w, r)
-	case r.Method == http.MethodGet && path == "/admin/feedback":
-		serveFeedbackAdminPage(w, r)
 	case r.Method == http.MethodGet && strings.HasPrefix(path, "/downloads/"):
 		return serveDownload(w, r)
 	default:
@@ -726,122 +724,6 @@ func getFeedback(db *sql.DB, id string) (feedbackItem, error) {
 		return feedbackItem{}, apiError{Status: http.StatusNotFound, Code: "not_found", Message: "Feedback not found."}
 	}
 	return item, err
-}
-
-func serveFeedbackAdminPage(w http.ResponseWriter, r *http.Request) {
-	html := `<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>问题反馈后台</title>
-  <style>
-    body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f6f8ff; color: #172033; }
-    main { max-width: 1080px; margin: 0 auto; padding: 24px; }
-    header { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 18px; }
-    h1 { margin: 0; font-size: 24px; }
-    .panel { background: #fff; border: 1px solid #e4eaf6; border-radius: 8px; padding: 16px; margin-bottom: 14px; }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    input, select, button, textarea { border-radius: 8px; border: 1px solid #d8dffe; padding: 10px 12px; font: inherit; }
-    input { min-width: 280px; }
-    button { background: #5d72f6; color: #fff; border: 0; cursor: pointer; font-weight: 700; }
-    button.secondary { background: #edf1ff; color: #3654d7; }
-    .item { border-top: 1px solid #eef2fb; padding: 14px 0; }
-    .meta { color: #748098; font-size: 13px; margin-top: 6px; }
-    .content { white-space: pre-wrap; line-height: 1.55; margin-top: 8px; }
-    .error { color: #f35f64; font-weight: 700; }
-  </style>
-</head>
-<body>
-<main>
-  <header>
-    <h1>问题反馈后台</h1>
-    <button class="secondary" onclick="loadFeedback()">刷新</button>
-  </header>
-  <section class="panel">
-    <div class="row">
-      <input id="token" type="password" placeholder="输入 X-Admin-Token">
-      <select id="status">
-        <option value="">全部</option>
-        <option value="pending">待处理</option>
-        <option value="processing">处理中</option>
-        <option value="resolved">已处理</option>
-        <option value="archived">已归档</option>
-      </select>
-      <button onclick="saveTokenAndLoad()">查看反馈</button>
-    </div>
-    <p id="message" class="meta"></p>
-  </section>
-  <section id="list" class="panel">请输入管理员 token 后查看反馈。</section>
-</main>
-<script>
-const tokenInput = document.getElementById('token');
-const statusInput = document.getElementById('status');
-const message = document.getElementById('message');
-const list = document.getElementById('list');
-tokenInput.value = localStorage.getItem('pingsheng_admin_token') || '';
-statusInput.addEventListener('change', loadFeedback);
-function saveTokenAndLoad() {
-  localStorage.setItem('pingsheng_admin_token', tokenInput.value.trim());
-  loadFeedback();
-}
-async function loadFeedback() {
-  const token = tokenInput.value.trim();
-  if (!token) {
-    message.textContent = '请先输入管理员 token。';
-    return;
-  }
-  message.textContent = '加载中...';
-  const query = statusInput.value ? '?status=' + encodeURIComponent(statusInput.value) : '';
-  const res = await fetch('/v1/admin/feedback' + query, { headers: { 'X-Admin-Token': token } });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    message.textContent = (data.error && data.error.message) || '加载失败';
-    list.innerHTML = '<span class="error">无法读取反馈。</span>';
-    return;
-  }
-  message.textContent = '共 ' + data.feedback.length + ' 条';
-  list.innerHTML = data.feedback.length ? data.feedback.map(renderItem).join('') : '暂无反馈。';
-}
-function renderItem(item) {
-  return '<article class="item">' +
-    '<div class="row"><strong>' + escapeHtml(item.type) + '</strong><span>' + statusLabel(item.status) + '</span></div>' +
-    '<div class="content">' + escapeHtml(item.content) + '</div>' +
-    '<div class="meta">联系方式：' + escapeHtml(item.contact || '未填写') + ' · 版本：' + escapeHtml(item.appVersionName || '-') + '(' + item.appVersionCode + ') · ' + escapeHtml(item.platform || '-') + ' · ' + escapeHtml(item.deviceInfo || '-') + ' · ' + escapeHtml(item.createdAt || '-') + '</div>' +
-    '<div class="row" style="margin-top:10px">' +
-    actionButton(item.id, 'processing', '标记处理中') +
-    actionButton(item.id, 'resolved', '标记已处理') +
-    actionButton(item.id, 'archived', '归档') +
-    '</div></article>';
-}
-function actionButton(id, status, label) {
-  return '<button class="secondary" onclick="setStatus(\'' + id + '\', \'' + status + '\')">' + label + '</button>';
-}
-async function setStatus(id, status) {
-  const res = await fetch('/v1/admin/feedback/' + encodeURIComponent(id), {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': tokenInput.value.trim() },
-    body: JSON.stringify({ status })
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    message.textContent = (data.error && data.error.message) || '更新失败';
-    return;
-  }
-  loadFeedback();
-}
-function statusLabel(status) {
-  return ({ pending: '待处理', processing: '处理中', resolved: '已处理', archived: '已归档' })[status] || status;
-}
-function escapeHtml(value) {
-  return String(value || '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-}
-</script>
-</body>
-</html>`
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(html))
 }
 
 func serveDownload(w http.ResponseWriter, r *http.Request) error {
