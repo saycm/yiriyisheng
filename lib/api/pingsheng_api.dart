@@ -18,6 +18,19 @@ class _PingShengApi {
     return _UpdateInfo.fromJson(json);
   }
 
+  Future<FeedbackReceipt> submitFeedback(FeedbackDraft draft) async {
+    final override = debugFeedbackResponseOverride;
+    if (override != null) {
+      return FeedbackReceipt.fromJson(await override(draft.toJson()));
+    }
+    final json = await _requestJson(
+      'POST',
+      '/v1/feedback',
+      body: draft.toJson(),
+    );
+    return FeedbackReceipt.fromJson(json);
+  }
+
   Future<_AuthSession> registerEmail({
     required String email,
     required String password,
@@ -134,6 +147,29 @@ class _PingShengApi {
   }
 }
 
+const feedbackApi = FeedbackApi();
+
+class FeedbackApi {
+  const FeedbackApi();
+
+  Future<FeedbackReceipt> submit(FeedbackDraft draft) async {
+    try {
+      return await const _PingShengApi().submitFeedback(draft);
+    } on _ApiException catch (error) {
+      throw FeedbackApiException(error.message);
+    }
+  }
+}
+
+class FeedbackApiException implements Exception {
+  const FeedbackApiException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class _ApiException implements Exception {
   const _ApiException(this.message, {this.code});
 
@@ -142,6 +178,62 @@ class _ApiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+Future<Map<String, dynamic>> Function(Map<String, Object?> body)?
+    debugFeedbackResponseOverride;
+
+class FeedbackDraft {
+  const FeedbackDraft({
+    required this.type,
+    required this.content,
+    required this.contact,
+    required this.platform,
+    required this.appVersionName,
+    required this.appVersionCode,
+    required this.deviceInfo,
+  });
+
+  final String type;
+  final String content;
+  final String contact;
+  final String platform;
+  final String appVersionName;
+  final int appVersionCode;
+  final String deviceInfo;
+
+  Map<String, Object?> toJson() {
+    return {
+      'type': type,
+      'content': content,
+      'contact': contact,
+      'platform': platform,
+      'appVersionName': appVersionName,
+      'appVersionCode': appVersionCode,
+      'deviceInfo': deviceInfo,
+    };
+  }
+}
+
+class FeedbackReceipt {
+  const FeedbackReceipt({
+    required this.id,
+    required this.status,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String status;
+  final String createdAt;
+
+  factory FeedbackReceipt.fromJson(Map<String, dynamic> json) {
+    final feedback = json['feedback'] as Map<String, dynamic>? ?? {};
+    return FeedbackReceipt(
+      id: feedback['id'] as String? ?? '',
+      status: feedback['status'] as String? ?? '',
+      createdAt: feedback['createdAt'] as String? ?? '',
+    );
+  }
 }
 
 class _UpdateInfo {
