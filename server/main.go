@@ -106,20 +106,6 @@ type updatePolicy struct {
 	UpdatedAt               string   `json:"updatedAt"`
 }
 
-type feedbackItem struct {
-	ID             string `json:"id"`
-	Type           string `json:"type"`
-	Content        string `json:"content"`
-	Contact        string `json:"contact"`
-	Platform       string `json:"platform"`
-	AppVersionName string `json:"appVersionName"`
-	AppVersionCode int    `json:"appVersionCode"`
-	DeviceInfo     string `json:"deviceInfo"`
-	Status         string `json:"status"`
-	CreatedAt      string `json:"createdAt"`
-	UpdatedAt      string `json:"updatedAt"`
-}
-
 type tokenPair struct {
 	AccessToken           string `json:"accessToken"`
 	TokenType             string `json:"tokenType"`
@@ -634,21 +620,6 @@ func initSQLite(db *sql.DB) error {
 			key TEXT PRIMARY KEY,
 			value TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS feedback_items (
-			id TEXT PRIMARY KEY,
-			type TEXT NOT NULL,
-			content TEXT NOT NULL,
-			contact TEXT NOT NULL,
-			platform TEXT NOT NULL,
-			app_version_name TEXT NOT NULL,
-			app_version_code INTEGER NOT NULL,
-			device_info TEXT NOT NULL,
-			status TEXT NOT NULL,
-			created_at TEXT NOT NULL,
-			updated_at TEXT NOT NULL
-		)`,
-		`CREATE INDEX IF NOT EXISTS idx_feedback_items_status ON feedback_items(status)`,
-		`CREATE INDEX IF NOT EXISTS idx_feedback_items_created_at ON feedback_items(created_at)`,
 	}
 	for _, statement := range statements {
 		if _, err := db.Exec(statement); err != nil {
