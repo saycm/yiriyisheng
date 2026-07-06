@@ -221,8 +221,6 @@ func routeAPI(w http.ResponseWriter, r *http.Request) error {
 		return checkUpdate(w, r)
 	case r.Method == http.MethodPut && path == "/v1/admin/update-policy":
 		return updatePolicyHandler(w, r)
-	case r.Method == http.MethodPost && path == "/v1/feedback":
-		return createFeedback(w, r)
 	case r.Method == http.MethodGet && strings.HasPrefix(path, "/downloads/"):
 		return serveDownload(w, r)
 	default:
@@ -474,105 +472,6 @@ func updatePolicyHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 	sendJSON(w, http.StatusOK, map[string]any{"updatePolicy": db.UpdatePolicy})
 	return nil
-}
-
-func createFeedback(w http.ResponseWriter, r *http.Request) error {
-	body, err := readJSONBody(r)
-	if err != nil {
-		return err
-	}
-	item, err := feedbackFromInput(body)
-	if err != nil {
-		return err
-	}
-
-	dbMu.Lock()
-	defer dbMu.Unlock()
-
-	db, err := openDataDB()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	if err := insertFeedback(db, item); err != nil {
-		return err
-	}
-	sendJSON(w, http.StatusCreated, map[string]any{
-		"feedback": map[string]any{
-			"id":        item.ID,
-			"status":    item.Status,
-			"createdAt": item.CreatedAt,
-		},
-	})
-	return nil
-}
-
-func feedbackFromInput(input map[string]any) (feedbackItem, error) {
-	content := strings.TrimSpace(stringValue(input["content"]))
-	if len([]rune(content)) < 5 || len([]rune(content)) > 1000 {
-		return feedbackItem{}, apiError{Status: http.StatusBadRequest, Code: "invalid_feedback_content", Message: "反馈内容需要 5 到 1000 个字。"}
-	}
-	kind := normalizeFeedbackType(stringValue(input["type"]))
-	contact := trimRunes(stringValue(input["contact"]), 200)
-	platform := strings.ToLower(strings.TrimSpace(defaultIfEmpty(stringValue(input["platform"]), "android")))
-	deviceInfo := trimRunes(stringValue(input["deviceInfo"]), 500)
-	versionCode := parseVersionCode(input["appVersionCode"])
-	if versionCode == nil {
-		fallback := 0
-		versionCode = &fallback
-	}
-	now := nowISO()
-	return feedbackItem{
-		ID:             newUUID(),
-		Type:           kind,
-		Content:        content,
-		Contact:        contact,
-		Platform:       platform,
-		AppVersionName: trimRunes(stringValue(input["appVersionName"]), 50),
-		AppVersionCode: *versionCode,
-		DeviceInfo:     deviceInfo,
-		Status:         "pending",
-		CreatedAt:      now,
-		UpdatedAt:      now,
-	}, nil
-}
-
-func normalizeFeedbackType(value string) string {
-	value = strings.TrimSpace(value)
-	switch value {
-	case "问题", "建议", "崩溃", "界面显示", "数据异常", "其他":
-		return value
-	default:
-		return "其他"
-	}
-}
-
-func trimRunes(value string, max int) string {
-	value = strings.TrimSpace(value)
-	runes := []rune(value)
-	if len(runes) <= max {
-		return value
-	}
-	return string(runes[:max])
-}
-
-func insertFeedback(db *sql.DB, item feedbackItem) error {
-	_, err := db.Exec(
-		`INSERT INTO feedback_items (id, type, content, contact, platform, app_version_name, app_version_code, device_info, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		item.ID,
-		item.Type,
-		item.Content,
-		item.Contact,
-		item.Platform,
-		item.AppVersionName,
-		item.AppVersionCode,
-		item.DeviceInfo,
-		item.Status,
-		item.CreatedAt,
-		item.UpdatedAt,
-	)
-	return err
 }
 
 func serveDownload(w http.ResponseWriter, r *http.Request) error {
