@@ -51,9 +51,13 @@ class LifeWidgetStore {
       final financeRecords = rawFinanceRecords == null
           ? null
           : _decodeFinanceRecords(rawFinanceRecords);
+      final rawFoodLogs = result?['foodLogsJson'] as String?;
       return LifeSummarySnapshot(
         foodCalories: (result?['foodCalories'] as num?)?.toInt() ?? 0,
+        foodLogs: rawFoodLogs == null ? null : _decodeFoodLogs(rawFoodLogs),
         workoutGroupsByAction: groups,
+        workoutProgressDate:
+            dateFromJson(result?['workoutProgressDate'] as String?),
         todos: todos,
         financeRecords: financeRecords,
       );
@@ -76,22 +80,24 @@ class LifeWidgetStore {
 
   Future<void> save({
     required int foodCalories,
+    required List<FoodLogEntry> foodLogs,
     required Map<String, int> workoutGroupsByAction,
+    required DateTime? workoutProgressDate,
+    required int workoutGroups,
     required List<TodoItem> todos,
     required List<FinanceRecord> financeRecords,
   }) async {
     try {
       await _channel.invokeMethod<void>('saveLifeSummary', {
         'foodCalories': foodCalories,
+        'foodLogsJson': jsonEncode(foodLogs.map((entry) => entry.toJson()).toList()),
         'pendingTodos': todos.where((todo) => todo.isActive).length,
         'todosJson': jsonEncode(todos.map((todo) => todo.toJson()).toList()),
         'financeRecordsJson': jsonEncode(
             financeRecords.map((record) => record.toJson()).toList()),
-        'workoutGroups': workoutGroupsByAction.values.fold<int>(
-          0,
-          (total, groups) => total + groups,
-        ),
+        'workoutGroups': workoutGroups,
         'workoutGroupsJson': jsonEncode(workoutGroupsByAction),
+        'workoutProgressDate': dateToJson(workoutProgressDate) ?? '',
       });
     } on MissingPluginException {
       // 测试环境和非 Android 平台没有桌面小组件通道，直接跳过同步。
@@ -117,6 +123,17 @@ class LifeWidgetStore {
     return decodedRecords
         .whereType<Map<String, dynamic>>()
         .map(FinanceRecord.fromJson)
+        .toList();
+  }
+
+  List<FoodLogEntry> _decodeFoodLogs(String rawLogs) {
+    final decodedLogs = jsonDecode(rawLogs);
+    if (decodedLogs is! List<dynamic>) {
+      return [];
+    }
+    return decodedLogs
+        .whereType<Map<String, dynamic>>()
+        .map(FoodLogEntry.fromJson)
         .toList();
   }
 }

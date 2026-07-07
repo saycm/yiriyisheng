@@ -32,11 +32,17 @@ extension _LifeHomePersistence on _LifeHomePageState {
 
   void _syncLinkedSummaryToWidget() {
     // App 主数据写 SQLite；桌面小组件只接收摘要和快捷入口数据。
+    final today = DateTime.now();
+    final foodCalories = todayFoodCaloriesFromState(today);
+    final workoutGroups = todayWorkoutGroupsFromState(today);
     unawaited(_saveAppData());
     unawaited(
       _LifeHomePageState._widgetStore.save(
-        foodCalories: _foodState.calories,
-        workoutGroupsByAction: _workoutState.groupsByAction,
+        foodCalories: foodCalories,
+        foodLogs: _foodState.logs,
+        workoutGroupsByAction: todayWorkoutGroupsByActionFromState(today),
+        workoutProgressDate: _workoutState.progressDate,
+        workoutGroups: workoutGroups,
         todos: _planState.todos,
         financeRecords: _financeState.records,
       ),
@@ -46,8 +52,10 @@ extension _LifeHomePersistence on _LifeHomePageState {
   Future<void> _saveAppData() async {
     try {
       await _appDataStore.save(
-        foodCalories: _foodState.calories,
+        foodCalories: todayFoodCaloriesFromState(DateTime.now()),
+        foodLogs: _foodState.logs,
         workoutGroupsByAction: _workoutState.groupsByAction,
+        workoutProgressDate: _workoutState.progressDate,
         todos: _planState.todos,
         financeRecords: _financeState.records,
         workoutPlans: _workoutState.plans,

@@ -20,6 +20,7 @@ void mockDefaultWidgetSummary() {
             _dateOnly(today.add(const Duration(days: 1))).toIso8601String();
         return {
           'foodCalories': 0,
+          'foodLogsJson': '[]',
           'pendingTodos': 6,
           'todosJson': jsonEncode([
             _todoJson('遛狗', '生活', 'shouldDo', todayIso),
@@ -40,6 +41,7 @@ void mockDefaultWidgetSummary() {
           ]),
           'workoutGroups': 0,
           'workoutGroupsJson': '{}',
+          'workoutProgressDate': todayIso,
         };
       case 'saveLifeSummary':
         return null;

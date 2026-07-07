@@ -8,7 +8,9 @@ abstract class LifeSummaryStore {
 
   Future<void> save({
     required int foodCalories,
+    required List<FoodLogEntry> foodLogs,
     required Map<String, int> workoutGroupsByAction,
+    required DateTime? workoutProgressDate,
     required List<TodoItem> todos,
     required List<FinanceRecord> financeRecords,
     required List<WorkoutPlan> workoutPlans,
@@ -26,7 +28,7 @@ class AppDataStore implements LifeSummaryStore {
   const AppDataStore();
 
   static const _databaseName = 'pingsheng_life.db';
-  static const _databaseVersion = 5;
+  static const _databaseVersion = 6;
   // 多个模块会连续触发保存，用队列串行化，避免 SQLite 写入互相覆盖。
   static Future<void> _pendingSave = Future<void>.value();
 
@@ -51,6 +53,10 @@ class AppDataStore implements LifeSummaryStore {
       }
 
       final foodCalories = await _readIntMeta(db, 'foodCalories');
+      final foodLogRows = await db.query(
+        'food_logs',
+        orderBy: 'position ASC, id ASC',
+      );
       final todos = await db.query('todos', orderBy: 'position ASC, id ASC');
       final financeRecords = await db.query(
         'finance_records',
@@ -80,7 +86,9 @@ class AppDataStore implements LifeSummaryStore {
 
       return LifeSummarySnapshot(
         foodCalories: foodCalories,
+        foodLogs: foodLogRows.map(_foodLogFromRow).toList(),
         workoutGroupsByAction: workoutGroups,
+        workoutProgressDate: await _readDateMeta(db, 'workoutProgressDate'),
         todos: todos.map(_todoFromRow).toList(),
         financeRecords: financeRecords.map(_financeRecordFromRow).toList(),
         workoutPlans: workoutPlanRows.map(_workoutPlanFromRow).toList(),
@@ -113,7 +121,9 @@ class AppDataStore implements LifeSummaryStore {
   @override
   Future<void> save({
     required int foodCalories,
+    required List<FoodLogEntry> foodLogs,
     required Map<String, int> workoutGroupsByAction,
+    required DateTime? workoutProgressDate,
     required List<TodoItem> todos,
     required List<FinanceRecord> financeRecords,
     required List<WorkoutPlan> workoutPlans,
@@ -133,7 +143,9 @@ class AppDataStore implements LifeSummaryStore {
     _pendingSave = previousSave.then(
       (_) => _saveNow(
         foodCalories: foodCalories,
+        foodLogs: foodLogs,
         workoutGroupsByAction: workoutGroupsByAction,
+        workoutProgressDate: workoutProgressDate,
         todos: todos,
         financeRecords: financeRecords,
         workoutPlans: workoutPlans,
@@ -151,7 +163,9 @@ class AppDataStore implements LifeSummaryStore {
 
   Future<void> _saveNow({
     required int foodCalories,
+    required List<FoodLogEntry> foodLogs,
     required Map<String, int> workoutGroupsByAction,
+    required DateTime? workoutProgressDate,
     required List<TodoItem> todos,
     required List<FinanceRecord> financeRecords,
     required List<WorkoutPlan> workoutPlans,
@@ -170,6 +184,7 @@ class AppDataStore implements LifeSummaryStore {
         await _saveMeta(txn, {
           'initialized': '1',
           'foodCalories': foodCalories.toString(),
+          'workoutProgressDate': dateToJson(workoutProgressDate) ?? '',
           'aiFinanceEndpoint': aiFinanceEndpoint,
           'aiFinanceModel': aiFinanceModel,
           'aiFinanceApiKey': aiFinanceApiKey,
@@ -219,6 +234,20 @@ class AppDataStore implements LifeSummaryStore {
           'finance_records',
           where: 'position >= ?',
           whereArgs: [financeRecords.length],
+        );
+
+        for (var index = 0; index < foodLogs.length; index++) {
+          await _upsertByPosition(
+            txn,
+            'food_logs',
+            index,
+            AppDataStoreRows.foodLogToRow(foodLogs[index], index),
+          );
+        }
+        await txn.delete(
+          'food_logs',
+          where: 'position >= ?',
+          whereArgs: [foodLogs.length],
         );
 
         final workoutActionNames = <String>[];

@@ -3,11 +3,38 @@
 part of 'life_home.dart';
 
 class _FoodHomeState {
-  int calories = 0;
+  final List<FoodLogEntry> logs = [];
 
   void applySnapshot(LifeSummarySnapshot snapshot) {
-    calories = snapshot.foodCalories;
+    logs
+      ..clear()
+      ..addAll(_migrateFoodLogs(snapshot));
   }
+}
+
+List<FoodLogEntry> _migrateFoodLogs(LifeSummarySnapshot snapshot) {
+  final logs = snapshot.foodLogs;
+  if (logs != null) {
+    return logs;
+  }
+  if (snapshot.foodCalories <= 0) {
+    return const [];
+  }
+  return [
+    FoodLogEntry(
+      food: FoodItem(
+        emoji: '🍱',
+        name: '旧版饮食记录',
+        calorie: snapshot.foodCalories,
+        unit: '1 天',
+        group: '自定义',
+      ),
+      meal: foodMealForTime(DateTime.now()),
+      servings: 1,
+      note: '旧版本只保存今日热量总数，已迁移为当天记录。',
+      recordedAt: DateTime.now(),
+    ),
+  ];
 }
 
 class _WorkoutHomeState {
@@ -15,6 +42,7 @@ class _WorkoutHomeState {
   final List<WorkoutPlan> plans = createDefaultWorkoutPlans();
   ActiveWorkoutSession? activeSession;
   final List<WorkoutHistoryEntry> history = [];
+  DateTime? progressDate;
 
   int get finishedGroups => groupsByAction.values.fold(
         0,
@@ -25,6 +53,7 @@ class _WorkoutHomeState {
     groupsByAction
       ..clear()
       ..addAll(snapshot.workoutGroupsByAction);
+    progressDate = snapshot.workoutProgressDate;
 
     plans
       ..clear()
@@ -148,7 +177,8 @@ class _FinanceHomeState {
   String aiCustomPrompt = '';
 
   double get todayExpense => records
-      .where((record) => record.type == '支出')
+      .where((record) =>
+          record.type == '支出' && isSameLocalDay(record.date, DateTime.now()))
       .fold(0, (total, record) => total + record.amount);
 
   void applySnapshot(LifeSummarySnapshot snapshot) {

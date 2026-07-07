@@ -121,6 +121,105 @@ void main() {
     expect(snapshot.workoutHistory?.single.totalGroups, 4);
   });
 
+  test('daily summary values only count records for selected day', () {
+    final today = DateTime(2026, 7, 7);
+    final yesterday = DateTime(2026, 7, 6);
+    final financeRecords = [
+      FinanceRecord(
+        icon: Icons.restaurant_rounded,
+        title: '今天午餐',
+        subtitle: '三餐',
+        amount: 28,
+        type: '支出',
+        date: today,
+      ),
+      FinanceRecord(
+        icon: Icons.restaurant_rounded,
+        title: '昨天午餐',
+        subtitle: '三餐',
+        amount: 18,
+        type: '支出',
+        date: yesterday,
+      ),
+      FinanceRecord(
+        icon: Icons.payments_rounded,
+        title: '今天收入',
+        subtitle: '工资',
+        amount: 300,
+        type: '收入',
+        date: today,
+      ),
+    ];
+    final foodLogs = [
+      FoodLogEntry(
+        food: const FoodItem(
+          emoji: '🍚',
+          name: '米饭',
+          calorie: 116,
+          unit: '100 克',
+          group: '主食',
+        ),
+        meal: '午餐',
+        servings: 1,
+        note: '',
+        recordedAt: today.add(const Duration(hours: 12)),
+      ),
+      FoodLogEntry(
+        food: const FoodItem(
+          emoji: '🥚',
+          name: '鸡蛋',
+          calorie: 144,
+          unit: '100 克',
+          group: '蛋白',
+        ),
+        meal: '早餐',
+        servings: 1,
+        note: '',
+        recordedAt: yesterday.add(const Duration(hours: 8)),
+      ),
+    ];
+    final activeSession = ActiveWorkoutSession(
+      planId: 'today-plan',
+      planName: '今日训练',
+      startedAt: today.add(const Duration(hours: 9)),
+      actionProgress: const {'深蹲': 2},
+    );
+    final workoutHistory = [
+      WorkoutHistoryEntry(
+        planId: 'yesterday-plan',
+        planName: '昨日训练',
+        startedAt: yesterday.add(const Duration(hours: 18)),
+        finishedAt: yesterday.add(const Duration(hours: 19)),
+        durationMinutes: 45,
+        totalGroups: 6,
+        estimatedCalories: 188,
+        actionResults: const [],
+      ),
+      WorkoutHistoryEntry(
+        planId: 'today-done',
+        planName: '今日完成',
+        startedAt: today.add(const Duration(hours: 7)),
+        finishedAt: today.add(const Duration(hours: 8)),
+        durationMinutes: 35,
+        totalGroups: 4,
+        estimatedCalories: 152,
+        actionResults: const [],
+      ),
+    ];
+
+    expect(todayFinanceTotal(financeRecords, '支出', today), 28);
+    expect(todayFinanceTotal(financeRecords, '收入', today), 300);
+    expect(todayFoodCalories(foodLogs, today), 116);
+    expect(
+      todayWorkoutGroups(
+        history: workoutHistory,
+        activeSession: activeSession,
+        today: today,
+      ),
+      6,
+    );
+  });
+
   test('postponing a todo moves from its own date to next workday', () {
     final fridayTodo = TodoItem(
       title: '周五任务',

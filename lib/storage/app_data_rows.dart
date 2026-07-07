@@ -5,6 +5,27 @@ part of 'storage.dart';
 class AppDataStoreRows {
   const AppDataStoreRows._();
 
+  static Map<String, Object?> foodLogToRow(FoodLogEntry entry, int position) {
+    return {
+      'position': position,
+      'foodJson': jsonEncode(entry.food.toJson()),
+      'meal': entry.meal,
+      'servings': entry.servings,
+      'note': entry.note,
+      'recordedAt': entry.recordedAt.toIso8601String(),
+    };
+  }
+
+  static FoodLogEntry foodLogFromRow(Map<String, Object?> row) {
+    return FoodLogEntry.fromJson({
+      'food': jsonDecode(row['foodJson'] as String? ?? '{}'),
+      'meal': row['meal'],
+      'servings': row['servings'],
+      'note': row['note'],
+      'recordedAt': row['recordedAt'],
+    });
+  }
+
   // 财务记录在 SQLite 中按行保存；复杂字段转 JSON，读取时再还原成模型。
   static Map<String, Object?> financeRecordToRow(
     FinanceRecord record,
@@ -81,6 +102,10 @@ extension _AppDataStoreRowMapping on AppDataStore {
 
   FinanceRecord _financeRecordFromRow(Map<String, Object?> row) {
     return AppDataStoreRows.financeRecordFromRow(row);
+  }
+
+  FoodLogEntry _foodLogFromRow(Map<String, Object?> row) {
+    return AppDataStoreRows.foodLogFromRow(row);
   }
 
   WorkoutPlan _workoutPlanFromRow(Map<String, Object?> row) {

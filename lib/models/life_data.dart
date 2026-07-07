@@ -8,6 +8,8 @@ class LifeSummarySnapshot {
     required this.workoutGroupsByAction,
     required this.todos,
     required this.financeRecords,
+    this.foodLogs,
+    this.workoutProgressDate,
     this.workoutPlans,
     this.activeWorkoutSession,
     this.workoutHistory,
@@ -22,6 +24,8 @@ class LifeSummarySnapshot {
   final Map<String, int> workoutGroupsByAction;
   final List<TodoItem>? todos;
   final List<FinanceRecord>? financeRecords;
+  final List<FoodLogEntry>? foodLogs;
+  final DateTime? workoutProgressDate;
   final List<WorkoutPlan>? workoutPlans;
   final ActiveWorkoutSession? activeWorkoutSession;
   final List<WorkoutHistoryEntry>? workoutHistory;
@@ -30,6 +34,163 @@ class LifeSummarySnapshot {
   final String aiFinanceApiKey;
   final AiFinanceParseStrategy aiFinanceParseStrategy;
   final String aiFinanceCustomPrompt;
+}
+
+class FoodItem {
+  const FoodItem({
+    required this.emoji,
+    required this.name,
+    required this.calorie,
+    required this.unit,
+    required this.group,
+    this.protein,
+    this.carbs,
+    this.fat,
+  });
+
+  final String emoji;
+  final String name;
+  final int calorie;
+  final String unit;
+  final String group;
+  final double? protein;
+  final double? carbs;
+  final double? fat;
+
+  Map<String, Object?> toJson() {
+    return {
+      'emoji': emoji,
+      'name': name,
+      'calorie': calorie,
+      'unit': unit,
+      'group': group,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+    };
+  }
+
+  static FoodItem fromJson(Map<String, Object?> json) {
+    final name = json['name'];
+    final calorie = json['calorie'];
+    return FoodItem(
+      emoji: json['emoji'] as String? ?? '🍱',
+      name: name is String && name.isNotEmpty ? name : '未命名食物',
+      calorie: calorie is num
+          ? calorie.toInt()
+          : int.tryParse(calorie?.toString() ?? '') ?? 0,
+      unit: json['unit'] as String? ?? '1 份',
+      group: json['group'] as String? ?? '自定义',
+      protein: _numToDouble(json['protein']),
+      carbs: _numToDouble(json['carbs']),
+      fat: _numToDouble(json['fat']),
+    );
+  }
+}
+
+class FoodLogEntry {
+  const FoodLogEntry({
+    required this.food,
+    required this.meal,
+    required this.servings,
+    required this.note,
+    required this.recordedAt,
+  });
+
+  final FoodItem food;
+  final String meal;
+  final double servings;
+  final String note;
+  final DateTime recordedAt;
+
+  int get calories => (food.calorie * servings).round();
+  double get protein => _foodMacro(food, _FoodMacro.protein) * servings;
+  double get carbs => _foodMacro(food, _FoodMacro.carbs) * servings;
+  double get fat => _foodMacro(food, _FoodMacro.fat) * servings;
+
+  Map<String, Object?> toJson() {
+    return {
+      'food': food.toJson(),
+      'meal': meal,
+      'servings': servings,
+      'note': note,
+      'recordedAt': recordedAt.toIso8601String(),
+    };
+  }
+
+  static FoodLogEntry fromJson(Map<String, Object?> json) {
+    final food = json['food'];
+    final servings = json['servings'];
+    return FoodLogEntry(
+      food: food is Map
+          ? FoodItem.fromJson(food.cast<String, Object?>())
+          : const FoodItem(
+              emoji: '🍱',
+              name: '未命名食物',
+              calorie: 0,
+              unit: '1 份',
+              group: '自定义',
+            ),
+      meal: json['meal'] as String? ?? '午餐',
+      servings: servings is num
+          ? servings.toDouble()
+          : double.tryParse(servings?.toString() ?? '') ?? 1,
+      note: json['note'] as String? ?? '',
+      recordedAt: DateTime.tryParse(json['recordedAt']?.toString() ?? '') ??
+          DateTime.now(),
+    );
+  }
+}
+
+enum _FoodMacro { protein, carbs, fat }
+
+double _foodMacro(FoodItem food, _FoodMacro macro) {
+  final direct = switch (macro) {
+    _FoodMacro.protein => food.protein,
+    _FoodMacro.carbs => food.carbs,
+    _FoodMacro.fat => food.fat,
+  };
+  if (direct != null) {
+    return direct;
+  }
+
+  final ratios = switch (_normalizeFoodGroup(food.group)) {
+    '蛋白' => (0.22, 0.06, 0.06),
+    '主食' => (0.05, 0.20, 0.02),
+    '蔬果' => (0.03, 0.12, 0.01),
+    '饮品' => (0.02, 0.10, 0.01),
+    '零食' => (0.08, 0.28, 0.12),
+    _ => (0.10, 0.18, 0.07),
+  };
+  final ratio = switch (macro) {
+    _FoodMacro.protein => ratios.$1,
+    _FoodMacro.carbs => ratios.$2,
+    _FoodMacro.fat => ratios.$3,
+  };
+  return food.calorie * ratio;
+}
+
+String normalizeFoodGroup(String group) => _normalizeFoodGroup(group);
+
+String _normalizeFoodGroup(String group) {
+  return switch (group) {
+    '常用' || '常见' || '早餐' || '汤粥' || '家常菜' => '常用',
+    '主食' || '主食杂粮' => '主食',
+    '蛋白' || '肉蛋奶' || '低脂高蛋白' || '海鲜水产' => '蛋白',
+    '蔬果' || '蔬菜水果' => '蔬果',
+    '收藏' || '饮品' => '饮品',
+    '零食' || '坚果种子' || '烘焙甜品' || '调味酱料' => '零食',
+    '外卖' || '外卖快餐' => '外卖',
+    '自定义' => '自定义',
+    _ => '自定义',
+  };
+}
+
+double? _numToDouble(Object? value) {
+  if (value is num) {
+    return value.toDouble();
+  }
+  return double.tryParse(value?.toString() ?? '');
 }
 
 class TodoItem {
@@ -319,6 +480,63 @@ class FinanceRecord {
       tags: financeStringListFromJson(json['tags']),
     );
   }
+}
+
+double todayFinanceTotal(
+  List<FinanceRecord> records,
+  String type,
+  DateTime today,
+) {
+  final targetDay = DateUtils.dateOnly(today);
+  return records.where((record) {
+    final date = record.date;
+    return record.type == type &&
+        date != null &&
+        DateUtils.isSameDay(date, targetDay);
+  }).fold(0, (total, record) => total + record.amount);
+}
+
+int todayFoodCalories(List<FoodLogEntry> logs, DateTime today) {
+  return todayFoodLogs(logs, today)
+      .fold(0, (total, entry) => total + entry.calories);
+}
+
+List<FoodLogEntry> todayFoodLogs(List<FoodLogEntry> logs, DateTime today) {
+  final targetDay = DateUtils.dateOnly(today);
+  return logs
+      .where((entry) => DateUtils.isSameDay(entry.recordedAt, targetDay))
+      .toList(growable: false);
+}
+
+int todayWorkoutGroups({
+  required List<WorkoutHistoryEntry> history,
+  required ActiveWorkoutSession? activeSession,
+  Map<String, int> progressGroupsByAction = const {},
+  required DateTime today,
+}) {
+  final targetDay = DateUtils.dateOnly(today);
+  final completedGroups = history.where((entry) {
+    return DateUtils.isSameDay(entry.finishedAt, targetDay);
+  }).fold<int>(0, (total, entry) => total + entry.totalGroups);
+  final session = activeSession;
+  final activeGroups = session == null ||
+          !DateUtils.isSameDay(session.startedAt, targetDay)
+      ? 0
+      : session.actionProgress.values.fold<int>(
+          0,
+          (total, groups) => total + groups,
+        );
+  final progressGroups = session == null
+      ? progressGroupsByAction.values.fold<int>(
+          0,
+          (total, groups) => total + groups,
+        )
+      : 0;
+  return completedGroups + activeGroups + progressGroups;
+}
+
+bool isSameLocalDay(DateTime? value, DateTime day) {
+  return value != null && DateUtils.isSameDay(value, DateUtils.dateOnly(day));
 }
 
 Color todoColorForCategory(String category) {

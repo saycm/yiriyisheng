@@ -483,10 +483,14 @@ void main() {
         .setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
       if (call.method == 'loadLifeSummary') {
+        final todayIso = DateTime.now().toIso8601String();
         return {
           'foodCalories': 168,
+          'foodLogsJson':
+              '[{"food":{"emoji":"🍱","name":"旧记录","calorie":168,"unit":"1份","group":"自定义"},"meal":"午餐","servings":1,"note":"","recordedAt":"$todayIso"}]',
           'workoutGroups': 2,
           'workoutGroupsJson': '{"蝴蝶机夹胸":2}',
+          'workoutProgressDate': todayIso,
           'todosJson':
               '[{"title":"写周报","category":"工作","done":false},{"title":"复盘","category":"生活","done":true}]',
         };

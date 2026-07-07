@@ -950,7 +950,9 @@ class _MemoryLifeSummaryStore implements LifeSummaryStore {
   @override
   Future<void> save({
     required int foodCalories,
+    required List<FoodLogEntry> foodLogs,
     required Map<String, int> workoutGroupsByAction,
+    required DateTime? workoutProgressDate,
     required List<TodoItem> todos,
     required List<FinanceRecord> financeRecords,
     required List<WorkoutPlan> workoutPlans,

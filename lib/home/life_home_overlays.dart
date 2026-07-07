@@ -4,6 +4,7 @@ part of 'life_home.dart';
 
 extension _LifeHomeOverlays on _LifeHomePageState {
   void _openModuleSheet() {
+    final today = DateTime.now();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -12,9 +13,9 @@ extension _LifeHomeOverlays on _LifeHomePageState {
         return ModuleSheet(
           selected: _module,
           pendingTodos: _pendingTodoCount,
-          foodCalories: _foodState.calories,
-          workoutGroups: _workoutState.finishedGroups,
-          todayExpense: _financeState.todayExpense,
+          foodCalories: todayFoodCaloriesFromState(today),
+          workoutGroups: todayWorkoutGroupsFromState(today),
+          todayExpense: todayFinanceTotal(_financeState.records, '支出', today),
           events: _planState.events,
           onSelect: (module) {
             Navigator.of(context).pop();

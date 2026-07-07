@@ -913,6 +913,34 @@ void main() {
     );
   });
 
+  testWidgets('workout restore ignores stale standalone progress',
+      (tester) async {
+    final store = _RestoringLifeSummaryStore(
+      LifeSummarySnapshot(
+        foodCalories: 0,
+        workoutGroupsByAction: const {'蝴蝶机夹胸': 4},
+        workoutProgressDate: DateTime(2026, 7, 6),
+        todos: const [],
+        financeRecords: const [],
+        workoutPlans: createDefaultWorkoutPlans(),
+        workoutHistory: const [],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LifeHomePage(appDataStore: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('0/257 组'), findsOneWidget);
+    expect(find.text('4/257 组'), findsNothing);
+  });
+
   testWidgets('workout finished set updates list summary and data',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
@@ -1093,7 +1121,9 @@ class _RestoringLifeSummaryStore implements LifeSummaryStore {
   @override
   Future<void> save({
     required int foodCalories,
+    required List<FoodLogEntry> foodLogs,
     required Map<String, int> workoutGroupsByAction,
+    required DateTime? workoutProgressDate,
     required List<TodoItem> todos,
     required List<FinanceRecord> financeRecords,
     required List<WorkoutPlan> workoutPlans,

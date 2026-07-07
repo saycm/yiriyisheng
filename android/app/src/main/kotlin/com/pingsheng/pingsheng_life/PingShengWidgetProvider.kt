@@ -37,11 +37,13 @@ class PingShengWidgetProvider : AppWidgetProvider() {
     companion object {
         const val PREFS_NAME = "pingsheng_life_widget_summary"
         const val KEY_FOOD_CALORIES = "food_calories"
+        const val KEY_FOOD_LOGS_JSON = "food_logs_json"
         const val KEY_PENDING_TODOS = "pending_todos"
         const val KEY_TODOS_JSON = "todos_json"
         const val KEY_FINANCE_RECORDS_JSON = "finance_records_json"
         const val KEY_WORKOUT_GROUPS = "workout_groups"
         const val KEY_WORKOUT_GROUPS_JSON = "workout_groups_json"
+        const val KEY_WORKOUT_PROGRESS_DATE = "workout_progress_date"
         const val KEY_HEALTH_TEXT = "health_text"
         private const val TOTAL_WORKOUT_GROUPS = 19
         private const val ACTION_REFRESH = "com.pingsheng.pingsheng_life.widget.REFRESH"
@@ -210,11 +212,27 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             var total = 0.0
             for (index in 0 until records.length()) {
                 val record = records.optJSONObject(index) ?: continue
-                if (record.optString("type") == type) {
+                if (record.optString("type") == type && isToday(record.optString("date"))) {
                     total += record.optDouble("amount", 0.0)
                 }
             }
             return total
+        }
+
+        private fun isToday(rawDate: String): Boolean {
+            return try {
+                val date = java.time.Instant.parse(rawDate)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate()
+                date == java.time.LocalDate.now()
+            } catch (_: Exception) {
+                try {
+                    java.time.LocalDate.parse(rawDate.substringBefore("T")) ==
+                        java.time.LocalDate.now()
+                } catch (_: Exception) {
+                    false
+                }
+            }
         }
 
         private fun formatMoney(amount: Double): String {
