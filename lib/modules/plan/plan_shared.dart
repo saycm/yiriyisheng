@@ -25,7 +25,7 @@ List<(String, Color)> _todoCategoryOptions() {
   return const [
     ('工作', Color(0xFF9278F7)),
     ('生活', Color(0xFF7D9CFF)),
-    ('健康', Color(0xFFFF6F9D)),
+    ('状态', Color(0xFFFF6F9D)),
     ('财务', AppColors.success),
     ('学习', Color(0xFFB88955)),
     ('自定义', AppColors.muted),

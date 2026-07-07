@@ -126,7 +126,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
       if (!mounted) {
         return;
       }
-      // 小组件“健康详情”直达健康总览弹层，显示饮食和锻炼联动后的完整数据。
+      // 小组件“状态详情”直达状态总览弹层，显示饮食和锻炼联动后的完整数据。
       _openSummarySheet();
       widget.onQuickActionHandled();
     });
@@ -168,75 +168,77 @@ class _HealthModulePageState extends State<HealthModulePage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _HealthHeader(
-              onOpenModules: widget.onOpenModules,
-              onOpenSummary: _openSummarySheet,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: widget.moduleNav,
-            ),
-            Expanded(
-              child: ListView(
-                key: const ValueKey('health_main_list'),
-                padding: const EdgeInsets.fromLTRB(
-                  18,
-                  16,
-                  18,
-                  moduleSwitchBarReservedHeight + 24,
-                ),
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _HealthDateStrip(
-                        days: days,
-                        selectedDay: selectedDay,
-                        onSelect: (day) {
-                          setState(() => _selectedIndex = days.indexOf(day));
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _HealthStatusScoreCard(
-                        result: _statusResult,
-                        onRecord: _openManualRecordSheet,
-                      ),
-                      const SizedBox(height: 14),
-                      _HealthQuickRecordCard(
-                        sleep: _sleepFeeling,
-                        energy: _energyFeeling,
-                        stress: _stressFeeling,
-                        body: _bodyFeeling,
-                        mood: _moodFeeling,
-                        onSleepChanged: _updateSleepFeeling,
-                        onEnergyChanged: _updateEnergyFeeling,
-                        onStressChanged: _updateStressFeeling,
-                        onBodyChanged: _updateBodyFeeling,
-                        onMoodChanged: _updateMoodFeeling,
-                      ),
-                      const SizedBox(height: 14),
-                      _HealthImpactCard(impacts: _statusResult.impacts),
-                      const SizedBox(height: 14),
-                      _HealthStatusSuggestionCard(
-                        suggestions: _statusResult.suggestions,
-                      ),
-                      const SizedBox(height: 14),
-                      _HealthStatusTrendCard(result: _statusResult),
-                      const SizedBox(height: 14),
-                      _HealthExternalSourceEntry(
-                        snapshot: _systemHealth,
-                        loading: _loadingHealth,
-                        onTap: _openExternalSourceSheet,
-                      ),
-                    ],
-                  ),
-                ],
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _HealthHeader(
+                onOpenModules: widget.onOpenModules,
+                onOpenSummary: _openSummarySheet,
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: widget.moduleNav,
+              ),
+              Expanded(
+                child: ListView(
+                  key: const ValueKey('health_main_list'),
+                  padding: const EdgeInsets.fromLTRB(
+                    18,
+                    16,
+                    18,
+                    moduleSwitchBarReservedHeight + 24,
+                  ),
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _HealthDateStrip(
+                          days: days,
+                          selectedDay: selectedDay,
+                          onSelect: (day) {
+                            setState(() => _selectedIndex = days.indexOf(day));
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _HealthStatusScoreCard(
+                          result: _statusResult,
+                          onRecord: _openManualRecordSheet,
+                        ),
+                        const SizedBox(height: 14),
+                        _HealthQuickRecordCard(
+                          sleep: _sleepFeeling,
+                          energy: _energyFeeling,
+                          stress: _stressFeeling,
+                          body: _bodyFeeling,
+                          mood: _moodFeeling,
+                          onSleepChanged: _updateSleepFeeling,
+                          onEnergyChanged: _updateEnergyFeeling,
+                          onStressChanged: _updateStressFeeling,
+                          onBodyChanged: _updateBodyFeeling,
+                          onMoodChanged: _updateMoodFeeling,
+                        ),
+                        const SizedBox(height: 14),
+                        _HealthImpactCard(impacts: _statusResult.impacts),
+                        const SizedBox(height: 14),
+                        _HealthStatusSuggestionCard(
+                          suggestions: _statusResult.suggestions,
+                        ),
+                        const SizedBox(height: 14),
+                        _HealthStatusTrendCard(result: _statusResult),
+                        const SizedBox(height: 14),
+                        _HealthExternalSourceEntry(
+                          snapshot: _systemHealth,
+                          loading: _loadingHealth,
+                          onTap: _openExternalSourceSheet,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

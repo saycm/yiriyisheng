@@ -89,56 +89,58 @@ class _PlanModulePageState extends State<PlanModulePage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _PlanHeader(
-              onOpenModules: widget.onOpenModules,
-              onOpenMore: _openMoreSheet,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: widget.moduleNav,
-            ),
-            _PlanDateToolbar(
-              selectedDate: _selectedDate,
-              onDateChanged: (date) => setState(() {
-                _selectedDate = date;
-                _selectedTab = 2;
-              }),
-            ),
-            Expanded(
-              child: _PlanBody(
-                selectedTab: _selectedTab,
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _PlanHeader(
+                onOpenModules: widget.onOpenModules,
+                onOpenMore: _openMoreSheet,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: widget.moduleNav,
+              ),
+              _PlanDateToolbar(
                 selectedDate: _selectedDate,
-                activeFilter: _categoryFilter,
-                todos: widget.todos,
-                events: widget.events,
-                foodCalories: widget.foodCalories,
-                workoutGroups: widget.workoutGroups,
-                todayExpense: widget.todayExpense,
-                healthStatusText: widget.healthStatusText,
-                onSelectDate: (date) => setState(() {
+                onDateChanged: (date) => setState(() {
                   _selectedDate = date;
                   _selectedTab = 2;
                 }),
-                onToggleTodo: _toggleTodo,
-                onUpdateTodo: widget.onUpdateTodo,
-                onPostponeTodo: widget.onPostponeTodo,
-                onArchiveTodo: widget.onArchiveTodo,
-                onDeleteTodo: widget.onDeleteTodo,
-                onQuickCapture: _addInboxTodo,
-                onAddTodo: widget.onAddTodo,
-                onClearCompletedTodos: widget.onClearCompletedTodos,
               ),
-            ),
-            ModuleBottomNavSlot(
-              child: PlanBottomNav(
-                selectedIndex: _selectedTab,
-                onChanged: (index) => setState(() => _selectedTab = index),
+              Expanded(
+                child: _PlanBody(
+                  selectedTab: _selectedTab,
+                  selectedDate: _selectedDate,
+                  activeFilter: _categoryFilter,
+                  todos: widget.todos,
+                  events: widget.events,
+                  foodCalories: widget.foodCalories,
+                  workoutGroups: widget.workoutGroups,
+                  todayExpense: widget.todayExpense,
+                  healthStatusText: widget.healthStatusText,
+                  onSelectDate: (date) => setState(() {
+                    _selectedDate = date;
+                    _selectedTab = 2;
+                  }),
+                  onToggleTodo: _toggleTodo,
+                  onUpdateTodo: widget.onUpdateTodo,
+                  onPostponeTodo: widget.onPostponeTodo,
+                  onArchiveTodo: widget.onArchiveTodo,
+                  onDeleteTodo: widget.onDeleteTodo,
+                  onQuickCapture: _addInboxTodo,
+                  onAddTodo: widget.onAddTodo,
+                  onClearCompletedTodos: widget.onClearCompletedTodos,
+                ),
               ),
-            ),
-          ],
+              ModuleBottomNavSlot(
+                child: PlanBottomNav(
+                  selectedIndex: _selectedTab,
+                  onChanged: (index) => setState(() => _selectedTab = index),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: Padding(

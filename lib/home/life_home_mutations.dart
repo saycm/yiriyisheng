@@ -10,7 +10,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
       _pushLifeEvent(
         LifeEvent(
           title: '记录饮食',
-          detail: '$calories kcal 已同步到健康和计划',
+          detail: '$calories kcal 已同步到状态和计划',
           icon: Icons.restaurant_rounded,
           color: AppColors.success,
         ),

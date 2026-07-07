@@ -83,7 +83,7 @@ void main() {
         findsOneWidget);
     expect(find.descendant(of: overview, matching: find.text('训练')),
         findsOneWidget);
-    expect(find.descendant(of: overview, matching: find.text('健康')),
+    expect(find.descendant(of: overview, matching: find.text('状态')),
         findsOneWidget);
     expect(
       find.descendant(

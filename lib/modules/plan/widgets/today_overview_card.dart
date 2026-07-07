@@ -56,46 +56,46 @@ class _TodayOverviewCard extends StatelessWidget {
         )
         .toList();
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: airyCardDecoration(
-        color: AppColors.surface.withValues(alpha: 0.96),
-        shadows: [airyShadow(AppColors.primary)],
-      ),
+    return KeyedSubtree(
       key: const ValueKey('today_overview_card'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '今日总览',
-            style: TextStyle(
-              color: AppColors.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
+      child: GlassSurface(
+        borderRadius: 16,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '今日总览',
+              style: TextStyle(
+                color: AppColors.ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              const spacing = 8.0;
-              final tileWidth = (constraints.maxWidth - spacing) / 2;
-              return Column(
-                children: [
-                  Wrap(
-                    spacing: spacing,
-                    runSpacing: spacing,
-                    children: [
-                      for (final tile in metricTiles)
-                        SizedBox(width: tileWidth, child: tile),
-                    ],
-                  ),
-                  const SizedBox(height: spacing),
-                  _TodayOverviewHealthPanel(statusText: healthStatusText),
-                ],
-              );
-            },
-          ),
-        ],
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const spacing = 8.0;
+                final tileWidth = (constraints.maxWidth - spacing) / 2;
+                return Column(
+                  children: [
+                    Wrap(
+                      spacing: spacing,
+                      runSpacing: spacing,
+                      children: [
+                        for (final tile in metricTiles)
+                          SizedBox(width: tileWidth, child: tile),
+                      ],
+                    ),
+                    const SizedBox(height: spacing),
+                    _TodayOverviewHealthPanel(statusText: healthStatusText),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -201,7 +201,7 @@ class _TodayOverviewHealthPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 const Text(
-                  '健康',
+                  '状态',
                   style: TextStyle(
                     color: AppColors.muted,
                     fontSize: 11,

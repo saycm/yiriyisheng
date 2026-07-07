@@ -433,45 +433,42 @@ class _AuthPageState extends State<_AuthPage> {
     );
     return Scaffold(
       backgroundColor: const Color(0xFFF5E7C8),
-      body: Stack(
-        children: [
-          const Positioned.fill(child: _AuthLaunchBackdrop()),
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 30, 18, 12),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 388),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _AuthHeader(isRegister: isRegister),
-                      Transform.translate(
-                        offset: const Offset(0, -42),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: formPanel,
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(18, 30, 18, 12),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 388),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _AuthHeader(isRegister: isRegister),
+                    Transform.translate(
+                      offset: const Offset(0, -42),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: formPanel,
+                      ),
+                    ),
+                    Transform.translate(
+                      offset: const Offset(0, -24),
+                      child: const Text(
+                        '本地数据 · 安全同步',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF8C7A64),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      Transform.translate(
-                        offset: const Offset(0, -24),
-                        child: const Text(
-                          '本地数据 · 安全同步',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Color(0xFF8C7A64),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -486,24 +483,31 @@ class _AuthStatusPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const AppIconMark(size: 64),
-            const SizedBox(height: 20),
-            const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 3),
+      body: LiquidModuleBackground(
+        child: Center(
+          child: GlassSurface(
+            borderRadius: 20,
+            padding: const EdgeInsets.fromLTRB(28, 24, 28, 22),
+            color: AppColors.surface.withValues(alpha: 0.78),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const AppIconMark(size: 64),
+                const SizedBox(height: 20),
+                const SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  message,
+                  style: const TextStyle(
+                      color: AppColors.muted, fontWeight: FontWeight.w800),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              style: const TextStyle(
-                  color: AppColors.muted, fontWeight: FontWeight.w800),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -24,82 +24,82 @@ class _TrendCard extends StatelessWidget {
         series.values.fold<double>(0, (sum, value) => sum + value).round();
     final unit = showExpense ? '支出' : '收入';
 
-    return Container(
+    return SizedBox(
       height: 250,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  '收支趋势',
-                  style: TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.82),
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '收支趋势',
+                    style: TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-              ),
-              _SegmentButton(
-                label: '支出',
-                selected: showExpense,
-                onTap: () => onToggleTrend(true),
-              ),
-              const SizedBox(width: 8),
-              _SegmentButton(
-                label: '收入',
-                selected: !showExpense,
-                onTap: () => onToggleTrend(false),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _RangeChip(
-                label: '7天',
-                selected: trendRange == '7天',
-                onTap: () => onChangeRange('7天'),
-              ),
-              const SizedBox(width: 8),
-              _RangeChip(
-                label: '6个月',
-                selected: trendRange == '6个月',
-                onTap: () => onChangeRange('6个月'),
-              ),
-              const Spacer(),
-              Text(
-                '$trendRange$unit ¥$total',
-                style: const TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+                _SegmentButton(
+                  label: '支出',
+                  selected: showExpense,
+                  onTap: () => onToggleTrend(true),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: CustomPaint(
-              painter: _TrendPainter(
-                values: series.values,
-                range: trendRange,
-                startLabel: series.startLabel,
-                endLabel: series.endLabel,
-                color: showExpense
-                    ? AppColors.financeRed
-                    : const Color(0xFF58CE82),
-              ),
-              child: const SizedBox.expand(),
+                const SizedBox(width: 8),
+                _SegmentButton(
+                  label: '收入',
+                  selected: !showExpense,
+                  onTap: () => onToggleTrend(false),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _RangeChip(
+                  label: '7天',
+                  selected: trendRange == '7天',
+                  onTap: () => onChangeRange('7天'),
+                ),
+                const SizedBox(width: 8),
+                _RangeChip(
+                  label: '6个月',
+                  selected: trendRange == '6个月',
+                  onTap: () => onChangeRange('6个月'),
+                ),
+                const Spacer(),
+                Text(
+                  '$trendRange$unit ¥$total',
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: CustomPaint(
+                painter: _TrendPainter(
+                  values: series.values,
+                  range: trendRange,
+                  startLabel: series.startLabel,
+                  endLabel: series.endLabel,
+                  color: showExpense
+                      ? AppColors.financeRed
+                      : const Color(0xFF58CE82),
+                ),
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

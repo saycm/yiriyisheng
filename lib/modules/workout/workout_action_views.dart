@@ -194,213 +194,212 @@ class _WorkoutActionDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: ListView(
-          key: const ValueKey('workout_action_detail_list'),
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
-          children: [
-            Row(
-              children: [
-                IconBubble(
-                  icon: Icons.arrow_back_ios_new_rounded,
-                  color: AppColors.ink,
-                  onTap: onBack,
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: ListView(
+            key: const ValueKey('workout_action_detail_list'),
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
+            children: [
+              Row(
+                children: [
+                  IconBubble(
+                    icon: Icons.arrow_back_ios_new_rounded,
+                    color: AppColors.ink,
+                    onTap: onBack,
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        action.name,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 42),
+                ],
+              ),
+              const SizedBox(height: 22),
+              GlassSurface(
+                borderRadius: 14,
+                color: AppColors.surface.withValues(alpha: 0.86),
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            color: AppColors.primarySoft,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: _WorkoutActionArt(
+                            action: action,
+                            size: 58,
+                            radius: 8,
+                            iconSize: 34,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                action.name,
+                                style: const TextStyle(
+                                  color: AppColors.ink,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                action.detail,
+                                style: const TextStyle(
+                                  color: AppColors.muted,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            '未开始',
+                            style: TextStyle(
+                              color: AppColors.ink,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _WorkoutProgressBox(
+                            label: '已完成',
+                            value: '$finishedGroups/${action.groups}',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _WorkoutProgressBox(
+                            label: '当前休息',
+                            value: restSecondsLeft == 0
+                                ? '未开始'
+                                : _formatRest(restSecondsLeft),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: List.generate(action.groups, (index) {
+                        final done = index < finishedGroups;
+                        return Expanded(
+                          child: Container(
+                            height: 12,
+                            margin: EdgeInsets.only(
+                              right: index == action.groups - 1 ? 0 : 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: done
+                                  ? AppColors.primary
+                                  : const Color(0xFFDCE2EE),
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      action.name,
-                      style: const TextStyle(
+              ),
+              const SizedBox(height: 18),
+              GlassSurface(
+                borderRadius: 14,
+                color: AppColors.surface.withValues(alpha: 0.86),
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '准备开始',
+                      style: TextStyle(
                         color: AppColors.ink,
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Text(
+                      restSecondsLeft == 0
+                          ? '开始后按组记录，完成一组会自动开启 2 分钟休息提醒。'
+                          : '正在休息 ${_formatRest(restSecondsLeft)}，下一组准备好后继续。',
+                      style: TextStyle(
+                        color: restSecondsLeft == 0
+                            ? AppColors.ink
+                            : AppColors.primary,
+                        height: 1.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: FilledButton.icon(
+                        onPressed: onStartGroup,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: const Text(
+                          '开始动作',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 42),
-              ],
-            ),
-            const SizedBox(height: 22),
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(8),
               ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 58,
-                        height: 58,
-                        decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: _WorkoutActionArt(
-                          action: action,
-                          size: 58,
-                          radius: 8,
-                          iconSize: 34,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              action.name,
-                              style: const TextStyle(
-                                color: AppColors.ink,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(
-                              action.detail,
-                              style: const TextStyle(
-                                color: AppColors.muted,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          '未开始',
-                          style: TextStyle(
-                            color: AppColors.ink,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _WorkoutProgressBox(
-                          label: '已完成',
-                          value: '$finishedGroups/${action.groups}',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _WorkoutProgressBox(
-                          label: '当前休息',
-                          value: restSecondsLeft == 0
-                              ? '未开始'
-                              : _formatRest(restSecondsLeft),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: List.generate(action.groups, (index) {
-                      final done = index < finishedGroups;
-                      return Expanded(
-                        child: Container(
-                          height: 12,
-                          margin: EdgeInsets.only(
-                            right: index == action.groups - 1 ? 0 : 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: done
-                                ? AppColors.primary
-                                : const Color(0xFFDCE2EE),
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
+              const SizedBox(height: 18),
+              _WorkoutActionMetaCard(action: action),
+              const SizedBox(height: 18),
+              _WorkoutFeedbackCard(
+                selected: feedback,
+                onChanged: onFeedbackChanged,
               ),
-            ),
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '准备开始',
-                    style: TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    restSecondsLeft == 0
-                        ? '开始后按组记录，完成一组会自动开启 2 分钟休息提醒。'
-                        : '正在休息 ${_formatRest(restSecondsLeft)}，下一组准备好后继续。',
-                    style: TextStyle(
-                      color: restSecondsLeft == 0
-                          ? AppColors.ink
-                          : AppColors.primary,
-                      height: 1.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: FilledButton.icon(
-                      onPressed: onStartGroup,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: const Text(
-                        '开始动作',
-                        style: TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            _WorkoutActionMetaCard(action: action),
-            const SizedBox(height: 18),
-            _WorkoutFeedbackCard(
-              selected: feedback,
-              onChanged: onFeedbackChanged,
-            ),
-            const SizedBox(height: 18),
-            ...List.generate(action.groups, (index) {
-              final done = index < finishedGroups;
-              return _WorkoutSetCard(
-                index: index + 1,
-                done: done,
-                detail: action.detail.replaceFirst('${action.groups}组 × ', ''),
-              );
-            }),
-          ],
+              const SizedBox(height: 18),
+              ...List.generate(action.groups, (index) {
+                final done = index < finishedGroups;
+                return _WorkoutSetCard(
+                  index: index + 1,
+                  done: done,
+                  detail:
+                      action.detail.replaceFirst('${action.groups}组 × ', ''),
+                );
+              }),
+            ],
+          ),
         ),
       ),
     );

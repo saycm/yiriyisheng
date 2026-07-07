@@ -78,7 +78,7 @@ class PingShengWidgetProvider : AppWidgetProvider() {
             val todayExpense = todayExpense(financeRecords)
             val todayIncome = todayIncome(financeRecords)
             val workoutGroups = prefs.getInt(KEY_WORKOUT_GROUPS, 0)
-            val healthText = prefs.getString(KEY_HEALTH_TEXT, "健康待授权").orEmpty()
+            val healthText = prefs.getString(KEY_HEALTH_TEXT, "状态待授权").orEmpty()
             val activeCalories = extractCalories(healthText)
             val foodText = if (foodCalories > 0) {
                 "饮食\n${foodCalories} kcal"

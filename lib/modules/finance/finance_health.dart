@@ -315,97 +315,96 @@ class _FinanceHealthCard extends StatelessWidget {
     final visibleMetrics = score.metrics.take(3).toList();
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        key: const ValueKey('finance_health_card'),
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _openHealthDetail(context, score),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.line),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
+      child: GlassSurface(
+        borderRadius: 16,
+        color: AppColors.surface.withValues(alpha: 0.80),
+        child: InkWell(
+          key: const ValueKey('finance_health_card'),
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _openHealthDetail(context, score),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.health_and_safety_rounded,
+                        color: color,
+                        size: 20,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.health_and_safety_rounded,
-                      color: color,
-                      size: 20,
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        '财产健康值',
+                        style: TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      '财产健康值',
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.muted.withValues(alpha: 0.8),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${score.total}',
                       style: TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 17,
+                        color: color,
+                        fontSize: 34,
                         fontWeight: FontWeight.w900,
+                        height: 0.95,
                       ),
                     ),
-                  ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.muted.withValues(alpha: 0.8),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${score.total}',
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 34,
-                      fontWeight: FontWeight.w900,
-                      height: 0.95,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Text(
-                      '分 · ${score.level}',
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
+                    const SizedBox(width: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: Text(
+                        '分 · ${score.level}',
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  score.primaryReason,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    height: 1.35,
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                score.primaryReason,
-                style: const TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  height: 1.35,
                 ),
-              ),
-              const SizedBox(height: 14),
-              ...visibleMetrics.map(
-                (metric) => _FinanceHealthMiniMetric(
-                  metric: metric,
-                  color: _healthColor(metric.score / metric.maxScore * 100),
+                const SizedBox(height: 14),
+                ...visibleMetrics.map(
+                  (metric) => _FinanceHealthMiniMetric(
+                    metric: metric,
+                    color: _healthColor(metric.score / metric.maxScore * 100),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

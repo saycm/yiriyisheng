@@ -25,161 +25,168 @@ class _NetAssetCard extends StatelessWidget {
       (total, account) => total + account.balance,
     );
     final visibleAccounts = accounts.take(3).toList();
-    return Container(
+    return KeyedSubtree(
       key: const ValueKey('finance_workspace_card'),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.account_balance_wallet_rounded,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '资产工作台',
-                      style: TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      '账户、收支、预算一起看',
-                      style: TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '${accounts.length} 个账户',
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              gradient: const LinearGradient(
-                colors: [Color(0xFF172033), Color(0xFF2C3D73)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: GlassSurface(
+        borderRadius: 16,
+        color: AppColors.surface.withValues(alpha: 0.80),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                const Text(
-                  '净资产',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySoft,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_rounded,
+                    color: AppColors.primary,
+                    size: 20,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '资产工作台',
+                        style: TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        '账户、收支、预算一起看',
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 Text(
-                  _signedMoney(netAsset),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  '${accounts.length} 个账户',
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
+                    color: AppColors.primary,
+                    fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _FinanceWorkspaceMetric(
-                        label: '收入',
-                        value: formatMoney(income),
-                        color: AppColors.success,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _FinanceWorkspaceMetric(
-                        label: '支出',
-                        value: formatMoney(expense),
-                        color: AppColors.financeRed,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _FinanceWorkspaceMetric(
-                        label: '现金流',
-                        value: _signedMoney(cashflow),
-                        color: cashflow >= 0
-                            ? AppColors.primary
-                            : AppColors.financeRed,
-                      ),
-                    ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFFF4FBFF),
+                    Color(0xFFE6F8F1),
+                    Color(0xFFEFF4FF),
                   ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '净资产',
+                    style: TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _signedMoney(netAsset),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _FinanceWorkspaceMetric(
+                          label: '收入',
+                          value: formatMoney(income),
+                          color: AppColors.success,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _FinanceWorkspaceMetric(
+                          label: '支出',
+                          value: formatMoney(expense),
+                          color: AppColors.financeRed,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _FinanceWorkspaceMetric(
+                          label: '现金流',
+                          value: _signedMoney(cashflow),
+                          color: cashflow >= 0
+                              ? AppColors.primary
+                              : AppColors.financeRed,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _FinanceWorkspaceAction(
+                    icon: Icons.add_card_rounded,
+                    title: '记一笔',
+                    subtitle: '收入 / 支出',
+                    color: AppColors.primary,
+                    onTap: onAddRecord,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _FinanceWorkspaceAction(
+                    icon: Icons.account_balance_rounded,
+                    title: '查看资产详情',
+                    subtitle: '资产明细',
+                    color: AppColors.success,
+                    onTap: onOpenAssets,
+                  ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _FinanceWorkspaceAction(
-                  icon: Icons.add_card_rounded,
-                  title: '记一笔',
-                  subtitle: '收入 / 支出',
-                  color: AppColors.primary,
-                  onTap: onAddRecord,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _FinanceWorkspaceAction(
-                  icon: Icons.account_balance_rounded,
-                  title: '查看资产详情',
-                  subtitle: '资产明细',
-                  color: AppColors.success,
-                  onTap: onOpenAssets,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          for (final account in visibleAccounts)
-            _FinanceWorkspaceAccountRow(account: account),
-        ],
+            const SizedBox(height: 12),
+            for (final account in visibleAccounts)
+              _FinanceWorkspaceAccountRow(account: account),
+          ],
+        ),
       ),
     );
   }
@@ -198,12 +205,12 @@ class _FinanceWorkspaceMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayColor = color == AppColors.primary ? Colors.white : color;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.09),
+        color: Colors.white.withValues(alpha: 0.58),
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +218,7 @@ class _FinanceWorkspaceMetric extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              color: Colors.white70,
+              color: AppColors.muted,
               fontSize: 10,
               fontWeight: FontWeight.w800,
             ),
@@ -222,7 +229,7 @@ class _FinanceWorkspaceMetric extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: displayColor,
+              color: color,
               fontSize: 11,
               fontWeight: FontWeight.w900,
             ),

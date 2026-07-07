@@ -422,110 +422,113 @@ class _FoodModulePageState extends State<FoodModulePage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                _FoodHeader(
-                  onOpenModules: widget.onOpenModules,
-                  onOpenCategories: _openCategorySheet,
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: widget.moduleNav,
-                ),
-                _FoodSearchBar(
-                  controller: _foodSearchController,
-                  onChanged: (value) => setState(() => _foodQuery = value),
-                  onClear: _clearFoodSearch,
-                ),
-                Expanded(
-                  child: ListView(
-                    key: const ValueKey('food_main_list'),
-                    padding: const EdgeInsets.fromLTRB(
-                      18,
-                      6,
-                      18,
-                      96,
-                    ),
-                    children: [
-                      ModuleLinkedSummaryCard(
-                        title: '饮食联动',
-                        subtitle: '已记录的摄入会同步到健康、计划和桌面入口。',
-                        icon: Icons.restaurant_rounded,
-                        values: [
-                          ('今日', '$_todayCalories kcal'),
-                          ('锻炼', '${widget.workoutGroups} 组'),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _FoodCategoryScroller(
-                        activeCategory: _activeFoodCategory,
-                        onChanged: (category) =>
-                            setState(() => _activeFoodCategory = category),
-                      ),
-                      const SizedBox(height: 12),
-                      if (_activeFoodCategory == '自定义')
-                        _FoodAddCustomCard(onTap: _openCustomFoodSheet),
-                      if (visibleFoods.isEmpty)
-                        _FoodEmptyState(
-                          category: _activeFoodCategory,
-                          query: query,
-                          onAddCustom: _openCustomFoodSheet,
-                        )
-                      else
-                        ...visibleFoods.map((food) {
-                          return _FoodCard(
-                            food: food,
-                            selectedCount: _selectedCountFor(food),
-                            onAdd: () => _addSelectedFood(food),
-                            onRemove: () => _removeSelectedFood(food),
-                          );
-                        }),
-                      const SizedBox(height: 2),
-                      _FoodMealSelector(
-                        meals: _meals,
-                        activeMeal: _activeMeal,
-                        caloriesByMeal: _caloriesByMeal(),
-                        onChanged: (meal) => setState(() => _activeMeal = meal),
-                      ),
-                      const SizedBox(height: 12),
-                      _FoodCalorieProgressCard(
-                        consumed: _todayCalories,
-                        suggested: _suggestedCalories,
-                        protein: _todayProtein,
-                        carbs: _todayCarbs,
-                        fat: _todayFat,
-                      ),
-                      const SizedBox(height: 12),
-                      _FoodQuickSections(
-                        logs: _foodLogs,
-                        templates: _mealTemplates,
-                        reminders: _foodReminders(),
-                        trend: _foodTrendValues(),
-                        onRepeatLastMeal: _repeatLastMeal,
-                        onUseTemplate: _useMealTemplate,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Column(
                 children: [
-                  _FoodSelectedBar(
-                    count: _selectedFoods.length,
-                    calories: _totalCalories,
-                    onRecord: _recordFoods,
+                  _FoodHeader(
+                    onOpenModules: widget.onOpenModules,
+                    onOpenCategories: _openCategorySheet,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: widget.moduleNav,
+                  ),
+                  _FoodSearchBar(
+                    controller: _foodSearchController,
+                    onChanged: (value) => setState(() => _foodQuery = value),
+                    onClear: _clearFoodSearch,
+                  ),
+                  Expanded(
+                    child: ListView(
+                      key: const ValueKey('food_main_list'),
+                      padding: const EdgeInsets.fromLTRB(
+                        18,
+                        6,
+                        18,
+                        96,
+                      ),
+                      children: [
+                        ModuleLinkedSummaryCard(
+                          title: '饮食联动',
+                          subtitle: '已记录的摄入会同步到状态、计划和桌面入口。',
+                          icon: Icons.restaurant_rounded,
+                          values: [
+                            ('今日', '$_todayCalories kcal'),
+                            ('锻炼', '${widget.workoutGroups} 组'),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _FoodCategoryScroller(
+                          activeCategory: _activeFoodCategory,
+                          onChanged: (category) =>
+                              setState(() => _activeFoodCategory = category),
+                        ),
+                        const SizedBox(height: 12),
+                        if (_activeFoodCategory == '自定义')
+                          _FoodAddCustomCard(onTap: _openCustomFoodSheet),
+                        if (visibleFoods.isEmpty)
+                          _FoodEmptyState(
+                            category: _activeFoodCategory,
+                            query: query,
+                            onAddCustom: _openCustomFoodSheet,
+                          )
+                        else
+                          ...visibleFoods.map((food) {
+                            return _FoodCard(
+                              food: food,
+                              selectedCount: _selectedCountFor(food),
+                              onAdd: () => _addSelectedFood(food),
+                              onRemove: () => _removeSelectedFood(food),
+                            );
+                          }),
+                        const SizedBox(height: 2),
+                        _FoodMealSelector(
+                          meals: _meals,
+                          activeMeal: _activeMeal,
+                          caloriesByMeal: _caloriesByMeal(),
+                          onChanged: (meal) =>
+                              setState(() => _activeMeal = meal),
+                        ),
+                        const SizedBox(height: 12),
+                        _FoodCalorieProgressCard(
+                          consumed: _todayCalories,
+                          suggested: _suggestedCalories,
+                          protein: _todayProtein,
+                          carbs: _todayCarbs,
+                          fat: _todayFat,
+                        ),
+                        const SizedBox(height: 12),
+                        _FoodQuickSections(
+                          logs: _foodLogs,
+                          templates: _mealTemplates,
+                          reminders: _foodReminders(),
+                          trend: _foodTrendValues(),
+                          onRepeatLastMeal: _repeatLastMeal,
+                          onUseTemplate: _useMealTemplate,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _FoodSelectedBar(
+                      count: _selectedFoods.length,
+                      calories: _totalCalories,
+                      onRecord: _recordFoods,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

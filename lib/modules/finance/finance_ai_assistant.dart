@@ -66,40 +66,49 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     final needsConfig = _apiKey.trim().isEmpty;
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _FinanceAiAssistantHeader(
-              onClose: () => Navigator.of(context).pop(),
-              onOpenSettings: _openSettings,
-            ),
-            if (needsConfig)
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(18, 4, 18, 10),
-                child: _FinanceAiConfigBanner(onOpenSettings: _openSettings),
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
+                child: GlassSurface(
+                  borderRadius: 16,
+                  color: AppColors.surface.withValues(alpha: 0.72),
+                  child: _FinanceAiAssistantHeader(
+                    onClose: () => Navigator.of(context).pop(),
+                    onOpenSettings: _openSettings,
+                  ),
+                ),
               ),
-            Expanded(
-              child: _messages.isEmpty
-                  ? const _FinanceAiEmptyMessages()
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
-                      itemBuilder: (context, index) {
-                        return _FinanceAiMessageBubble(
-                          message: _messages[index],
-                        );
-                      },
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemCount: _messages.length,
-                    ),
-            ),
-            _FinanceAiComposer(
-              controller: _inputController,
-              loading: _loading,
-              onQuickCommand: _applyQuickCommand,
-              onPickImage: _pickBillImage,
-              onSend: _sendMessage,
-            ),
-          ],
+              if (needsConfig)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 4, 18, 10),
+                  child: _FinanceAiConfigBanner(onOpenSettings: _openSettings),
+                ),
+              Expanded(
+                child: _messages.isEmpty
+                    ? const _FinanceAiEmptyMessages()
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
+                        itemBuilder: (context, index) {
+                          return _FinanceAiMessageBubble(
+                            message: _messages[index],
+                          );
+                        },
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemCount: _messages.length,
+                      ),
+              ),
+              _FinanceAiComposer(
+                controller: _inputController,
+                loading: _loading,
+                onQuickCommand: _applyQuickCommand,
+                onPickImage: _pickBillImage,
+                onSend: _sendMessage,
+              ),
+            ],
+          ),
         ),
       ),
     );

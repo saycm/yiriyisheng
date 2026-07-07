@@ -211,30 +211,32 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _WorkoutHeader(
-              onOpenModules: widget.onOpenModules,
-              onOpenMore: _openMoreSheet,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: widget.moduleNav,
-            ),
-            _WorkoutTopTabs(
-              selected: _selectedTopTab,
-              onChanged: (index) => setState(() => _selectedTopTab = index),
-            ),
-            Expanded(child: _buildWorkoutContent()),
-            ModuleBottomNavSlot(
-              child: WorkoutBottomNav(
-                selectedIndex: _selectedBottomTab,
-                onChanged: _handleBottomNav,
-                keyPrefix: 'workout_bottom_nav',
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _WorkoutHeader(
+                onOpenModules: widget.onOpenModules,
+                onOpenMore: _openMoreSheet,
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: widget.moduleNav,
+              ),
+              _WorkoutTopTabs(
+                selected: _selectedTopTab,
+                onChanged: (index) => setState(() => _selectedTopTab = index),
+              ),
+              Expanded(child: _buildWorkoutContent()),
+              ModuleBottomNavSlot(
+                child: WorkoutBottomNav(
+                  selectedIndex: _selectedBottomTab,
+                  onChanged: _handleBottomNav,
+                  keyPrefix: 'workout_bottom_nav',
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -429,7 +431,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
           const SizedBox(height: 12),
           ModuleLinkedSummaryCard(
             title: '锻炼联动',
-            subtitle: '训练组数会同步到健康和计划，饮食摄入辅助安排强度。',
+            subtitle: '训练组数会同步到状态和计划，饮食摄入辅助安排强度。',
             icon: Icons.fitness_center_rounded,
             values: [
               ('饮食', '${widget.foodCalories} kcal'),

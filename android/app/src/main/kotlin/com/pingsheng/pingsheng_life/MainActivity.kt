@@ -575,21 +575,44 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
             "stepCounterAvailable" to (manager?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null),
             "heartRateSensorAvailable" to (manager?.getDefaultSensor(Sensor.TYPE_HEART_RATE) != null),
             "accelerometerAvailable" to (manager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null),
-            "stepCounterSinceBoot" to latestStepCounter?.roundToInt(),
+            "stepCounterToday" to todayStepCounter(latestStepCounter?.roundToInt()),
             "heartRateBpm" to latestHeartRate,
             "accelerationMagnitude" to latestAcceleration,
             "lastSensorUpdateMillis" to lastSensorUpdateMillis
         )
     }
 
+    private fun todayStepCounter(currentSinceBoot: Int?): Int? {
+        if (currentSinceBoot == null) {
+            return null
+        }
+        val todayKey = LocalDate.now().toString()
+        val prefs = getSharedPreferences(STEP_COUNTER_BASELINE_PREFS, MODE_PRIVATE)
+        val storedDate = prefs.getString(KEY_STEP_COUNTER_BASELINE_DATE, null)
+        val storedBaseline = prefs.getInt(KEY_STEP_COUNTER_BASELINE_VALUE, -1)
+        val baseline = if (storedDate == todayKey &&
+            storedBaseline >= 0 &&
+            storedBaseline <= currentSinceBoot
+        ) {
+            storedBaseline
+        } else {
+            prefs.edit()
+                .putString(KEY_STEP_COUNTER_BASELINE_DATE, todayKey)
+                .putInt(KEY_STEP_COUNTER_BASELINE_VALUE, currentSinceBoot)
+                .apply()
+            currentSinceBoot
+        }
+        return (currentSinceBoot - baseline).coerceAtLeast(0)
+    }
+
     private fun saveHealthForWidget(today: Map<String, Any?>?) {
-        // 小组件空间有限，只同步一行最有代表性的健康摘要。
+        // 小组件空间有限，只同步一行最有代表性的状态摘要。
         val steps = (today?.get("steps") as? Number)?.toInt()
         val activeCalories = (today?.get("activeCaloriesKcal") as? Number)?.toInt()
         val text = when {
             steps != null -> "步数 ${formatNumber(steps)}"
             activeCalories != null -> "能量 ${activeCalories} kcal"
-            else -> "健康无系统记录"
+            else -> "状态无系统记录"
         }
         getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, MODE_PRIVATE)
             .edit()
@@ -600,9 +623,9 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
 
     private fun saveHealthStatusForWidget(message: String) {
         val text = when {
-            message.contains("授权") -> "健康待授权"
-            message.contains("更新") -> "健康需更新"
-            else -> "健康待连接"
+            message.contains("授权") -> "状态待授权"
+            message.contains("更新") -> "状态需更新"
+            else -> "状态待连接"
         }
         getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, MODE_PRIVATE)
             .edit()
@@ -633,7 +656,10 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         private const val APP_PREFERENCES_CHANNEL = "pingsheng_life/app_preferences"
         private const val AUTH_PREFS_NAME = "pingsheng_auth"
         private const val AUTH_SECURE_PREFS_NAME = "pingsheng_auth_secure"
+        private const val STEP_COUNTER_BASELINE_PREFS = "pingsheng_step_counter_baseline"
         private const val KEY_AUTH_SESSION_JSON = "auth_session_json"
+        private const val KEY_STEP_COUNTER_BASELINE_DATE = "date"
+        private const val KEY_STEP_COUNTER_BASELINE_VALUE = "value"
         private const val SENSOR_PERMISSION_REQUEST = 42
         private const val HEALTH_CONNECT_PROVIDER_PACKAGE = "com.google.android.apps.healthdata"
 

@@ -106,82 +106,82 @@ class _WorkoutSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final minutes = finishedGroups * 2;
 
-    return Container(
+    return KeyedSubtree(
       key: const ValueKey('workout_summary_card'),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  '胸背',
-                  style: TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.82),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '胸背',
+                    style: TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-              ),
-              Text(
-                '$finishedActions/$totalActions 个动作\n18:05',
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                Text(
+                  '$finishedActions/$totalActions 个动作\n18:05',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            finishedGroups >= totalGroups ? '今日训练已完成' : '下一步：$nextActionName',
-            style: const TextStyle(
-              color: AppColors.ink,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
+              ],
             ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _WorkoutBadge(
-                icon: Icons.check_circle_rounded,
-                label: '$finishedGroups/$totalGroups 组',
-                color: AppColors.success,
+            const SizedBox(height: 6),
+            Text(
+              finishedGroups >= totalGroups ? '今日训练已完成' : '下一步：$nextActionName',
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(width: 8),
-              _WorkoutBadge(
-                icon: Icons.timer_rounded,
-                label: '$minutes min',
-                color: const Color(0xFF43C6C8),
-              ),
-              const Spacer(),
-              FilledButton.icon(
-                onPressed: onStart,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  minimumSize: const Size(0, 36),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _WorkoutBadge(
+                  icon: Icons.check_circle_rounded,
+                  label: '$finishedGroups/$totalGroups 组',
+                  color: AppColors.success,
+                ),
+                const SizedBox(width: 8),
+                _WorkoutBadge(
+                  icon: Icons.timer_rounded,
+                  label: '$minutes min',
+                  color: const Color(0xFF43C6C8),
+                ),
+                const Spacer(),
+                FilledButton.icon(
+                  onPressed: onStart,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    minimumSize: const Size(0, 36),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+                  label: const Text(
+                    '开始动作',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
                   ),
                 ),
-                icon: const Icon(Icons.arrow_forward_rounded, size: 17),
-                label: const Text(
-                  '开始动作',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
-                ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -374,77 +374,76 @@ class _WorkoutTodayStatsCard extends StatelessWidget {
         : (finishedGroups / totalGroups).clamp(0, 1).toDouble();
     final sessions = finishedGroups == 0 ? 0 : 1;
 
-    return Container(
+    return KeyedSubtree(
       key: const ValueKey('workout_today_stats_card'),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  '今日训练计划',
-                  style: TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 15,
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.82),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '今日训练计划',
+                    style: TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${(progress * 100).round()}%',
+                  style: const TextStyle(
+                    color: AppColors.primary,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-              ),
-              Text(
-                '${(progress * 100).round()}%',
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: AppColors.background,
-              color: AppColors.primary,
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _WorkoutMiniStat(
-                  label: '本周次数',
-                  value: '$sessions 次',
-                  color: AppColors.success,
-                ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: AppColors.background,
+                color: AppColors.primary,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _WorkoutMiniStat(
-                  label: '本周总组数',
-                  value: '$finishedGroups 组',
-                  color: AppColors.primary,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _WorkoutMiniStat(
+                    label: '本周次数',
+                    value: '$sessions 次',
+                    color: AppColors.success,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _WorkoutMiniStat(
-                  label: '反馈',
-                  value: feedback,
-                  color: const Color(0xFFFF9559),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _WorkoutMiniStat(
+                    label: '本周总组数',
+                    value: '$finishedGroups 组',
+                    color: AppColors.primary,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _WorkoutMiniStat(
+                    label: '反馈',
+                    value: feedback,
+                    color: const Color(0xFFFF9559),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

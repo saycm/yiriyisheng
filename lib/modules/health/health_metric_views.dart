@@ -24,7 +24,7 @@ class _HealthSummarySheet extends StatelessWidget {
     final sleep = day.metrics.firstWhere((metric) => metric.title == '昨晚睡眠');
 
     return InfoSheetFrame(
-      title: '健康总览',
+      title: '状态总览',
       child: Column(
         children: [
           _HealthSummaryTile(

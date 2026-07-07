@@ -12,10 +12,10 @@ class _HealthSensorCard extends StatelessWidget {
     // 传感器数据是辅助信息，缺失时显示能力状态，不把空值当成 0。
     final values = [
       (
-        '计步器',
-        snapshot.stepCounterSinceBoot == null
+        '今日步数',
+        snapshot.stepCounterToday == null
             ? (snapshot.stepCounterAvailable ? '可用' : '无')
-            : '${snapshot.stepCounterSinceBoot} 步'
+            : '${_formatSensorSteps(snapshot.stepCounterToday!)} 步'
       ),
       (
         '心率',
@@ -36,6 +36,19 @@ class _HealthSensorCard extends StatelessWidget {
       icon: Icons.sensors_rounded,
       values: values,
     );
+  }
+
+  String _formatSensorSteps(int value) {
+    final text = value.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < text.length; i++) {
+      final remaining = text.length - i;
+      buffer.write(text[i]);
+      if (remaining > 1 && remaining % 3 == 1) {
+        buffer.write(',');
+      }
+    }
+    return buffer.toString();
   }
 }
 

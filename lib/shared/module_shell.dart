@@ -15,11 +15,15 @@ BoxDecoration airyCardDecoration({
   Color? borderColor,
   List<BoxShadow>? shadows,
 }) {
+  final effectiveColor =
+      color == AppColors.surface ? color.withValues(alpha: 0.90) : color;
   return BoxDecoration(
-    color: color,
+    color: effectiveColor,
     borderRadius: BorderRadius.circular(8),
-    border: Border.all(color: borderColor ?? AppColors.line),
-    boxShadow: shadows ?? [airyShadow()],
+    border: Border.all(
+      color: borderColor ?? Colors.white.withValues(alpha: 0.70),
+    ),
+    boxShadow: shadows ?? [airyShadow(AppColors.primary)],
   );
 }
 
@@ -49,57 +53,59 @@ class PlaceholderModulePage extends StatelessWidget {
           '下一步会按 8.png/6.png 做训练列表、动作组、开始动作。'
         ),
       LifeModule.health => (
-          '健康',
+          '状态',
           Icons.monitor_heart_rounded,
-          '后续会按 9.png 做健康圆环、睡眠、步数、心率、能量卡片。'
+          '后续会按 9.png 做状态圆环、睡眠、步数、心率、能量卡片。'
         ),
       _ => ('模块', Icons.apps_rounded, '这个模块马上补。'),
     };
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  IconBubble(
-                    icon: Icons.view_sidebar_rounded,
-                    color: const Color(0xFF91A3FF),
-                    onTap: onOpenModules,
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        info.$1,
-                        style: const TextStyle(
-                          color: AppColors.ink,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    IconBubble(
+                      icon: Icons.view_sidebar_rounded,
+                      color: const Color(0xFF91A3FF),
+                      onTap: onOpenModules,
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          info.$1,
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  IconBubble(
-                    icon: Icons.more_horiz_rounded,
-                    color: AppColors.primary,
-                    onTap: () {},
-                  ),
-                ],
-              ),
-              const SizedBox(height: 28),
-              EmptyCard(
-                title: info.$1,
-                subtitle: info.$3,
-              ),
-              const Spacer(),
-              _ModuleQuickNav(
-                selected: module,
-                onSwitchModule: onSwitchModule,
-              ),
-            ],
+                    IconBubble(
+                      icon: Icons.more_horiz_rounded,
+                      color: AppColors.primary,
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 28),
+                EmptyCard(
+                  title: info.$1,
+                  subtitle: info.$3,
+                ),
+                const Spacer(),
+                _ModuleQuickNav(
+                  selected: module,
+                  onSwitchModule: onSwitchModule,
+                ),
+              ],
+            ),
           ),
         ),
       ),

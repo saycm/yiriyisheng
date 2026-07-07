@@ -26,102 +26,111 @@ class ModuleSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
-      ),
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 22),
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SheetHandle(),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              IconBubble(
-                icon: Icons.close_rounded,
-                color: const Color(0xFF9A8FF7),
-                onTap: () => Navigator.of(context).pop(),
-              ),
-              const Expanded(
-                child: Center(
-                  child: Text(
-                    '功能模块',
-                    style: TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        child: LiquidModuleBackground(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 22),
+            child: GlassSurface(
+              borderRadius: 18,
+              color: AppColors.surface.withValues(alpha: 0.86),
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SheetHandle(),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      IconBubble(
+                        icon: Icons.close_rounded,
+                        color: const Color(0xFF9A8FF7),
+                        onTap: () => Navigator.of(context).pop(),
+                      ),
+                      const Expanded(
+                        child: Center(
+                          child: Text(
+                            '功能模块',
+                            style: TextStyle(
+                              color: AppColors.ink,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 42),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: ListView(
+                      key: const ValueKey('module_sheet_scroll'),
+                      children: [
+                        _ModuleTodaySummaryBar(
+                          pendingTodos: pendingTodos,
+                          foodCalories: foodCalories,
+                          workoutGroups: workoutGroups,
+                        ),
+                        const SizedBox(height: 14),
+                        _ModuleCenterGrid(
+                          selected: selected,
+                          pendingTodos: pendingTodos,
+                          foodCalories: foodCalories,
+                          workoutGroups: workoutGroups,
+                          todayExpense: todayExpense,
+                          onSelect: onSelect,
+                          onOpenSettings: () => _showSettingsSheet(context),
+                        ),
+                        const SizedBox(height: 14),
+                        _ModuleRecentEventsCard(
+                            events: events.take(3).toList()),
+                        const SizedBox(height: 14),
+                        const ModuleSectionTitle(
+                          icon: Icons.more_horiz_rounded,
+                          title: '更多',
+                        ),
+                        const SizedBox(height: 10),
+                        _ModuleListItem(
+                          icon: Icons.info_outline_rounded,
+                          title: '关于 App',
+                          onTap: () => _showAboutSheet(context),
+                        ),
+                        _ModuleListItem(
+                          icon: Icons.article_outlined,
+                          title: '使用指导',
+                          onTap: () => _showGuideSheet(context),
+                        ),
+                        _ModuleListItem(
+                          icon: Icons.edit_rounded,
+                          title: '问题反馈',
+                          onTap: () => _showFeedbackSheet(context),
+                        ),
+                        if (onSignOut != null) ...[
+                          const SizedBox(height: 8),
+                          _ModuleListItem(
+                            icon: Icons.logout_rounded,
+                            title: '退出登录',
+                            iconColor: AppColors.financeRed,
+                            titleColor: AppColors.financeRed,
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              unawaited(onSignOut!());
+                            },
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 42),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: ListView(
-              key: const ValueKey('module_sheet_scroll'),
-              children: [
-                _ModuleTodaySummaryBar(
-                  pendingTodos: pendingTodos,
-                  foodCalories: foodCalories,
-                  workoutGroups: workoutGroups,
-                ),
-                const SizedBox(height: 14),
-                _ModuleCenterGrid(
-                  selected: selected,
-                  pendingTodos: pendingTodos,
-                  foodCalories: foodCalories,
-                  workoutGroups: workoutGroups,
-                  todayExpense: todayExpense,
-                  onSelect: onSelect,
-                  onOpenSettings: () => _showSettingsSheet(context),
-                ),
-                const SizedBox(height: 14),
-                _ModuleRecentEventsCard(events: events.take(3).toList()),
-                const SizedBox(height: 14),
-                const ModuleSectionTitle(
-                  icon: Icons.more_horiz_rounded,
-                  title: '更多',
-                ),
-                const SizedBox(height: 10),
-                _ModuleListItem(
-                  icon: Icons.info_outline_rounded,
-                  title: '关于 App',
-                  onTap: () => _showAboutSheet(context),
-                ),
-                _ModuleListItem(
-                  icon: Icons.article_outlined,
-                  title: '使用指导',
-                  onTap: () => _showGuideSheet(context),
-                ),
-                _ModuleListItem(
-                  icon: Icons.edit_rounded,
-                  title: '问题反馈',
-                  onTap: () => _showFeedbackSheet(context),
-                ),
-                if (onSignOut != null) ...[
-                  const SizedBox(height: 8),
-                  _ModuleListItem(
-                    icon: Icons.logout_rounded,
-                    title: '退出登录',
-                    iconColor: AppColors.financeRed,
-                    titleColor: AppColors.financeRed,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      unawaited(onSignOut!());
-                    },
-                  ),
                 ],
-              ],
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -331,7 +340,7 @@ class _ModuleCenterGrid extends StatelessWidget {
                   _ModuleCenterTile(
                     tileKey: const ValueKey('module_sheet_health'),
                     icon: Icons.monitor_heart_rounded,
-                    title: '健康',
+                    title: '状态',
                     status: healthText,
                     selected: selected == LifeModule.health,
                     onTap: () => onSelect(LifeModule.health),

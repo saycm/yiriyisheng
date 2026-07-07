@@ -127,73 +127,36 @@ class _FoodCategorySheet extends StatelessWidget {
       ),
     ];
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
-      ),
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 22),
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+    return InfoSheetFrame(
+      title: '分类',
       child: Column(
-        children: [
-          const SheetHandle(),
-          const SizedBox(height: 16),
-          Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: sections.map((section) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IconBubble(
-                icon: Icons.close_rounded,
-                color: const Color(0xFF9A8FF7),
-                onTap: () => Navigator.of(context).pop(),
+              ModuleSectionTitle(icon: section.$2, title: section.$1),
+              const SizedBox(height: 10),
+              GridView.count(
+                crossAxisCount: 3,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.08,
+                children: section.$3.map((item) {
+                  return _FoodCategoryTile(
+                    emoji: item.$2,
+                    label: item.$1,
+                    selected: selected == item.$1,
+                    onTap: () => onSelect(item.$1),
+                  );
+                }).toList(),
               ),
-              const Expanded(
-                child: Center(
-                  child: Text(
-                    '分类',
-                    style: TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 42),
+              const SizedBox(height: 22),
             ],
-          ),
-          const SizedBox(height: 18),
-          Expanded(
-            child: ListView(
-              children: sections.map((section) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ModuleSectionTitle(icon: section.$2, title: section.$1),
-                    const SizedBox(height: 10),
-                    GridView.count(
-                      crossAxisCount: 3,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.08,
-                      children: section.$3.map((item) {
-                        return _FoodCategoryTile(
-                          emoji: item.$2,
-                          label: item.$1,
-                          selected: selected == item.$1,
-                          onTap: () => onSelect(item.$1),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 22),
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-        ],
+          );
+        }).toList(),
       ),
     );
   }
@@ -217,33 +180,30 @@ class _FoodCategoryTile extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
+      child: GlassSurface(
+        borderRadius: 8,
         padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected ? const Color(0xFFE2B853) : Colors.transparent,
-            width: 1.5,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 26)),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.ink,
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
+        color: AppColors.surface.withValues(alpha: selected ? 0.92 : 0.72),
+        child: AnimatedScale(
+          scale: selected ? 0.98 : 1,
+          duration: const Duration(milliseconds: 160),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 26)),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: selected ? const Color(0xFF7A5D11) : AppColors.ink,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

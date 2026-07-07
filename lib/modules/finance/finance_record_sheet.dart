@@ -77,69 +77,86 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.92,
-      ),
-      padding: EdgeInsets.fromLTRB(16, 6, 16, bottomInset + 8),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SheetHandle(),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    widget.record == null ? '记一笔' : '编辑记录',
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('取消'),
-                ),
+    return ClipRRect(
+      key: const ValueKey('finance_record_sheet_shell'),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+        ),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFF7FBFF),
+                Color(0xFFEFF4FF),
+                Color(0xFFFFF6EE),
               ],
             ),
-            const SizedBox(height: 4),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildTypeTabs(),
-                    const SizedBox(height: 6),
-                    _buildCategoryStrip(),
-                    const SizedBox(height: 6),
-                    _buildAccountStrip(),
-                    const SizedBox(height: 6),
-                    _buildAmountDisplay(),
-                    const SizedBox(height: 6),
-                    _FinanceTextField(
-                      keyValue: 'finance_record_subtitle',
-                      controller: _subtitleController,
-                      label: '备注',
-                      keyboardType: TextInputType.text,
+          ),
+          child: SafeArea(
+            top: false,
+            bottom: true,
+            child: GlassSurface(
+              borderRadius: 18,
+              color: AppColors.surface.withValues(alpha: 0.88),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SheetHandle(),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.record == null ? '记一笔' : '编辑记录',
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('取消'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTypeTabs(),
+                          const SizedBox(height: 6),
+                          _buildCategoryStrip(),
+                          const SizedBox(height: 6),
+                          _buildAccountStrip(),
+                          const SizedBox(height: 6),
+                          _buildAmountDisplay(),
+                          const SizedBox(height: 6),
+                          _FinanceTextField(
+                            keyValue: 'finance_record_subtitle',
+                            controller: _subtitleController,
+                            label: '备注',
+                            keyboardType: TextInputType.text,
+                          ),
+                          const SizedBox(height: 4),
+                          _buildAmountKeyboard(),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    _buildAmountKeyboard(),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

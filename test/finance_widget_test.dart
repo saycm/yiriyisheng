@@ -373,6 +373,35 @@ AI 已识别：
     );
   });
 
+  testWidgets('finance record sheet keeps keyboard close to bottom',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    tester.view.viewInsets = FakeViewPadding.zero;
+    addTearDown(() async {
+      tester.view.resetViewInsets();
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    await pumpPingShengApp(tester);
+
+    await tester.tap(find.byKey(const ValueKey('module_link_0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('finance_bottom_nav_1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('记一笔').first);
+    await tester.pumpAndSettle();
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+    await tester.pumpAndSettle();
+
+    final shellRect = tester
+        .getRect(find.byKey(const ValueKey('finance_record_sheet_shell')));
+    final saveButtonRect =
+        tester.getRect(find.byKey(const ValueKey('save_finance_record')));
+
+    expect(shellRect.bottom - saveButtonRect.bottom, lessThan(96));
+  });
+
   testWidgets('finance date picker uses white dialog background',
       (tester) async {
     await pumpPingShengApp(tester);

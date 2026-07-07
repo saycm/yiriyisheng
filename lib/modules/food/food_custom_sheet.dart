@@ -45,120 +45,121 @@ class _CustomFoodSheetState extends State<_CustomFoodSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        decoration: const BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.muted.withValues(alpha: 0.22),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                '自定义食物',
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 14),
-              SheetTextField(
-                keyName: 'custom_food_name',
-                controller: _nameController,
-                label: '食物名称',
-                hint: '例如：燕麦酸奶',
-              ),
-              const SizedBox(height: 10),
-              Row(
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+      child: LiquidModuleBackground(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            12,
+            20,
+            MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: GlassSurface(
+            borderRadius: 18,
+            color: AppColors.surface.withValues(alpha: 0.88),
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: SheetTextField(
-                      keyName: 'custom_food_calorie',
-                      controller: _calorieController,
-                      label: '热量',
-                      hint: '120',
-                      keyboardType: TextInputType.number,
+                  const SheetHandle(),
+                  const SizedBox(height: 18),
+                  const Text(
+                    '自定义食物',
+                    style: TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: SheetTextField(
-                      keyName: 'custom_food_unit',
-                      controller: _unitController,
-                      label: '单位',
-                      hint: '1 份',
+                  const SizedBox(height: 14),
+                  SheetTextField(
+                    keyName: 'custom_food_name',
+                    controller: _nameController,
+                    label: '食物名称',
+                    hint: '例如：燕麦酸奶',
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SheetTextField(
+                          keyName: 'custom_food_calorie',
+                          controller: _calorieController,
+                          label: '热量',
+                          hint: '120',
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: SheetTextField(
+                          keyName: 'custom_food_unit',
+                          controller: _unitController,
+                          label: '单位',
+                          hint: '1 份',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    '分类',
+                    style: TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _customFoodCategoryLabels.map((group) {
+                      final selected = _group == group;
+                      return ChoiceChip(
+                        key: ValueKey('custom_food_group_$group'),
+                        label: Text(group),
+                        selected: selected,
+                        onSelected: (_) => setState(() => _group = group),
+                        selectedColor: AppColors.primarySoft,
+                        labelStyle: TextStyle(
+                          color: selected ? AppColors.primary : AppColors.ink,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton(
+                      key: const ValueKey('save_custom_food_button'),
+                      onPressed: _save,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        '保存',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              const Text(
-                '分类',
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _customFoodCategoryLabels.map((group) {
-                  final selected = _group == group;
-                  return ChoiceChip(
-                    key: ValueKey('custom_food_group_$group'),
-                    label: Text(group),
-                    selected: selected,
-                    onSelected: (_) => setState(() => _group = group),
-                    selectedColor: AppColors.primarySoft,
-                    labelStyle: TextStyle(
-                      color: selected ? AppColors.primary : AppColors.ink,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: FilledButton(
-                  key: const ValueKey('save_custom_food_button'),
-                  onPressed: _save,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    '保存',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

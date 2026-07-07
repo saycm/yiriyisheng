@@ -1,6 +1,7 @@
 // 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
 import 'package:pingsheng_life/main.dart';
 
 void main() {
@@ -58,6 +59,12 @@ void main() {
     expect(snapshot.foodCalories, 1800);
     expect(snapshot.todos?.single.title, '还信用卡');
     expect(snapshot.financeRecords?.single.title, '工资');
+  });
+
+  test('health linked module is displayed as status', () {
+    expect(TodoLinkedModule.health.label, '状态');
+    expect(TodoLinkedModule.health.actionLabel, '看状态');
+    expect(todoColorForCategory('状态'), const Color(0xFFFF6F9D));
   });
 
   test('life summary snapshot carries workout training state', () {

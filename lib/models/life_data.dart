@@ -228,7 +228,7 @@ enum TodoLinkedModule {
   finance('财务', Icons.account_balance_wallet_rounded, AppColors.success),
   food('饮食', Icons.restaurant_rounded, Color(0xFFB88955)),
   workout('锻炼', Icons.fitness_center_rounded, AppColors.primary),
-  health('健康', Icons.monitor_heart_rounded, Color(0xFFFF6F9D));
+  health('状态', Icons.monitor_heart_rounded, Color(0xFFFF6F9D));
 
   const TodoLinkedModule(this.label, this.icon, this.color);
 
@@ -259,7 +259,7 @@ enum TodoLinkedModule {
       TodoLinkedModule.finance => '去记账',
       TodoLinkedModule.food => '记饮食',
       TodoLinkedModule.workout => '记录训练',
-      TodoLinkedModule.health => '看健康',
+      TodoLinkedModule.health => '看状态',
     };
   }
 }
@@ -324,6 +324,7 @@ class FinanceRecord {
 Color todoColorForCategory(String category) {
   return switch (category) {
     '健康' => const Color(0xFFFF6F9D),
+    '状态' => const Color(0xFFFF6F9D),
     '工作' => const Color(0xFF9278F7),
     '财务' => AppColors.success,
     '学习' => const Color(0xFFB88955),
@@ -452,7 +453,7 @@ String linkedTodoPrompt(TodoItem todo, TodoLinkedModule module) {
     TodoLinkedModule.food => '${todo.title} 已完成，可以补充饮食记录。',
     TodoLinkedModule.workout => '${todo.title} 已完成，可以记录训练组数。',
     TodoLinkedModule.health => todo.done
-        ? '${todo.title} 已完成，健康模块会同步今日状态。'
+        ? '${todo.title} 已完成，状态模块会同步今日状态。'
         : '${todo.title} 未完成，明天关注睡眠和恢复。',
   };
 }

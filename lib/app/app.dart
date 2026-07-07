@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../auth/auth.dart';
 import '../core/app_core.dart';
 import '../home/life_home.dart';
+import '../ui_preview/liquid_glass_preview.dart';
 
 class PingShengApp extends StatefulWidget {
   const PingShengApp({
@@ -71,6 +72,7 @@ class _PingShengAppState extends State<PingShengApp> {
               '/food': entryBuilder,
               '/workout': entryBuilder,
               '/health': entryBuilder,
+              '/liquid-glass-preview': (_) => const LiquidGlassPreviewPage(),
             },
             onGenerateRoute: (settings) {
               // 桌面小组件会携带 action 查询参数，未知路由统一交给首页解析。
