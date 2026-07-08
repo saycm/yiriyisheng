@@ -15,11 +15,12 @@ WIDGET_INFOS = [
     ROOT / "android/app/src/main/res/xml/pingsheng_widget_dark_info.xml",
     ROOT / "android/app/src/main/res/xml/pingsheng_widget_light_info.xml",
 ]
+TODAY_MARK = ROOT / "android/app/src/main/res/drawable/pingsheng_widget_today_mark.xml"
 
 
 def main() -> int:
     # 这个检查不跑 Android 构建，只用静态 token 防止关键控件或动作被误删。
-    missing_files = [str(path.relative_to(ROOT)) for path in [*LAYOUTS, *WIDGET_INFOS] if not path.exists()]
+    missing_files = [str(path.relative_to(ROOT)) for path in [*LAYOUTS, *WIDGET_INFOS, TODAY_MARK] if not path.exists()]
     if missing_files:
         print("Missing widget theme files: " + ", ".join(missing_files))
         return 1
@@ -39,6 +40,7 @@ def main() -> int:
         "widget_active_calories",
         "widget_finance_expense",
         "widget_finance_income",
+        "pingsheng_widget_today_mark",
         "今日支出",
         "今日收入",
         "今日消耗",
@@ -53,6 +55,8 @@ def main() -> int:
         "平生今日",
         "轻量记录",
         "今日同步",
+        "待办负载",
+        'android:text="今"',
     ]
     android_id = "{http://schemas.android.com/apk/res/android}id"
     orientation = "{http://schemas.android.com/apk/res/android}orientation"

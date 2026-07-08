@@ -27,22 +27,22 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <TextView
+            <ImageView
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:background="@drawable/pingsheng_widget_icon_tile"
-                android:gravity="center"
-                android:includeFontPadding="false"
-                android:text="今"
-                android:textColor="#FFFFFF"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:contentDescription="今日"
+                android:padding="5dp"
+                android:scaleType="center"
+                android:src="@drawable/pingsheng_widget_today_mark" />
 
             <TextView
                 android:id="@+id/widget_primary_metric_value"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
                 android:includeFontPadding="false"
                 android:text="5"
                 android:textColor="#FFFFFF"
@@ -50,10 +50,9 @@
                 android:textStyle="bold" />
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:visibility="gone"
+                android:layout_width="1dp"
                 android:layout_height="match_parent"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1"
                 android:gravity="center_vertical"
                 android:orientation="vertical">
 
@@ -77,7 +76,7 @@
                     android:ellipsize="end"
                     android:includeFontPadding="false"
                     android:maxLines="1"
-                    android:text="待办负载 62%"
+                    android:text="待办"
                     android:textColor="#B8C4E6"
                     android:textSize="8sp"
                     android:textStyle="bold" />
@@ -104,7 +103,7 @@
             android:gravity="center_vertical"
             android:includeFontPadding="false"
             android:maxLines="1"
-            android:text="下一项 暂无待办"
+            android:text="待处理 · 下一项 7"
             android:textColor="#D8DFF5"
             android:textSize="8sp"
             android:textStyle="bold" />
