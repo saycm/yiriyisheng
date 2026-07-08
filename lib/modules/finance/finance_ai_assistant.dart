@@ -66,40 +66,49 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     final needsConfig = _apiKey.trim().isEmpty;
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _FinanceAiAssistantHeader(
-              onClose: () => Navigator.of(context).pop(),
-              onOpenSettings: _openSettings,
-            ),
-            if (needsConfig)
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(18, 4, 18, 10),
-                child: _FinanceAiConfigBanner(onOpenSettings: _openSettings),
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
+                child: GlassSurface(
+                  borderRadius: 16,
+                  color: AppColors.surface.withValues(alpha: 0.72),
+                  child: _FinanceAiAssistantHeader(
+                    onClose: () => Navigator.of(context).pop(),
+                    onOpenSettings: _openSettings,
+                  ),
+                ),
               ),
-            Expanded(
-              child: _messages.isEmpty
-                  ? const _FinanceAiEmptyMessages()
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
-                      itemBuilder: (context, index) {
-                        return _FinanceAiMessageBubble(
-                          message: _messages[index],
-                        );
-                      },
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemCount: _messages.length,
-                    ),
-            ),
-            _FinanceAiComposer(
-              controller: _inputController,
-              loading: _loading,
-              onQuickCommand: _applyQuickCommand,
-              onPickImage: _pickBillImage,
-              onSend: _sendMessage,
-            ),
-          ],
+              if (needsConfig)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 4, 18, 10),
+                  child: _FinanceAiConfigBanner(onOpenSettings: _openSettings),
+                ),
+              Expanded(
+                child: _messages.isEmpty
+                    ? const _FinanceAiEmptyMessages()
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
+                        itemBuilder: (context, index) {
+                          return _FinanceAiMessageBubble(
+                            message: _messages[index],
+                          );
+                        },
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemCount: _messages.length,
+                      ),
+              ),
+              _FinanceAiComposer(
+                controller: _inputController,
+                loading: _loading,
+                onQuickCommand: _applyQuickCommand,
+                onPickImage: _pickBillImage,
+                onSend: _sendMessage,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -208,25 +217,36 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     }
 
     try {
-      final image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+      final images = await _imagePicker.pickMultiImage(
         // 真机相册原图很容易过大，先缩到适合账单识别的尺寸再转 base64 上传。
         maxWidth: 1600,
         maxHeight: 1600,
         imageQuality: 80,
       );
-      if (image == null) {
+      if (images.isEmpty) {
         return;
       }
 
       setState(() {
-        _messages.add(_FinanceAiAssistantMessage.user('已选择图片：${image.name}'));
+        _messages.add(_FinanceAiAssistantMessage.user(
+          images.length == 1
+              ? '已选择图片：${images.single.name}'
+              : '已选择 ${images.length} 张图片',
+        ));
         _loading = true;
       });
       // 图片记账路径会把截图转 base64 发给视觉模型，再复用同一套账单保存逻辑。
-      final bills = await _client.parseImage(
-        imageBytes: await image.readAsBytes(),
-        mimeType: _mimeTypeForImageName(image.name),
+      final imageInputs = <AiFinanceImageInput>[];
+      for (final image in images) {
+        imageInputs.add(
+          AiFinanceImageInput(
+            bytes: await image.readAsBytes(),
+            mimeType: _mimeTypeForImageName(image.name),
+          ),
+        );
+      }
+      final bills = await _client.parseImages(
+        images: imageInputs,
         apiKey: _apiKey,
         endpoint: _endpoint,
         model: '',
@@ -424,16 +444,14 @@ class _FinanceAiComposer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassSurface(
+      borderRadius: 18,
+      color: AppColors.surface.withValues(alpha: 0.88),
       padding: EdgeInsets.fromLTRB(
         18,
         12,
         18,
         MediaQuery.of(context).viewInsets.bottom + 14,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.line)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

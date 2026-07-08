@@ -52,7 +52,7 @@ class _WorkoutDataView extends StatelessWidget {
           childAspectRatio: 1.35,
           children: [
             _WorkoutDataCard(
-              key: const ValueKey('workout_metric_today_groups'),
+              cardKey: const ValueKey('workout_metric_today_groups'),
               icon: Icons.fitness_center_rounded,
               value: '$todayGroups 组',
               label: WorkoutMetricKind.todayGroups.label,
@@ -66,6 +66,7 @@ class _WorkoutDataView extends StatelessWidget {
               ),
             ),
             _WorkoutDataCard(
+              cardKey: null,
               icon: Icons.timer_rounded,
               value: '$todayMinutes min',
               label: WorkoutMetricKind.todayMinutes.label,
@@ -79,6 +80,7 @@ class _WorkoutDataView extends StatelessWidget {
               ),
             ),
             _WorkoutDataCard(
+              cardKey: null,
               icon: Icons.local_fire_department_rounded,
               value: '$todayCalories',
               label: WorkoutMetricKind.todayCalories.label,
@@ -92,6 +94,7 @@ class _WorkoutDataView extends StatelessWidget {
               ),
             ),
             _WorkoutDataCard(
+              cardKey: null,
               icon: Icons.trending_up_rounded,
               value: maxWeight == 0 ? '-' : '${maxWeight}kg',
               label: WorkoutMetricKind.maxWeight.label,
@@ -110,6 +113,7 @@ class _WorkoutDataView extends StatelessWidget {
         SizedBox(
           height: 118,
           child: _WorkoutDataCard(
+            cardKey: null,
             icon: Icons.history_rounded,
             value: '${recentRecords.length} 次 · $recentGroups 组',
             label: '最近 7 天',
@@ -148,7 +152,7 @@ class _WorkoutDataView extends StatelessWidget {
 
 class _WorkoutDataCard extends StatelessWidget {
   const _WorkoutDataCard({
-    super.key,
+    required this.cardKey,
     required this.icon,
     required this.value,
     required this.label,
@@ -156,6 +160,7 @@ class _WorkoutDataCard extends StatelessWidget {
     required this.onTap,
   });
 
+  final Key? cardKey;
   final IconData icon;
   final String value;
   final String label;
@@ -164,42 +169,46 @@ class _WorkoutDataCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 25),
-            const Spacer(),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.ink,
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-              ),
+    return GlassSurface(
+      borderRadius: 14,
+      color: AppColors.surface.withValues(alpha: 0.78),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          key: cardKey,
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: color, size: 25),
+                const Spacer(),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -214,90 +223,92 @@ class _WorkoutMetricDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Container(
+      child: KeyedSubtree(
         key: const ValueKey('workout_metric_detail_sheet'),
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: GlassSurface(
+            borderRadius: 18,
+            color: AppColors.surface.withValues(alpha: 0.86),
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    detail.kind.label,
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ],
-            ),
-            Text(
-              detail.value,
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 14),
-            if (detail.records.isEmpty)
-              const Text(
-                '暂无训练记录',
-                style: TextStyle(
-                  color: AppColors.muted,
-                  fontWeight: FontWeight.w800,
-                ),
-              )
-            else
-              ...detail.records.map(
-                (entry) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.fitness_center_rounded,
-                          color: AppColors.primary, size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              entry.planName,
-                              style: const TextStyle(
-                                color: AppColors.ink,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${entry.totalGroups} 组 · ${entry.durationMinutes} min · ${entry.estimatedCalories} kcal',
-                              style: const TextStyle(
-                                color: AppColors.muted,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        detail.kind.label,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
-                    ],
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+                Text(
+                  detail.value,
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-              ),
-          ],
+                const SizedBox(height: 14),
+                if (detail.records.isEmpty)
+                  const Text(
+                    '暂无训练记录',
+                    style: TextStyle(
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  )
+                else
+                  ...detail.records.map(
+                    (entry) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.fitness_center_rounded,
+                              color: AppColors.primary, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  entry.planName,
+                                  style: const TextStyle(
+                                    color: AppColors.ink,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${entry.totalGroups} 组 · ${entry.durationMinutes} min · ${entry.estimatedCalories} kcal',
+                                  style: const TextStyle(
+                                    color: AppColors.muted,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );

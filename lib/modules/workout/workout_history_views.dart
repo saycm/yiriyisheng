@@ -14,86 +14,88 @@ class _WorkoutHistoryDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Container(
+      child: KeyedSubtree(
         key: const ValueKey('workout_history_detail_sheet'),
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: GlassSurface(
+            borderRadius: 18,
+            color: AppColors.surface.withValues(alpha: 0.86),
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    entry.planName,
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ],
-            ),
-            Text(
-              '${entry.totalGroups} 组 · ${entry.durationMinutes} min',
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 14),
-            ...entry.actionResults.map(
-              (result) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
+                Row(
                   children: [
-                    const Icon(Icons.check_circle_rounded,
-                        color: AppColors.success, size: 20),
-                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '${result.actionName} ${result.finishedGroups}/${result.targetGroups} 组',
+                        entry.planName,
                         style: const TextStyle(
                           color: AppColors.ink,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: FilledButton.icon(
-                onPressed: onRestart,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                Text(
+                  '${entry.totalGroups} 组 · ${entry.durationMinutes} min',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                icon: const Icon(Icons.replay_rounded),
-                label: const Text(
-                  '再次训练',
-                  style: TextStyle(fontWeight: FontWeight.w900),
+                const SizedBox(height: 14),
+                ...entry.actionResults.map(
+                  (result) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle_rounded,
+                            color: AppColors.success, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            '${result.actionName} ${result.finishedGroups}/${result.targetGroups} 组',
+                            style: const TextStyle(
+                              color: AppColors.ink,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: FilledButton.icon(
+                    onPressed: onRestart,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: const Icon(Icons.replay_rounded),
+                    label: const Text(
+                      '再次训练',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -119,9 +121,9 @@ class _WorkoutHistoryView extends StatelessWidget {
         children: [
           _WorkoutCalendarCard(history: history),
           const SizedBox(height: 12),
-          const _WorkoutActionTrendCard(),
+          _WorkoutActionTrendCard(history: history),
           const SizedBox(height: 12),
-          const _WorkoutProgressTrendCard(),
+          _WorkoutProgressTrendCard(history: history),
           const SizedBox(height: 12),
           if (history.isEmpty)
             const _WorkoutEmptyHistoryCard()
@@ -159,12 +161,10 @@ class _WorkoutEmptyHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassSurface(
+      borderRadius: 14,
+      color: AppColors.surface.withValues(alpha: 0.78),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
       child: const Text(
         '暂无训练记录',
         style: TextStyle(
@@ -202,13 +202,10 @@ class _WorkoutCalendarCard extends StatelessWidget {
       );
     });
 
-    return Container(
+    return GlassSurface(
+      borderRadius: 14,
+      color: AppColors.surface.withValues(alpha: 0.78),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -414,41 +411,85 @@ class _WorkoutCalendarLegendItem extends StatelessWidget {
 }
 
 class _WorkoutActionTrendCard extends StatelessWidget {
-  const _WorkoutActionTrendCard();
+  const _WorkoutActionTrendCard({required this.history});
+
+  final List<WorkoutHistoryEntry> history;
+
+  @override
+  Widget build(BuildContext context) {
+    final trends = _buildWorkoutActionTrends(history);
+
+    return KeyedSubtree(
+      key: const ValueKey('workout_action_trend_card'),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.82),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '动作历史曲线',
+              style: TextStyle(
+                color: AppColors.ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (trends.isEmpty)
+              const _WorkoutTrendEmptyState()
+            else
+              ...List.generate(trends.length, (index) {
+                final trend = trends[index];
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: index == trends.length - 1 ? 0 : 10,
+                  ),
+                  child: _WorkoutTrendRow(
+                    title: trend.actionName,
+                    subtitle: '${trend.values.length} 次真实记录',
+                    values: trend.values,
+                    color: index.isEven ? AppColors.primary : AppColors.success,
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutTrendEmptyState extends StatelessWidget {
+  const _WorkoutTrendEmptyState();
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.background.withValues(alpha: 0.62),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.line),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
-            '动作历史曲线',
-            style: TextStyle(
-              color: AppColors.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
+      child: const Row(
+        children: [
+          Icon(
+            Icons.show_chart_rounded,
+            color: AppColors.muted,
+            size: 20,
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '暂无动作趋势',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-          SizedBox(height: 12),
-          _WorkoutTrendRow(
-            title: '蝴蝶机夹胸',
-            subtitle: '最近 4 次',
-            values: [24, 28, 30, 35],
-            color: AppColors.primary,
-          ),
-          SizedBox(height: 10),
-          _WorkoutTrendRow(
-            title: '宽握高位下拉',
-            subtitle: '最近 4 次',
-            values: [26, 28, 30, 32],
-            color: AppColors.success,
           ),
         ],
       ),
@@ -471,7 +512,7 @@ class _WorkoutTrendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxValue = values.reduce(math.max);
+    final maxValue = values.fold<double>(0, math.max);
 
     return Row(
       children: [
@@ -510,7 +551,8 @@ class _WorkoutTrendRow extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 3),
                       child: FractionallySizedBox(
-                        heightFactor: value / maxValue,
+                        heightFactor:
+                            maxValue == 0 ? 0 : (value / maxValue).clamp(0, 1),
                         alignment: Alignment.bottomCenter,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
@@ -531,34 +573,164 @@ class _WorkoutTrendRow extends StatelessWidget {
 }
 
 class _WorkoutProgressTrendCard extends StatelessWidget {
-  const _WorkoutProgressTrendCard();
+  const _WorkoutProgressTrendCard({required this.history});
+
+  final List<WorkoutHistoryEntry> history;
 
   @override
   Widget build(BuildContext context) {
+    final weightTrend = _buildWorkoutValueTrend(
+      history,
+      valueFor: (result) => _numberFromWorkoutText(result.weight),
+      unit: 'kg',
+    );
+    final repsTrend = _buildWorkoutValueTrend(
+      history,
+      valueFor: (result) => _numberFromWorkoutText(result.reps),
+      unit: '次',
+    );
+
     return Row(
-      children: const [
+      children: [
         Expanded(
-          child: _WorkoutProgressTrendTile(
-            title: '重量进步',
-            value: '30kg → 35kg',
-            subtitle: '蝴蝶机夹胸',
-            icon: Icons.monitor_weight_rounded,
-            color: AppColors.primary,
-          ),
+          child: weightTrend == null
+              ? const _WorkoutProgressTrendTile.empty(
+                  title: '重量进步',
+                  icon: Icons.monitor_weight_rounded,
+                  color: AppColors.primary,
+                )
+              : _WorkoutProgressTrendTile(
+                  title: '重量进步',
+                  value: weightTrend.label,
+                  subtitle: weightTrend.actionName,
+                  icon: Icons.monitor_weight_rounded,
+                  color: AppColors.primary,
+                ),
         ),
-        SizedBox(width: 10),
+        const SizedBox(width: 10),
         Expanded(
-          child: _WorkoutProgressTrendTile(
-            title: '次数进步',
-            value: '8次 → 12次',
-            subtitle: '宽握高位下拉',
-            icon: Icons.repeat_rounded,
-            color: AppColors.success,
-          ),
+          child: repsTrend == null
+              ? const _WorkoutProgressTrendTile.empty(
+                  title: '次数进步',
+                  icon: Icons.repeat_rounded,
+                  color: AppColors.success,
+                )
+              : _WorkoutProgressTrendTile(
+                  title: '次数进步',
+                  value: repsTrend.label,
+                  subtitle: repsTrend.actionName,
+                  icon: Icons.repeat_rounded,
+                  color: AppColors.success,
+                ),
         ),
       ],
     );
   }
+}
+
+class _WorkoutActionTrendData {
+  const _WorkoutActionTrendData({
+    required this.actionName,
+    required this.values,
+  });
+
+  final String actionName;
+  final List<double> values;
+}
+
+class _WorkoutValueTrendData {
+  const _WorkoutValueTrendData({
+    required this.actionName,
+    required this.label,
+  });
+
+  final String actionName;
+  final String label;
+}
+
+List<_WorkoutActionTrendData> _buildWorkoutActionTrends(
+  List<WorkoutHistoryEntry> history,
+) {
+  final byAction = <String, List<(DateTime, double)>>{};
+  for (final entry in history) {
+    for (final result in entry.actionResults) {
+      if (result.actionName.isEmpty || result.finishedGroups <= 0) {
+        continue;
+      }
+      byAction
+          .putIfAbsent(result.actionName, () => [])
+          .add((entry.finishedAt, result.finishedGroups.toDouble()));
+    }
+  }
+
+  final trends =
+      byAction.entries.where((entry) => entry.value.isNotEmpty).map((entry) {
+    final points = [...entry.value]..sort((a, b) => a.$1.compareTo(b.$1));
+    final recent =
+        points.length > 4 ? points.sublist(points.length - 4) : points;
+    return _WorkoutActionTrendData(
+      actionName: entry.key,
+      values: recent.map((point) => point.$2).toList(),
+    );
+  }).toList()
+        ..sort((a, b) => b.values.length.compareTo(a.values.length));
+  return trends.take(2).toList();
+}
+
+_WorkoutValueTrendData? _buildWorkoutValueTrend(
+  List<WorkoutHistoryEntry> history, {
+  required double? Function(WorkoutActionResult result) valueFor,
+  required String unit,
+}) {
+  final byAction = <String, List<(DateTime, double)>>{};
+  for (final entry in history) {
+    for (final result in entry.actionResults) {
+      final value = valueFor(result);
+      if (result.actionName.isEmpty || value == null) {
+        continue;
+      }
+      byAction.putIfAbsent(result.actionName, () => []).add(
+        (entry.finishedAt, value),
+      );
+    }
+  }
+
+  _WorkoutValueTrendData? best;
+  double bestDelta = 0;
+  for (final entry in byAction.entries) {
+    final points = [...entry.value]..sort((a, b) => a.$1.compareTo(b.$1));
+    if (points.length < 2) {
+      continue;
+    }
+    final first = points.first.$2;
+    final last = points.last.$2;
+    final delta = (last - first).abs();
+    if (delta == 0 || delta < bestDelta) {
+      continue;
+    }
+    bestDelta = delta;
+    best = _WorkoutValueTrendData(
+      actionName: entry.key,
+      label:
+          '${_formatWorkoutTrendValue(first)}$unit → ${_formatWorkoutTrendValue(last)}$unit',
+    );
+  }
+  return best;
+}
+
+double? _numberFromWorkoutText(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return null;
+  }
+  final match = RegExp(r'\d+(?:\.\d+)?').firstMatch(value);
+  return double.tryParse(match?.group(0) ?? '');
+}
+
+String _formatWorkoutTrendValue(double value) {
+  if (value == value.roundToDouble()) {
+    return value.round().toString();
+  }
+  return value.toStringAsFixed(1);
 }
 
 class _WorkoutProgressTrendTile extends StatelessWidget {
@@ -570,6 +742,13 @@ class _WorkoutProgressTrendTile extends StatelessWidget {
     required this.color,
   });
 
+  const _WorkoutProgressTrendTile.empty({
+    required this.title,
+    required this.icon,
+    required this.color,
+  })  : value = '暂无数据',
+        subtitle = '完成训练后生成';
+
   final String title;
   final String value;
   final String subtitle;
@@ -578,13 +757,10 @@ class _WorkoutProgressTrendTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassSurface(
+      borderRadius: 14,
+      color: AppColors.surface.withValues(alpha: 0.82),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -645,59 +821,62 @@ class _WorkoutHistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.13),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.history_rounded, color: color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                      ),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.13),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: Icon(Icons.history_rounded, color: color),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          subtitle,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  Text(
+                    status,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                status,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

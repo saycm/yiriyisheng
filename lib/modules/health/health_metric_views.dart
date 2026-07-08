@@ -5,6 +5,8 @@ part of 'health.dart';
 class _HealthSummarySheet extends StatelessWidget {
   const _HealthSummarySheet({
     required this.day,
+    required this.title,
+    required this.helperText,
     required this.foodCalories,
     required this.workoutGroups,
     required this.bodyTag,
@@ -12,6 +14,8 @@ class _HealthSummarySheet extends StatelessWidget {
   });
 
   final HealthDay day;
+  final String? title;
+  final String? helperText;
   final int foodCalories;
   final int workoutGroups;
   final String bodyTag;
@@ -24,9 +28,21 @@ class _HealthSummarySheet extends StatelessWidget {
     final sleep = day.metrics.firstWhere((metric) => metric.title == '昨晚睡眠');
 
     return InfoSheetFrame(
-      title: '健康总览',
+      title: title ?? '${day.monthDayLabel}状态总览',
       child: Column(
         children: [
+          if (helperText != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                helperText!,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           _HealthSummaryTile(
             color: const Color(0xFF48CE81),
             title: '活动完成',
@@ -81,40 +97,40 @@ class _HealthSummaryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        padding: const EdgeInsets.all(15),
+        child: Row(
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            Text(
+              value,
               style: const TextStyle(
                 color: AppColors.ink,
                 fontSize: 15,
                 fontWeight: FontWeight.w900,
               ),
             ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppColors.ink,
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

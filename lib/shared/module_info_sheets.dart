@@ -22,7 +22,7 @@ class _AboutAppSheet extends StatelessWidget {
           const _AboutSummaryCard(
             title: '本地优先的生活工作台',
             body:
-                '平生把计划、财务、饮食、锻炼、健康和桌面小组件放在同一个日常流程里。它不是只做单项记录，而是帮助你回答：今天要做什么、花了什么、吃了什么、练了什么、身体状态能不能承受当前安排。',
+                '平生把计划、财务、饮食、锻炼、状态和桌面小组件放在同一个日常流程里。它不是只做单项记录，而是帮助你回答：今天要做什么、花了什么、吃了什么、练了什么、身体状态能不能承受当前安排。',
           ),
           const SizedBox(height: 18),
           const _InfoSectionTitle(
@@ -58,7 +58,7 @@ class _AboutAppSheet extends StatelessWidget {
           ),
           const _FeatureIntroCard(
             icon: Icons.monitor_heart_rounded,
-            title: '健康',
+            title: '状态',
             body:
                 '状态中心整合手动身体记录、饮食摄入、锻炼负载和计划压力。Health Connect 是可选外部数据源，可补充步数、睡眠、心率、能量和呼吸参考。',
             color: Color(0xFFFF747C),
@@ -79,7 +79,7 @@ class _AboutAppSheet extends StatelessWidget {
           const _AboutSummaryCard(
             title: '核心生活数据保存在本机',
             body:
-                '待办、账单、饮食、锻炼和健康记录优先写入本地 SQLite。桌面小组件只保存必要摘要；服务端主要负责账号、登录状态、版本更新和 APK 分发。Health Connect 权限是可选项，关闭后不影响手动记录。',
+                '待办、账单、饮食、锻炼和状态记录优先写入本地 SQLite。桌面小组件只保存必要摘要；服务端主要负责账号、登录状态、版本更新和 APK 分发。Health Connect 权限是可选项，关闭后不影响手动记录。',
           ),
         ],
       ),
@@ -92,12 +92,10 @@ class _AboutHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassSurface(
+      borderRadius: 16,
+      color: AppColors.surface.withValues(alpha: 0.80),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
       child: Row(
         children: [
           const AppIconMark(),
@@ -125,7 +123,7 @@ class _AboutHero extends StatelessWidget {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  '计划、财务、饮食、锻炼、健康和小组件联动',
+                  '计划、财务、饮食、锻炼、状态和小组件联动',
                   style: TextStyle(
                     color: AppColors.muted,
                     fontWeight: FontWeight.w700,
@@ -155,51 +153,51 @@ class _FeatureIntroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(8),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 25),
             ),
-            child: Icon(icon, color: color, size: 25),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  body,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 13,
-                    height: 1.45,
-                    fontWeight: FontWeight.w700,
+                  const SizedBox(height: 4),
+                  Text(
+                    body,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 13,
+                      height: 1.45,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -225,7 +223,7 @@ class _GuideSheet extends StatelessWidget {
           _GuideQuestion(
             question: '第一次打开应该从哪里开始？',
             answer:
-                '先看底部主导航：财务、计划、饮食、锻炼、健康。建议先进入计划，把今天必须做的事放到“今日执行”；没有确定日期的事先放进“待办箱”，再到“周计划”里分配到具体日期。',
+                '先看底部主导航：财务、计划、饮食、锻炼、状态。建议先进入计划，把今天必须做的事放到“今日执行”；没有确定日期的事先放进“待办箱”，再到“周计划”里分配到具体日期。',
           ),
           _GuideQuestion(
             question: '计划模块怎么用才不乱？',
@@ -235,7 +233,7 @@ class _GuideSheet extends StatelessWidget {
           _GuideQuestion(
             question: '待办怎么完成、延后或归档？',
             answer:
-                '任务卡片不会因为轻点卡片就直接完成。需要点明确的“完成”“延后明天/下个工作日”或“归档”按钮后才会改变状态。完成后如果任务关联了饮食、锻炼等模块，可以继续进入对应记录流程。',
+                '任务卡片不会因为轻点卡片就直接完成。需要点明确的“完成”“延后”或“归档”按钮后才会改变状态。完成后如果任务关联了饮食、锻炼等模块，可以继续进入对应记录流程。',
           ),
           _GuideQuestion(
             question: '财务记录怎么保持真实？',
@@ -243,9 +241,9 @@ class _GuideSheet extends StatelessWidget {
                 '可以手动新增收入或支出，也可以配置 AI 小助手后用文字或图片识别账单。资产、今日支出、今日收入、分类预算、固定支出压力和趋势图都基于真实账单记录，不再使用演示固定数值。',
           ),
           _GuideQuestion(
-            question: '饮食和锻炼为什么会影响健康？',
+            question: '饮食和锻炼为什么会影响状态？',
             answer:
-                '饮食记录会提供今日摄入和营养参考；锻炼记录会提供完成组数、训练负载和反馈。健康状态中心会把这些数据和手动身体状态一起计算，提示今天适合保持节奏、减压还是降低训练强度。',
+                '饮食记录会提供今日摄入和营养参考；锻炼记录会提供完成组数、训练负载和反馈。状态中心会把这些数据和手动身体状态一起计算，提示今天适合保持节奏、减压还是降低训练强度。',
           ),
           _GuideQuestion(
             question: 'Health Connect 必须开启吗？',
@@ -312,13 +310,10 @@ class _AboutSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassSurface(
+      borderRadius: 14,
+      color: AppColors.surface.withValues(alpha: 0.78),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -352,7 +347,7 @@ class _GuideIntroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return const EmptyCard(
       title: '先记录，再联动，最后复盘',
-      subtitle: '平生的使用方式不是每个模块各记各的，而是让计划、账本、饮食、锻炼和健康围绕“今天”互相补充。下面按常见问题说明怎么用。',
+      subtitle: '平生的使用方式不是每个模块各记各的，而是让计划、账本、饮食、锻炼和状态围绕“今天”互相补充。下面按常见问题说明怎么用。',
     );
   }
 }
@@ -368,47 +363,47 @@ class _GuideQuestion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            Icons.help_outline_rounded,
-            color: AppColors.primary,
-            size: 22,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  question,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  answer,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    height: 1.55,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.help_outline_rounded,
+              color: AppColors.primary,
+              size: 22,
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    question,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    answer,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      height: 1.55,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

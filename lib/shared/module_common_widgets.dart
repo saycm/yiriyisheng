@@ -14,62 +14,60 @@ class InfoSheetFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.86,
-      ),
-      padding: EdgeInsets.fromLTRB(
-        18,
-        10,
-        18,
-        MediaQuery.of(context).viewInsets.bottom + 22,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.10),
-            blurRadius: 28,
-            offset: const Offset(0, -10),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SheetHandle(),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              IconBubble(
-                icon: Icons.close_rounded,
-                color: const Color(0xFF9A8FF7),
-                onTap: () => Navigator.of(context).pop(),
-              ),
-              Expanded(
-                child: Center(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.86,
+        ),
+        child: LiquidModuleBackground(
+          child: GlassSurface(
+            borderRadius: 18,
+            color: AppColors.surface.withValues(alpha: 0.86),
+            padding: EdgeInsets.fromLTRB(
+              18,
+              10,
+              18,
+              MediaQuery.of(context).viewInsets.bottom + 22,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SheetHandle(),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    IconBubble(
+                      icon: Icons.close_rounded,
+                      color: const Color(0xFF9A8FF7),
+                      onTap: () => Navigator.of(context).pop(),
                     ),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 42),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [child],
                   ),
                 ),
-              ),
-              const SizedBox(width: 42),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
-              children: [child],
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -186,7 +184,7 @@ class _ModuleQuickNav extends StatelessWidget {
         (Icons.event_available_rounded, '计划'),
         (Icons.restaurant_rounded, '饮食'),
         (Icons.fitness_center_rounded, '锻炼'),
-        (Icons.monitor_heart_rounded, '健康'),
+        (Icons.monitor_heart_rounded, '状态'),
       ],
       compact: true,
       glass: glass,
@@ -230,6 +228,167 @@ class ModuleBottomNavSlot extends StatelessWidget {
   }
 }
 
+class LiquidModuleBackground extends StatelessWidget {
+  const LiquidModuleBackground({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const _ModuleLiquidBackdrop(),
+        child,
+      ],
+    );
+  }
+}
+
+class _ModuleLiquidBackdrop extends StatelessWidget {
+  const _ModuleLiquidBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      key: const ValueKey('module_liquid_backdrop'),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFF7FBFF),
+            Color(0xFFEFF4FF),
+            Color(0xFFFFF6EE),
+            Color(0xFFEFFBF6),
+          ],
+        ),
+      ),
+      child: CustomPaint(
+        painter: const _ModuleLiquidBackdropPainter(),
+        child: const SizedBox.expand(),
+      ),
+    );
+  }
+}
+
+class _ModuleLiquidBackdropPainter extends CustomPainter {
+  const _ModuleLiquidBackdropPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bandPaint = Paint()
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18)
+      ..shader = LinearGradient(
+        colors: [
+          AppColors.primary.withValues(alpha: 0.20),
+          AppColors.sky.withValues(alpha: 0.14),
+          AppColors.success.withValues(alpha: 0.10),
+        ],
+      ).createShader(Offset.zero & size);
+
+    final topBand = Path()
+      ..moveTo(-size.width * 0.20, size.height * 0.14)
+      ..cubicTo(
+        size.width * 0.24,
+        size.height * 0.02,
+        size.width * 0.55,
+        size.height * 0.28,
+        size.width * 1.18,
+        size.height * 0.15,
+      )
+      ..lineTo(size.width * 1.18, size.height * 0.27)
+      ..cubicTo(
+        size.width * 0.58,
+        size.height * 0.40,
+        size.width * 0.20,
+        size.height * 0.18,
+        -size.width * 0.20,
+        size.height * 0.32,
+      )
+      ..close();
+    canvas.drawPath(topBand, bandPaint);
+
+    final warmPaint = Paint()
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16)
+      ..shader = LinearGradient(
+        colors: [
+          AppColors.accent.withValues(alpha: 0.16),
+          AppColors.financeRed.withValues(alpha: 0.08),
+          Colors.white.withValues(alpha: 0.02),
+        ],
+      ).createShader(Offset.zero & size);
+    final lowerBand = Path()
+      ..moveTo(-size.width * 0.16, size.height * 0.67)
+      ..cubicTo(
+        size.width * 0.26,
+        size.height * 0.52,
+        size.width * 0.68,
+        size.height * 0.82,
+        size.width * 1.16,
+        size.height * 0.58,
+      )
+      ..lineTo(size.width * 1.16, size.height * 0.72)
+      ..cubicTo(
+        size.width * 0.64,
+        size.height * 0.92,
+        size.width * 0.22,
+        size.height * 0.70,
+        -size.width * 0.16,
+        size.height * 0.82,
+      )
+      ..close();
+    canvas.drawPath(lowerBand, warmPaint);
+
+    final ribbonPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 22
+      ..shader = LinearGradient(
+        colors: [
+          AppColors.primary.withValues(alpha: 0.18),
+          AppColors.sky.withValues(alpha: 0.14),
+          AppColors.accent.withValues(alpha: 0.10),
+        ],
+      ).createShader(Offset.zero & size);
+    final ribbon = Path()
+      ..moveTo(-size.width * 0.12, size.height * 0.20)
+      ..cubicTo(
+        size.width * 0.22,
+        size.height * 0.08,
+        size.width * 0.50,
+        size.height * 0.32,
+        size.width * 1.10,
+        size.height * 0.22,
+      )
+      ..moveTo(-size.width * 0.10, size.height * 0.72)
+      ..cubicTo(
+        size.width * 0.26,
+        size.height * 0.58,
+        size.width * 0.68,
+        size.height * 0.86,
+        size.width * 1.10,
+        size.height * 0.64,
+      );
+    canvas.drawPath(ribbon, ribbonPaint);
+
+    final linePaint = Paint()
+      ..strokeWidth = 1
+      ..color = Colors.white.withValues(alpha: 0.28);
+    for (var index = 0; index < 18; index++) {
+      final x = -36.0 + index * 25;
+      canvas.drawLine(
+        Offset(x, size.height * 0.09),
+        Offset(x + 64, size.height * 0.36),
+        linePaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class GlassSurface extends StatelessWidget {
   const GlassSurface({
     required this.child,
@@ -248,32 +407,101 @@ class GlassSurface extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Container(
-          padding: padding,
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: DecoratedBox(
           decoration: BoxDecoration(
-            color: color ?? AppColors.surface.withValues(alpha: 0.68),
+            color: color ?? AppColors.surface.withValues(alpha: 0.62),
             borderRadius: BorderRadius.circular(borderRadius),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.82),
+              color: Colors.white.withValues(alpha: 0.78),
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.10),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
+                color: AppColors.ink.withValues(alpha: 0.07),
+                blurRadius: 24,
+                offset: const Offset(0, 14),
               ),
               BoxShadow(
-                color: AppColors.sky.withValues(alpha: 0.08),
-                blurRadius: 18,
-                offset: const Offset(0, 2),
+                color: AppColors.sky.withValues(alpha: 0.10),
+                blurRadius: 28,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-          child: child,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.52),
+                          Colors.white.withValues(alpha: 0.16),
+                          AppColors.sky.withValues(alpha: 0.08),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: _LiquidGlassRimPainter(radius: borderRadius),
+                  ),
+                ),
+              ),
+              Padding(padding: padding, child: child),
+            ],
+          ),
         ),
       ),
     );
+  }
+}
+
+class _LiquidGlassRimPainter extends CustomPainter {
+  const _LiquidGlassRimPainter({required this.radius});
+
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Colors.white.withValues(alpha: 0.90),
+          Colors.white.withValues(alpha: 0.12),
+          AppColors.primary.withValues(alpha: 0.13),
+        ],
+      ).createShader(rect);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect.deflate(0.55), Radius.circular(radius)),
+      borderPaint,
+    );
+
+    final flarePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 1.3
+      ..color = Colors.white.withValues(alpha: 0.42);
+    final flare = Path()
+      ..moveTo(14, 8)
+      ..quadraticBezierTo(size.width * 0.24, 2, size.width * 0.46, 10);
+    canvas.drawPath(flare, flarePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _LiquidGlassRimPainter oldDelegate) {
+    return oldDelegate.radius != radius;
   }
 }
 
@@ -513,71 +741,91 @@ class CapsuleNav extends StatelessWidget {
             ? 0.0
             : 3.0;
 
-    return Container(
-      key: keyPrefix == null ? null : ValueKey('${keyPrefix}_container'),
-      padding: EdgeInsets.all(outerPadding),
-      decoration: BoxDecoration(
-        color: glass
-            ? Colors.transparent
-            : AppColors.surface.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(outerRadius),
-        border: glass
-            ? null
-            : Border.all(color: AppColors.line.withValues(alpha: 0.88)),
-        boxShadow: glass
-            ? null
-            : [
-                airyShadow(AppColors.primary),
-              ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(items.length, (index) {
-          final item = items[index];
-          final selected = selectedIndex == index;
-          return InkWell(
-            key: keyPrefix == null ? null : ValueKey('${keyPrefix}_$index'),
-            borderRadius: BorderRadius.circular(itemRadius),
-            onTap: () => onChanged(index),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              width: itemWidth,
-              padding: EdgeInsets.symmetric(vertical: itemVerticalPadding),
-              decoration: BoxDecoration(
-                gradient: selected
-                    ? const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [AppColors.sky, AppColors.primary],
-                      )
-                    : null,
-                color: selected ? null : Colors.transparent,
-                borderRadius: BorderRadius.circular(itemRadius),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    item.$1,
-                    size: iconSize,
-                    color: selected ? Colors.white : AppColors.muted,
-                  ),
-                  SizedBox(height: iconLabelGap),
-                  Text(
-                    item.$2,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: selected ? Colors.white : AppColors.muted,
-                      fontSize: labelSize,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(outerRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          key: keyPrefix == null ? null : ValueKey('${keyPrefix}_container'),
+          padding: EdgeInsets.all(outerPadding),
+          decoration: BoxDecoration(
+            color: glass
+                ? Colors.transparent
+                : AppColors.surface.withValues(alpha: 0.70),
+            borderRadius: BorderRadius.circular(outerRadius),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: glass ? 0.58 : 0.74),
             ),
-          );
-        }),
+            boxShadow: glass
+                ? null
+                : [
+                    airyShadow(AppColors.primary),
+                  ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(items.length, (index) {
+              final item = items[index];
+              final selected = selectedIndex == index;
+              return InkWell(
+                key: keyPrefix == null ? null : ValueKey('${keyPrefix}_$index'),
+                borderRadius: BorderRadius.circular(itemRadius),
+                onTap: () => onChanged(index),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: itemWidth,
+                  padding: EdgeInsets.symmetric(vertical: itemVerticalPadding),
+                  decoration: BoxDecoration(
+                    gradient: selected
+                        ? const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [AppColors.sky, AppColors.primary],
+                          )
+                        : null,
+                    color: selected ? null : Colors.transparent,
+                    borderRadius: BorderRadius.circular(itemRadius),
+                    border: selected
+                        ? Border.all(
+                            color: Colors.white.withValues(alpha: 0.46),
+                          )
+                        : null,
+                    boxShadow: selected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.20),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        item.$1,
+                        size: iconSize,
+                        color: selected ? Colors.white : AppColors.muted,
+                      ),
+                      SizedBox(height: iconLabelGap),
+                      Text(
+                        item.$2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: selected ? Colors.white : AppColors.muted,
+                          fontSize: labelSize,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
       ),
     );
   }
@@ -726,13 +974,10 @@ class ModuleLinkedSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 所有模块共用这个摘要卡片，保证跨模块数据的展示口径一致。
-    return Container(
+    return GlassSurface(
+      borderRadius: 14,
+      color: AppColors.surface.withValues(alpha: 0.82),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
       child: Row(
         children: [
           Container(

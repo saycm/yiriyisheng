@@ -16,7 +16,7 @@ class HealthSensorSnapshot {
     required this.stepCounterAvailable,
     required this.heartRateSensorAvailable,
     required this.accelerometerAvailable,
-    this.stepCounterSinceBoot,
+    this.stepCounterToday,
     this.heartRateBpm,
     this.accelerationMagnitude,
     this.lastSensorUpdate,
@@ -25,7 +25,7 @@ class HealthSensorSnapshot {
   final bool stepCounterAvailable;
   final bool heartRateSensorAvailable;
   final bool accelerometerAvailable;
-  final int? stepCounterSinceBoot;
+  final int? stepCounterToday;
   final double? heartRateBpm;
   final double? accelerationMagnitude;
   final DateTime? lastSensorUpdate;
@@ -46,7 +46,7 @@ class HealthSensorSnapshot {
       stepCounterAvailable: map['stepCounterAvailable'] == true,
       heartRateSensorAvailable: map['heartRateSensorAvailable'] == true,
       accelerometerAvailable: map['accelerometerAvailable'] == true,
-      stepCounterSinceBoot: _healthInt(map['stepCounterSinceBoot']),
+      stepCounterToday: _healthInt(map['stepCounterToday']),
       heartRateBpm: _healthDouble(map['heartRateBpm']),
       accelerationMagnitude: _healthDouble(map['accelerationMagnitude']),
       lastSensorUpdate:

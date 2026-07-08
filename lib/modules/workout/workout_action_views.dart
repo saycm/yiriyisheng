@@ -20,94 +20,97 @@ class _WorkoutActionCard extends StatelessWidget {
     final started = finishedGroups > 0;
     final status = completed ? '已完成' : (started ? '进行中' : action.status);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: _WorkoutActionArt(
-                  action: action,
-                  size: 48,
-                  radius: 8,
-                ),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      action.name,
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      action.detail,
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _WorkoutActionTag(
-                            label: action.bodyPart == '胸背'
-                                ? '胸背部'
-                                : action.bodyPart),
-                        _WorkoutActionTag(label: action.reps),
-                        if (action.weight != null)
-                          _WorkoutActionTag(label: action.weight!),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
                 children: [
-                  Text(
-                    status,
-                    style: TextStyle(
-                      color: completed ? AppColors.success : AppColors.ink,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: _WorkoutActionArt(
+                      action: action,
+                      size: 48,
+                      radius: 8,
                     ),
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    '$finishedGroups/${action.groups} 组 ›',
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          action.name,
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          action.detail,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _WorkoutActionTag(
+                                label: action.bodyPart == '胸背'
+                                    ? '胸背部'
+                                    : action.bodyPart),
+                            _WorkoutActionTag(label: action.reps),
+                            if (action.weight != null)
+                              _WorkoutActionTag(label: action.weight!),
+                          ],
+                        ),
+                      ],
                     ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        status,
+                        style: TextStyle(
+                          color: completed ? AppColors.success : AppColors.ink,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        '$finishedGroups/${action.groups} 组 ›',
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -194,213 +197,212 @@ class _WorkoutActionDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: ListView(
-          key: const ValueKey('workout_action_detail_list'),
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
-          children: [
-            Row(
-              children: [
-                IconBubble(
-                  icon: Icons.arrow_back_ios_new_rounded,
-                  color: AppColors.ink,
-                  onTap: onBack,
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: ListView(
+            key: const ValueKey('workout_action_detail_list'),
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
+            children: [
+              Row(
+                children: [
+                  IconBubble(
+                    icon: Icons.arrow_back_ios_new_rounded,
+                    color: AppColors.ink,
+                    onTap: onBack,
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        action.name,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 42),
+                ],
+              ),
+              const SizedBox(height: 22),
+              GlassSurface(
+                borderRadius: 14,
+                color: AppColors.surface.withValues(alpha: 0.86),
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            color: AppColors.primarySoft,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: _WorkoutActionArt(
+                            action: action,
+                            size: 58,
+                            radius: 8,
+                            iconSize: 34,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                action.name,
+                                style: const TextStyle(
+                                  color: AppColors.ink,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                action.detail,
+                                style: const TextStyle(
+                                  color: AppColors.muted,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            '未开始',
+                            style: TextStyle(
+                              color: AppColors.ink,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _WorkoutProgressBox(
+                            label: '已完成',
+                            value: '$finishedGroups/${action.groups}',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _WorkoutProgressBox(
+                            label: '当前休息',
+                            value: restSecondsLeft == 0
+                                ? '未开始'
+                                : _formatRest(restSecondsLeft),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: List.generate(action.groups, (index) {
+                        final done = index < finishedGroups;
+                        return Expanded(
+                          child: Container(
+                            height: 12,
+                            margin: EdgeInsets.only(
+                              right: index == action.groups - 1 ? 0 : 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: done
+                                  ? AppColors.primary
+                                  : const Color(0xFFDCE2EE),
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      action.name,
-                      style: const TextStyle(
+              ),
+              const SizedBox(height: 18),
+              GlassSurface(
+                borderRadius: 14,
+                color: AppColors.surface.withValues(alpha: 0.86),
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '准备开始',
+                      style: TextStyle(
                         color: AppColors.ink,
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Text(
+                      restSecondsLeft == 0
+                          ? '开始后按组记录，完成一组会自动开启 2 分钟休息提醒。'
+                          : '正在休息 ${_formatRest(restSecondsLeft)}，下一组准备好后继续。',
+                      style: TextStyle(
+                        color: restSecondsLeft == 0
+                            ? AppColors.ink
+                            : AppColors.primary,
+                        height: 1.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: FilledButton.icon(
+                        onPressed: onStartGroup,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: const Text(
+                          '开始动作',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 42),
-              ],
-            ),
-            const SizedBox(height: 22),
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(8),
               ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 58,
-                        height: 58,
-                        decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: _WorkoutActionArt(
-                          action: action,
-                          size: 58,
-                          radius: 8,
-                          iconSize: 34,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              action.name,
-                              style: const TextStyle(
-                                color: AppColors.ink,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(
-                              action.detail,
-                              style: const TextStyle(
-                                color: AppColors.muted,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          '未开始',
-                          style: TextStyle(
-                            color: AppColors.ink,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _WorkoutProgressBox(
-                          label: '已完成',
-                          value: '$finishedGroups/${action.groups}',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _WorkoutProgressBox(
-                          label: '当前休息',
-                          value: restSecondsLeft == 0
-                              ? '未开始'
-                              : _formatRest(restSecondsLeft),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: List.generate(action.groups, (index) {
-                      final done = index < finishedGroups;
-                      return Expanded(
-                        child: Container(
-                          height: 12,
-                          margin: EdgeInsets.only(
-                            right: index == action.groups - 1 ? 0 : 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: done
-                                ? AppColors.primary
-                                : const Color(0xFFDCE2EE),
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
+              const SizedBox(height: 18),
+              _WorkoutActionMetaCard(action: action),
+              const SizedBox(height: 18),
+              _WorkoutFeedbackCard(
+                selected: feedback,
+                onChanged: onFeedbackChanged,
               ),
-            ),
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '准备开始',
-                    style: TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    restSecondsLeft == 0
-                        ? '开始后按组记录，完成一组会自动开启 2 分钟休息提醒。'
-                        : '正在休息 ${_formatRest(restSecondsLeft)}，下一组准备好后继续。',
-                    style: TextStyle(
-                      color: restSecondsLeft == 0
-                          ? AppColors.ink
-                          : AppColors.primary,
-                      height: 1.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: FilledButton.icon(
-                      onPressed: onStartGroup,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: const Text(
-                        '开始动作',
-                        style: TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            _WorkoutActionMetaCard(action: action),
-            const SizedBox(height: 18),
-            _WorkoutFeedbackCard(
-              selected: feedback,
-              onChanged: onFeedbackChanged,
-            ),
-            const SizedBox(height: 18),
-            ...List.generate(action.groups, (index) {
-              final done = index < finishedGroups;
-              return _WorkoutSetCard(
-                index: index + 1,
-                done: done,
-                detail: action.detail.replaceFirst('${action.groups}组 × ', ''),
-              );
-            }),
-          ],
+              const SizedBox(height: 18),
+              ...List.generate(action.groups, (index) {
+                final done = index < finishedGroups;
+                return _WorkoutSetCard(
+                  index: index + 1,
+                  done: done,
+                  detail:
+                      action.detail.replaceFirst('${action.groups}组 × ', ''),
+                );
+              }),
+            ],
+          ),
         ),
       ),
     );
@@ -470,50 +472,49 @@ class _WorkoutActionMetaCard extends StatelessWidget {
       ('重量', action.weight ?? '自重'),
     ];
 
-    return Container(
+    return KeyedSubtree(
       key: const ValueKey('workout_feedback_card'),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '动作字段',
-            style: TextStyle(
-              color: AppColors.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 12),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 2.4,
-            children: values.map((item) {
-              return _WorkoutActionFieldBox(label: item.$1, value: item.$2);
-            }).toList(),
-          ),
-          if (action.note.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              action.note,
-              style: const TextStyle(
-                color: AppColors.muted,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                height: 1.45,
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '动作字段',
+              style: TextStyle(
+                color: AppColors.ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
               ),
             ),
+            const SizedBox(height: 12),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 2.4,
+              children: values.map((item) {
+                return _WorkoutActionFieldBox(label: item.$1, value: item.$2);
+              }).toList(),
+            ),
+            if (action.note.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                action.note,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  height: 1.45,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -596,13 +597,10 @@ class _WorkoutFeedbackCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const options = ['轻松', '刚好', '太累'];
 
-    return Container(
+    return GlassSurface(
+      borderRadius: 14,
+      color: AppColors.surface.withValues(alpha: 0.78),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -660,62 +658,62 @@ class _WorkoutSetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: done ? AppColors.primary : AppColors.primarySoft,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                '$index',
-                style: TextStyle(
-                  color: done ? Colors.white : AppColors.primary,
-                  fontWeight: FontWeight.w900,
-                ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: done ? AppColors.primary : AppColors.primarySoft,
+                shape: BoxShape.circle,
               ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '第 $index 组',
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 15,
+              child: Center(
+                child: Text(
+                  '$index',
+                  style: TextStyle(
+                    color: done ? Colors.white : AppColors.primary,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  detail,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-          Icon(
-            done ? Icons.check_circle_rounded : Icons.expand_more_rounded,
-            color: done ? AppColors.success : AppColors.muted,
-          ),
-        ],
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '第 $index 组',
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    detail,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              done ? Icons.check_circle_rounded : Icons.expand_more_rounded,
+              color: done ? AppColors.success : AppColors.muted,
+            ),
+          ],
+        ),
       ),
     );
   }

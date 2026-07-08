@@ -597,6 +597,16 @@ class AiFinanceException implements Exception {
   String toString() => message;
 }
 
+class AiFinanceImageInput {
+  const AiFinanceImageInput({
+    required this.bytes,
+    required this.mimeType,
+  });
+
+  final Uint8List bytes;
+  final String mimeType;
+}
+
 typedef AiFinanceTransport = Future<String> Function({
   required Uri uri,
   required String apiKey,
@@ -676,16 +686,56 @@ class AiFinanceClient {
     AiFinanceParseStrategy strategy = AiFinanceParseStrategy.defaults,
     String customPrompt = '',
   }) async {
-    if (imageBytes.isEmpty) {
+    return parseImages(
+      images: [
+        AiFinanceImageInput(bytes: imageBytes, mimeType: mimeType),
+      ],
+      apiKey: apiKey,
+      endpoint: endpoint,
+      model: model,
+      strategy: strategy,
+      customPrompt: customPrompt,
+    );
+  }
+
+  Future<List<AiFinanceBillInfo>> parseImages({
+    required List<AiFinanceImageInput> images,
+    required String apiKey,
+    required String endpoint,
+    required String model,
+    AiFinanceParseStrategy strategy = AiFinanceParseStrategy.defaults,
+    String customPrompt = '',
+  }) async {
+    final validImages =
+        images.where((image) => image.bytes.isNotEmpty).toList(growable: false);
+    if (validImages.isEmpty) {
       throw const AiFinanceException('请选择要识别的账单图片');
     }
     if (apiKey.trim().isEmpty) {
       throw const AiFinanceException('请先填写 AI 接口 Key');
     }
 
-    final imageUrl = 'data:$mimeType;base64,${base64Encode(imageBytes)}';
     final uri = _resolveEndpoint(endpoint);
     try {
+      final contentParts = <Map<String, Object?>>[
+        {
+          'type': 'text',
+          'text': promptBuilder.build(
+            text: '请识别图片中的账单、付款截图、订单或收据，提取金额、时间、商家、分类、账户和备注。',
+            strategy: strategy,
+            customPrompt: customPrompt,
+            inputSource: '从以下账单图片中',
+          ),
+        },
+        for (final image in validImages)
+          {
+            'type': 'image_url',
+            'image_url': {
+              'url':
+                  'data:${image.mimeType};base64,${base64Encode(image.bytes)}',
+            },
+          },
+      ];
       final body = await _transport(
         uri: uri,
         apiKey: apiKey,
@@ -699,21 +749,7 @@ class AiFinanceClient {
             },
             {
               'role': 'user',
-              'content': [
-                {
-                  'type': 'text',
-                  'text': promptBuilder.build(
-                    text: '请识别图片中的账单、付款截图、订单或收据，提取金额、时间、商家、分类、账户和备注。',
-                    strategy: strategy,
-                    customPrompt: customPrompt,
-                    inputSource: '从以下账单图片中',
-                  ),
-                },
-                {
-                  'type': 'image_url',
-                  'image_url': {'url': imageUrl},
-                },
-              ],
+              'content': contentParts,
             },
           ],
         },

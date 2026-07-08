@@ -3,14 +3,21 @@
 part of 'life_home.dart';
 
 extension _LifeHomeMutations on _LifeHomePageState {
-  void _recordFoodCalories(int calories) {
-    // 饮食模块的记录会进入应用级共享状态，健康模块据此展示今日摄入。
+  void _recordFoodLogs(List<FoodLogEntry> entries) {
+    if (entries.isEmpty) {
+      return;
+    }
+    final calories = entries.fold<int>(
+      0,
+      (total, entry) => total + entry.calories,
+    );
+    // 饮食模块的记录会进入应用级共享状态，状态模块据此展示今日摄入。
     _updateState(() {
-      _foodState.calories += calories;
+      _foodState.logs.addAll(entries);
       _pushLifeEvent(
         LifeEvent(
           title: '记录饮食',
-          detail: '$calories kcal 已同步到健康和计划',
+          detail: '$calories kcal 已同步到状态和计划',
           icon: Icons.restaurant_rounded,
           color: AppColors.success,
         ),
@@ -20,9 +27,10 @@ extension _LifeHomeMutations on _LifeHomePageState {
   }
 
   void _updateWorkoutGroups(String actionName, int finishedGroups) {
-    // 锻炼模块完成组数保存在父级，切换到健康/饮食/计划后仍能联动展示。
+    // 锻炼模块完成组数保存在父级，切换到状态/饮食/计划后仍能联动展示。
     final previousGroups = _workoutState.groupsByAction[actionName] ?? 0;
     _updateState(() {
+      _workoutState.progressDate = DateUtils.dateOnly(DateTime.now());
       _workoutState.groupsByAction[actionName] = finishedGroups;
       if (finishedGroups > previousGroups) {
         _pushLifeEvent(
@@ -62,6 +70,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _updateState(() {
       _workoutState.history.insert(0, entry);
       _workoutState.activeSession = null;
+      _workoutState.progressDate = DateUtils.dateOnly(entry.finishedAt);
       for (final result in entry.actionResults) {
         _workoutState.groupsByAction[result.actionName] = result.finishedGroups;
       }

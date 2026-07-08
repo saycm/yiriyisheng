@@ -40,6 +40,8 @@ void main() {
     expect(find.text('优先级'), findsOneWidget);
     expect(find.text('任务联动'), findsOneWidget);
     expect(find.text('保存'), findsOneWidget);
+    final titleField = tester.widget<TextField>(find.byType(TextField).first);
+    expect(titleField.autofocus, isFalse);
     expect(
       tester.getSize(find.widgetWithText(FilledButton, '保存')).height,
       lessThanOrEqualTo(48),
@@ -83,7 +85,7 @@ void main() {
         findsOneWidget);
     expect(find.descendant(of: overview, matching: find.text('训练')),
         findsOneWidget);
-    expect(find.descendant(of: overview, matching: find.text('健康')),
+    expect(find.descendant(of: overview, matching: find.text('状态')),
         findsOneWidget);
     expect(
       find.descendant(
@@ -503,25 +505,42 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.descendant(of: targetCard, matching: find.text('下个工作日')),
+      find.descendant(of: targetCard, matching: find.text('延后')),
       findsOneWidget,
     );
     expect(
       find.descendant(of: targetCard, matching: find.text('归档')),
       findsOneWidget,
     );
+
+    final deleteAction = find.descendant(
+      of: targetCard,
+      matching: find.byKey(
+        const ValueKey('todo_delete_action_整理学习清单'),
+      ),
+    );
+    expect(deleteAction, findsOneWidget);
     expect(
       find.descendant(of: targetCard, matching: find.text('删除')),
-      findsOneWidget,
+      findsNothing,
     );
 
-    final actionLabels = ['完成', '下个工作日', '归档', '删除'];
+    final actionLabels = ['完成', '延后', '归档'];
     final actionTops = actionLabels.map((label) {
       final action =
           find.descendant(of: targetCard, matching: find.text(label));
       return tester.getTopLeft(action).dy;
     }).toSet();
     expect(actionTops.length, 1);
+
+    await tester.tap(deleteAction);
+    await tester.pumpAndSettle();
+
+    expect(find.text('删除待办？'), findsOneWidget);
+    expect(find.text('确认删除'), findsOneWidget);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(targetCard, findsOneWidget);
 
     await tester.tap(
       find.descendant(of: targetCard, matching: find.text('完成')),

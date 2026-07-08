@@ -175,6 +175,7 @@ class _TodoCard extends StatelessWidget {
             ],
             const SizedBox(height: 12),
             _TodoQuickActions(
+              title: todo.title,
               done: todo.done,
               onComplete: onTap,
               onPostpone: onPostpone,
@@ -228,6 +229,7 @@ class _TodoMetaChip extends StatelessWidget {
 
 class _TodoQuickActions extends StatelessWidget {
   const _TodoQuickActions({
+    required this.title,
     required this.done,
     required this.onComplete,
     required this.onPostpone,
@@ -235,6 +237,7 @@ class _TodoQuickActions extends StatelessWidget {
     required this.onDelete,
   });
 
+  final String title;
   final bool done;
   final VoidCallback onComplete;
   final VoidCallback onPostpone;
@@ -246,7 +249,7 @@ class _TodoQuickActions extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          flex: done ? 16 : 12,
+          flex: done ? 18 : 14,
           child: _TodoActionButton(
             label: done ? '重新打开' : '完成',
             icon: done ? Icons.undo_rounded : Icons.check_rounded,
@@ -257,9 +260,9 @@ class _TodoQuickActions extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Expanded(
-          flex: 20,
+          flex: 18,
           child: _TodoActionButton(
-            label: '下个工作日',
+            label: '延后',
             icon: Icons.event_repeat_rounded,
             color: AppColors.sun,
             onTap: done ? null : onPostpone,
@@ -267,7 +270,7 @@ class _TodoQuickActions extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Expanded(
-          flex: 12,
+          flex: 14,
           child: _TodoActionButton(
             label: '归档',
             icon: Icons.archive_rounded,
@@ -276,17 +279,107 @@ class _TodoQuickActions extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        Expanded(
-          flex: 12,
-          child: _TodoActionButton(
-            label: '删除',
-            icon: Icons.delete_outline_rounded,
-            color: AppColors.financeRed,
-            onTap: onDelete,
-          ),
+        _TodoDeleteButton(
+          title: title,
+          onDelete: onDelete,
         ),
       ],
     );
+  }
+}
+
+class _TodoDeleteButton extends StatelessWidget {
+  const _TodoDeleteButton({
+    required this.title,
+    required this.onDelete,
+  });
+
+  final String title;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '删除待办 $title',
+      child: Material(
+        color: AppColors.financeRed.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          key: ValueKey('todo_delete_action_$title'),
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => _confirmDelete(context),
+          child: Container(
+            width: 44,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppColors.financeRed.withValues(alpha: 0.16),
+              ),
+            ),
+            child: Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.financeRed.withValues(alpha: 0.86),
+              size: 18,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface.withValues(alpha: 0.98),
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          title: const Text(
+            '删除待办？',
+            style: TextStyle(
+              color: AppColors.ink,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          content: Text(
+            '“$title” 删除后不会进入已归档列表。',
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              height: 1.45,
+            ),
+          ),
+          actionsPadding:
+              const EdgeInsets.only(left: 16, right: 16, bottom: 14),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.financeRed,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('确认删除'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      onDelete();
+    }
   }
 }
 

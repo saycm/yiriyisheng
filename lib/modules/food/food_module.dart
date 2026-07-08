@@ -2,49 +2,6 @@
 
 part of 'food.dart';
 
-class FoodItem {
-  const FoodItem({
-    required this.emoji,
-    required this.name,
-    required this.calorie,
-    required this.unit,
-    required this.group,
-    this.protein,
-    this.carbs,
-    this.fat,
-  });
-
-  final String emoji;
-  final String name;
-  final int calorie;
-  final String unit;
-  final String group;
-  final double? protein;
-  final double? carbs;
-  final double? fat;
-}
-
-class FoodLogEntry {
-  const FoodLogEntry({
-    required this.food,
-    required this.meal,
-    required this.servings,
-    required this.note,
-    required this.recordedAt,
-  });
-
-  final FoodItem food;
-  final String meal;
-  final double servings;
-  final String note;
-  final DateTime recordedAt;
-
-  int get calories => (food.calorie * servings).round();
-  double get protein => _foodMacro(food, _FoodMacro.protein) * servings;
-  double get carbs => _foodMacro(food, _FoodMacro.carbs) * servings;
-  double get fat => _foodMacro(food, _FoodMacro.fat) * servings;
-}
-
 class _FoodMealTemplate {
   const _FoodMealTemplate({
     required this.title,
@@ -60,8 +17,6 @@ class _FoodMealTemplate {
   final String subtitle;
   final IconData icon;
 }
-
-enum _FoodMacro { protein, carbs, fat }
 
 const _foodCategories = ['常用', '主食', '蛋白', '蔬果', '饮品', '零食', '外卖', '自定义'];
 const _customFoodCategoryLabels = ['主食', '蛋白', '蔬果', '饮品', '零食', '外卖', '自定义'];
@@ -81,7 +36,7 @@ String foodMealForTime(DateTime time) {
 }
 
 String _foodCategoryForGroup(String group) {
-  return switch (_normalizeFoodGroup(group)) {
+  return switch (normalizeFoodGroup(group)) {
     '常用' => '常用',
     '主食' => '主食',
     '蛋白' => '蛋白',
@@ -94,54 +49,15 @@ String _foodCategoryForGroup(String group) {
   };
 }
 
-String _normalizeFoodGroup(String group) {
-  return switch (group) {
-    '常用' || '常见' || '早餐' || '汤粥' || '家常菜' => '常用',
-    '主食' || '主食杂粮' => '主食',
-    '蛋白' || '肉蛋奶' || '低脂高蛋白' || '海鲜水产' => '蛋白',
-    '蔬果' || '蔬菜水果' => '蔬果',
-    '收藏' || '饮品' => '饮品',
-    '零食' || '坚果种子' || '烘焙甜品' || '调味酱料' => '零食',
-    '外卖' || '外卖快餐' => '外卖',
-    '自定义' => '自定义',
-    _ => '自定义',
-  };
-}
-
-double _foodMacro(FoodItem food, _FoodMacro macro) {
-  final direct = switch (macro) {
-    _FoodMacro.protein => food.protein,
-    _FoodMacro.carbs => food.carbs,
-    _FoodMacro.fat => food.fat,
-  };
-  if (direct != null) {
-    return direct;
-  }
-
-  final ratios = switch (_normalizeFoodGroup(food.group)) {
-    '蛋白' => (0.22, 0.06, 0.06),
-    '主食' => (0.05, 0.20, 0.02),
-    '蔬果' => (0.03, 0.12, 0.01),
-    '饮品' => (0.02, 0.10, 0.01),
-    '零食' => (0.08, 0.28, 0.12),
-    _ => (0.10, 0.18, 0.07),
-  };
-  final ratio = switch (macro) {
-    _FoodMacro.protein => ratios.$1,
-    _FoodMacro.carbs => ratios.$2,
-    _FoodMacro.fat => ratios.$3,
-  };
-  return food.calorie * ratio;
-}
-
 class FoodModulePage extends StatefulWidget {
   const FoodModulePage({
     super.key,
     required this.moduleNav,
     required this.onOpenModules,
     required this.onSwitchModule,
-    required this.onRecordCalories,
+    required this.onRecordFoodLogs,
     required this.foodCalories,
+    required this.foodLogs,
     required this.workoutGroups,
     required this.quickAction,
     required this.quickActionToken,
@@ -151,8 +67,9 @@ class FoodModulePage extends StatefulWidget {
   final Widget moduleNav;
   final VoidCallback onOpenModules;
   final ValueChanged<LifeModule> onSwitchModule;
-  final ValueChanged<int> onRecordCalories;
+  final ValueChanged<List<FoodLogEntry>> onRecordFoodLogs;
   final int foodCalories;
+  final List<FoodLogEntry> foodLogs;
   final int workoutGroups;
   final WidgetQuickAction? quickAction;
   final int quickActionToken;
@@ -325,7 +242,6 @@ class _FoodModulePageState extends State<FoodModulePage> {
   ];
 
   final List<FoodItem> _selectedFoods = [];
-  final List<FoodLogEntry> _foodLogs = [];
   final TextEditingController _foodSearchController = TextEditingController();
   String _activeFoodCategory = '常用';
   String _category = '三餐';
@@ -362,18 +278,22 @@ class _FoodModulePageState extends State<FoodModulePage> {
       _selectedFoods.fold(0, (total, food) => total + food.calorie);
 
   int get _loggedCalories =>
-      _foodLogs.fold(0, (total, entry) => total + entry.calories);
+      _todayLogs.fold(0, (total, entry) => total + entry.calories);
 
-  int get _todayCalories => math.max(widget.foodCalories, _loggedCalories);
+  int get _todayCalories => _loggedCalories;
 
   double get _todayProtein =>
-      _foodLogs.fold(0, (total, entry) => total + entry.protein);
+      _todayLogs.fold(0, (total, entry) => total + entry.protein);
 
   double get _todayCarbs =>
-      _foodLogs.fold(0, (total, entry) => total + entry.carbs);
+      _todayLogs.fold(0, (total, entry) => total + entry.carbs);
 
   double get _todayFat =>
-      _foodLogs.fold(0, (total, entry) => total + entry.fat);
+      _todayLogs.fold(0, (total, entry) => total + entry.fat);
+
+  List<FoodLogEntry> get _todayLogs {
+    return todayFoodLogs(widget.foodLogs, DateTime.now());
+  }
 
   @override
   void initState() {
@@ -422,110 +342,113 @@ class _FoodModulePageState extends State<FoodModulePage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                _FoodHeader(
-                  onOpenModules: widget.onOpenModules,
-                  onOpenCategories: _openCategorySheet,
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: widget.moduleNav,
-                ),
-                _FoodSearchBar(
-                  controller: _foodSearchController,
-                  onChanged: (value) => setState(() => _foodQuery = value),
-                  onClear: _clearFoodSearch,
-                ),
-                Expanded(
-                  child: ListView(
-                    key: const ValueKey('food_main_list'),
-                    padding: const EdgeInsets.fromLTRB(
-                      18,
-                      6,
-                      18,
-                      96,
-                    ),
-                    children: [
-                      ModuleLinkedSummaryCard(
-                        title: '饮食联动',
-                        subtitle: '已记录的摄入会同步到健康、计划和桌面入口。',
-                        icon: Icons.restaurant_rounded,
-                        values: [
-                          ('今日', '$_todayCalories kcal'),
-                          ('锻炼', '${widget.workoutGroups} 组'),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _FoodCategoryScroller(
-                        activeCategory: _activeFoodCategory,
-                        onChanged: (category) =>
-                            setState(() => _activeFoodCategory = category),
-                      ),
-                      const SizedBox(height: 12),
-                      if (_activeFoodCategory == '自定义')
-                        _FoodAddCustomCard(onTap: _openCustomFoodSheet),
-                      if (visibleFoods.isEmpty)
-                        _FoodEmptyState(
-                          category: _activeFoodCategory,
-                          query: query,
-                          onAddCustom: _openCustomFoodSheet,
-                        )
-                      else
-                        ...visibleFoods.map((food) {
-                          return _FoodCard(
-                            food: food,
-                            selectedCount: _selectedCountFor(food),
-                            onAdd: () => _addSelectedFood(food),
-                            onRemove: () => _removeSelectedFood(food),
-                          );
-                        }),
-                      const SizedBox(height: 2),
-                      _FoodMealSelector(
-                        meals: _meals,
-                        activeMeal: _activeMeal,
-                        caloriesByMeal: _caloriesByMeal(),
-                        onChanged: (meal) => setState(() => _activeMeal = meal),
-                      ),
-                      const SizedBox(height: 12),
-                      _FoodCalorieProgressCard(
-                        consumed: _todayCalories,
-                        suggested: _suggestedCalories,
-                        protein: _todayProtein,
-                        carbs: _todayCarbs,
-                        fat: _todayFat,
-                      ),
-                      const SizedBox(height: 12),
-                      _FoodQuickSections(
-                        logs: _foodLogs,
-                        templates: _mealTemplates,
-                        reminders: _foodReminders(),
-                        trend: _foodTrendValues(),
-                        onRepeatLastMeal: _repeatLastMeal,
-                        onUseTemplate: _useMealTemplate,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Column(
                 children: [
-                  _FoodSelectedBar(
-                    count: _selectedFoods.length,
-                    calories: _totalCalories,
-                    onRecord: _recordFoods,
+                  _FoodHeader(
+                    onOpenModules: widget.onOpenModules,
+                    onOpenCategories: _openCategorySheet,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: widget.moduleNav,
+                  ),
+                  _FoodSearchBar(
+                    controller: _foodSearchController,
+                    onChanged: (value) => setState(() => _foodQuery = value),
+                    onClear: _clearFoodSearch,
+                  ),
+                  Expanded(
+                    child: ListView(
+                      key: const ValueKey('food_main_list'),
+                      padding: const EdgeInsets.fromLTRB(
+                        18,
+                        6,
+                        18,
+                        96,
+                      ),
+                      children: [
+                        ModuleLinkedSummaryCard(
+                          title: '饮食联动',
+                          subtitle: '已记录的摄入会同步到状态、计划和桌面入口。',
+                          icon: Icons.restaurant_rounded,
+                          values: [
+                            ('今日', '$_todayCalories kcal'),
+                            ('锻炼', '${widget.workoutGroups} 组'),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _FoodCategoryScroller(
+                          activeCategory: _activeFoodCategory,
+                          onChanged: (category) =>
+                              setState(() => _activeFoodCategory = category),
+                        ),
+                        const SizedBox(height: 12),
+                        if (_activeFoodCategory == '自定义')
+                          _FoodAddCustomCard(onTap: _openCustomFoodSheet),
+                        if (visibleFoods.isEmpty)
+                          _FoodEmptyState(
+                            category: _activeFoodCategory,
+                            query: query,
+                            onAddCustom: _openCustomFoodSheet,
+                          )
+                        else
+                          ...visibleFoods.map((food) {
+                            return _FoodCard(
+                              food: food,
+                              selectedCount: _selectedCountFor(food),
+                              onAdd: () => _addSelectedFood(food),
+                              onRemove: () => _removeSelectedFood(food),
+                            );
+                          }),
+                        const SizedBox(height: 2),
+                        _FoodMealSelector(
+                          meals: _meals,
+                          activeMeal: _activeMeal,
+                          caloriesByMeal: _caloriesByMeal(),
+                          onChanged: (meal) =>
+                              setState(() => _activeMeal = meal),
+                        ),
+                        const SizedBox(height: 12),
+                        _FoodCalorieProgressCard(
+                          consumed: _todayCalories,
+                          suggested: _suggestedCalories,
+                          protein: _todayProtein,
+                          carbs: _todayCarbs,
+                          fat: _todayFat,
+                        ),
+                        const SizedBox(height: 12),
+                        _FoodQuickSections(
+                          logs: _todayLogs,
+                          templates: _mealTemplates,
+                          reminders: _foodReminders(),
+                          trend: _foodTrendValues(),
+                          onRepeatLastMeal: _repeatLastMeal,
+                          onUseTemplate: _useMealTemplate,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _FoodSelectedBar(
+                      count: _selectedFoods.length,
+                      calories: _totalCalories,
+                      onRecord: _recordFoods,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -555,7 +478,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
   Map<String, int> _caloriesByMeal() {
     return {
       for (final meal in _meals)
-        meal: _foodLogs
+        meal: _todayLogs
             .where((entry) => entry.meal == meal)
             .fold(0, (total, entry) => total + entry.calories),
     };
@@ -563,7 +486,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
 
   List<String> _foodReminders() {
     final reminders = <String>[];
-    final mealsRecorded = _foodLogs.map((entry) => entry.meal).toSet();
+    final mealsRecorded = _todayLogs.map((entry) => entry.meal).toSet();
     if (!mealsRecorded.contains('晚餐') && DateTime.now().hour >= 18) {
       reminders.add('晚餐还没有记录');
     }
@@ -574,7 +497,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
       reminders.add('训练后可以记录一次夜宵');
     }
     if (reminders.isEmpty) {
-      reminders.add(_foodLogs.isEmpty ? '先把最近一餐记下来' : '今天饮食节奏正常');
+      reminders.add(_todayLogs.isEmpty ? '先把最近一餐记下来' : '今天饮食节奏正常');
     }
     return reminders;
   }
@@ -585,7 +508,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
   }
 
   void _repeatLastMeal() {
-    final recent = _foodLogs.reversed
+    final recent = _todayLogs.reversed
         .where((entry) => entry.meal == _activeMeal)
         .map((entry) => entry.food.name)
         .toSet()
@@ -633,21 +556,20 @@ class _FoodModulePageState extends State<FoodModulePage> {
         behavior: SnackBarBehavior.floating,
       ),
     );
-    widget.onRecordCalories(calories);
-    setState(() {
-      _activeMeal = meal;
-      _foodLogs.addAll(
-        foods.map(
+    final now = DateTime.now();
+    final entries = foods
+        .map(
           (food) => FoodLogEntry(
             food: food,
             meal: meal,
             servings: 1,
             note: '',
-            recordedAt: DateTime.now(),
+            recordedAt: now,
           ),
-        ),
-      );
-    });
+        )
+        .toList();
+    widget.onRecordFoodLogs(entries);
+    setState(() => _activeMeal = meal);
   }
 
   void _openCategorySheet() {
@@ -680,7 +602,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
           onSave: (name, calorie, unit, group) {
             Navigator.of(context).pop();
             setState(() {
-              final normalizedGroup = _normalizeFoodGroup(group);
+              final normalizedGroup = normalizeFoodGroup(group);
               _foods.add(
                 FoodItem(
                   emoji: '🍱',

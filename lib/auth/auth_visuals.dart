@@ -2,119 +2,6 @@
 
 part of 'auth.dart';
 
-class _AuthLaunchBackdrop extends StatelessWidget {
-  const _AuthLaunchBackdrop();
-
-  @override
-  Widget build(BuildContext context) {
-    return const CustomPaint(
-      painter: _AuthLaunchBackdropPainter(),
-      child: SizedBox.expand(),
-    );
-  }
-}
-
-class _AuthLaunchBackdropPainter extends CustomPainter {
-  const _AuthLaunchBackdropPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = const LinearGradient(
-          colors: [
-            Color(0xFFFFE4AE),
-            Color(0xFFF9EFD9),
-            Color(0xFFDDEAF1),
-          ],
-          stops: [0, 0.54, 1],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ).createShader(rect),
-    );
-
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width * 0.42, size.height),
-      Paint()
-        ..shader = LinearGradient(
-          colors: [
-            const Color(0xFFFFC05A).withValues(alpha: 0.2),
-            const Color(0xFFFFF3D7).withValues(alpha: 0),
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ).createShader(Rect.fromLTWH(0, 0, size.width * 0.42, size.height)),
-    );
-
-    canvas.drawRect(
-      Rect.fromLTWH(size.width * 0.56, 0, size.width * 0.44, size.height),
-      Paint()
-        ..shader = LinearGradient(
-          colors: [
-            const Color(0xFFF8ECD4).withValues(alpha: 0),
-            const Color(0xFFB8D2E4).withValues(alpha: 0.3),
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ).createShader(
-          Rect.fromLTWH(size.width * 0.56, 0, size.width * 0.44, size.height),
-        ),
-    );
-
-    canvas.drawRect(
-      Rect.fromLTWH(0, size.height * 0.68, size.width, size.height * 0.32),
-      Paint()
-        ..shader = LinearGradient(
-          colors: [
-            const Color(0xFFF3CF85).withValues(alpha: 0),
-            const Color(0xFF82BFE0).withValues(alpha: 0.16),
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ).createShader(
-          Rect.fromLTWH(0, size.height * 0.68, size.width, size.height * 0.32),
-        ),
-    );
-
-    final gridPaint = Paint()
-      ..color = const Color(0xFFB99E72).withValues(alpha: 0.08)
-      ..strokeWidth = 1;
-    const spacing = 48.0;
-    for (var x = 0.0; x < size.width + spacing; x += spacing) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (var y = 0.0; y < size.height + spacing; y += spacing) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    final softGridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.16)
-      ..strokeWidth = 1;
-    for (var x = spacing / 2; x < size.width + spacing; x += spacing) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), softGridPaint);
-    }
-    for (var y = spacing / 2; y < size.height + spacing; y += spacing) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), softGridPaint);
-    }
-
-    final vignette = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          Colors.white.withValues(alpha: 0.28),
-          Colors.white.withValues(alpha: 0.02),
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ).createShader(rect);
-    canvas.drawRect(rect, vignette);
-  }
-
-  @override
-  bool shouldRepaint(covariant _AuthLaunchBackdropPainter oldDelegate) => false;
-}
-
 class _AuthFormPanel extends StatelessWidget {
   const _AuthFormPanel({
     required this.mode,
@@ -147,20 +34,10 @@ class _AuthFormPanel extends StatelessWidget {
     final title = isRegister ? '创建账号' : '欢迎回来';
     final submitLabel = isRegister ? '进入我的平生' : '回到我的平生';
 
-    return Container(
+    return GlassSurface(
+      borderRadius: 12,
+      color: Colors.white.withValues(alpha: 0.88),
       padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.98),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.9)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF74624D).withValues(alpha: 0.13),
-            blurRadius: 30,
-            offset: const Offset(0, 16),
-          ),
-        ],
-      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

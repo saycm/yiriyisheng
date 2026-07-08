@@ -98,80 +98,79 @@ class _FoodCalorieProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = suggested <= 0 ? 0.0 : (consumed / suggested).clamp(0, 1);
 
-    return Container(
+    return KeyedSubtree(
       key: const ValueKey('food_calorie_progress_card'),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  '今日热量',
-                  style: TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 16,
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.82),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '今日热量',
+                    style: TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$consumed / $suggested kcal',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 14,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-              ),
-              Text(
-                '$consumed / $suggested kcal',
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              value: progress.toDouble(),
-              minHeight: 10,
-              backgroundColor: AppColors.background,
-              color: consumed > suggested
-                  ? AppColors.financeRed
-                  : AppColors.primary,
+              ],
             ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _FoodMacroPill(
-                  label: '蛋白质',
-                  value: '${protein.round()}g',
-                  color: AppColors.success,
-                ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: progress.toDouble(),
+                minHeight: 10,
+                backgroundColor: AppColors.background,
+                color: consumed > suggested
+                    ? AppColors.financeRed
+                    : AppColors.primary,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _FoodMacroPill(
-                  label: '碳水',
-                  value: '${carbs.round()}g',
-                  color: const Color(0xFFFFA14A),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _FoodMacroPill(
+                    label: '蛋白质',
+                    value: '${protein.round()}g',
+                    color: AppColors.success,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _FoodMacroPill(
-                  label: '脂肪',
-                  value: '${fat.round()}g',
-                  color: const Color(0xFFFF7A83),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _FoodMacroPill(
+                    label: '碳水',
+                    value: '${carbs.round()}g',
+                    color: const Color(0xFFFFA14A),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _FoodMacroPill(
+                    label: '脂肪',
+                    value: '${fat.round()}g',
+                    color: const Color(0xFFFF7A83),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -350,43 +349,42 @@ class _FoodInfoBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return KeyedSubtree(
       key: const ValueKey('food_frequent_block'),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -399,13 +397,10 @@ class _FoodFrequentBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassSurface(
+      borderRadius: 14,
+      color: AppColors.surface.withValues(alpha: 0.78),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -463,13 +458,10 @@ class _FoodTemplateBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassSurface(
+      borderRadius: 14,
+      color: AppColors.surface.withValues(alpha: 0.78),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -542,13 +534,10 @@ class _FoodReminderBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassSurface(
+      borderRadius: 14,
+      color: AppColors.surface.withValues(alpha: 0.78),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -613,51 +602,52 @@ class _FoodTrendBlock extends StatelessWidget {
         ? 0
         : values.fold<double>(0, (sum, value) => sum + value) / values.length;
 
-    return Container(
+    return KeyedSubtree(
       key: const ValueKey('food_trend_block'),
-      height: 142,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.82),
+        padding: const EdgeInsets.all(14),
+        child: SizedBox(
+          height: 114,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Expanded(
-                child: Text(
-                  '7 天热量趋势',
-                  style: TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      '7 天热量趋势',
+                      style: TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ),
-                ),
+                  Text(
+                    '均值 ${average.round()}',
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                '均值 ${average.round()}',
-                style: const TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+              const SizedBox(height: 10),
+              Expanded(
+                child: CustomPaint(
+                  painter: TinyBarsPainter(
+                    values: values,
+                    color: AppColors.success,
+                  ),
+                  child: const SizedBox.expand(),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: CustomPaint(
-              painter: TinyBarsPainter(
-                values: values,
-                color: AppColors.success,
-              ),
-              child: const SizedBox.expand(),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

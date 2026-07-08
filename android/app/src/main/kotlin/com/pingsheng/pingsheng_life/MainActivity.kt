@@ -237,6 +237,10 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         val prefs = getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, MODE_PRIVATE)
         return mapOf(
             "foodCalories" to prefs.getInt(PingShengWidgetProvider.KEY_FOOD_CALORIES, 0),
+            "foodLogsJson" to prefs.getString(
+                PingShengWidgetProvider.KEY_FOOD_LOGS_JSON,
+                null
+            ),
             "pendingTodos" to prefs.getInt(PingShengWidgetProvider.KEY_PENDING_TODOS, 0),
             "todosJson" to prefs.getString(
                 PingShengWidgetProvider.KEY_TODOS_JSON,
@@ -250,28 +254,36 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
             "workoutGroupsJson" to prefs.getString(
                 PingShengWidgetProvider.KEY_WORKOUT_GROUPS_JSON,
                 "{}"
-            ).orEmpty()
+            ).orEmpty(),
+            "workoutProgressDate" to prefs.getString(
+                PingShengWidgetProvider.KEY_WORKOUT_PROGRESS_DATE,
+                null
+            )
         )
     }
 
     private fun saveLifeSummary(arguments: Any?) {
         val args = arguments as? Map<*, *> ?: return
         val foodCalories = (args["foodCalories"] as? Number)?.toInt() ?: 0
+        val foodLogsJson = args["foodLogsJson"] as? String ?: "[]"
         val pendingTodos = (args["pendingTodos"] as? Number)?.toInt() ?: 0
         val todosJson = args["todosJson"] as? String ?: ""
         val financeRecordsJson = args["financeRecordsJson"] as? String ?: ""
         val workoutGroups = (args["workoutGroups"] as? Number)?.toInt() ?: 0
         val workoutGroupsJson = args["workoutGroupsJson"] as? String ?: "{}"
+        val workoutProgressDate = args["workoutProgressDate"] as? String ?: ""
 
         // Flutter 侧的共享状态写入原生 SharedPreferences，桌面小组件可直接读取。
         getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, MODE_PRIVATE)
             .edit()
             .putInt(PingShengWidgetProvider.KEY_FOOD_CALORIES, foodCalories)
+            .putString(PingShengWidgetProvider.KEY_FOOD_LOGS_JSON, foodLogsJson)
             .putInt(PingShengWidgetProvider.KEY_PENDING_TODOS, pendingTodos)
             .putString(PingShengWidgetProvider.KEY_TODOS_JSON, todosJson)
             .putString(PingShengWidgetProvider.KEY_FINANCE_RECORDS_JSON, financeRecordsJson)
             .putInt(PingShengWidgetProvider.KEY_WORKOUT_GROUPS, workoutGroups)
             .putString(PingShengWidgetProvider.KEY_WORKOUT_GROUPS_JSON, workoutGroupsJson)
+            .putString(PingShengWidgetProvider.KEY_WORKOUT_PROGRESS_DATE, workoutProgressDate)
             .apply()
 
         refreshHomeWidgets()
@@ -575,21 +587,44 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
             "stepCounterAvailable" to (manager?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null),
             "heartRateSensorAvailable" to (manager?.getDefaultSensor(Sensor.TYPE_HEART_RATE) != null),
             "accelerometerAvailable" to (manager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null),
-            "stepCounterSinceBoot" to latestStepCounter?.roundToInt(),
+            "stepCounterToday" to todayStepCounter(latestStepCounter?.roundToInt()),
             "heartRateBpm" to latestHeartRate,
             "accelerationMagnitude" to latestAcceleration,
             "lastSensorUpdateMillis" to lastSensorUpdateMillis
         )
     }
 
+    private fun todayStepCounter(currentSinceBoot: Int?): Int? {
+        if (currentSinceBoot == null) {
+            return null
+        }
+        val todayKey = LocalDate.now().toString()
+        val prefs = getSharedPreferences(STEP_COUNTER_BASELINE_PREFS, MODE_PRIVATE)
+        val storedDate = prefs.getString(KEY_STEP_COUNTER_BASELINE_DATE, null)
+        val storedBaseline = prefs.getInt(KEY_STEP_COUNTER_BASELINE_VALUE, -1)
+        val baseline = if (storedDate == todayKey &&
+            storedBaseline >= 0 &&
+            storedBaseline <= currentSinceBoot
+        ) {
+            storedBaseline
+        } else {
+            prefs.edit()
+                .putString(KEY_STEP_COUNTER_BASELINE_DATE, todayKey)
+                .putInt(KEY_STEP_COUNTER_BASELINE_VALUE, currentSinceBoot)
+                .apply()
+            currentSinceBoot
+        }
+        return (currentSinceBoot - baseline).coerceAtLeast(0)
+    }
+
     private fun saveHealthForWidget(today: Map<String, Any?>?) {
-        // 小组件空间有限，只同步一行最有代表性的健康摘要。
+        // 小组件空间有限，只同步一行最有代表性的状态摘要。
         val steps = (today?.get("steps") as? Number)?.toInt()
         val activeCalories = (today?.get("activeCaloriesKcal") as? Number)?.toInt()
         val text = when {
             steps != null -> "步数 ${formatNumber(steps)}"
             activeCalories != null -> "能量 ${activeCalories} kcal"
-            else -> "健康无系统记录"
+            else -> "状态无系统记录"
         }
         getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, MODE_PRIVATE)
             .edit()
@@ -600,9 +635,9 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
 
     private fun saveHealthStatusForWidget(message: String) {
         val text = when {
-            message.contains("授权") -> "健康待授权"
-            message.contains("更新") -> "健康需更新"
-            else -> "健康待连接"
+            message.contains("授权") -> "状态待授权"
+            message.contains("更新") -> "状态需更新"
+            else -> "状态待连接"
         }
         getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, MODE_PRIVATE)
             .edit()
@@ -617,10 +652,14 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
 
     private fun refreshHomeWidgets() {
         val manager = AppWidgetManager.getInstance(this)
-        val ids = manager.getAppWidgetIds(
+        val darkIds = manager.getAppWidgetIds(
             ComponentName(this, PingShengWidgetProvider::class.java)
         )
-        PingShengWidgetProvider.updateWidgets(this, manager, ids)
+        val lightIds = manager.getAppWidgetIds(
+            ComponentName(this, PingShengLightWidgetProvider::class.java)
+        )
+        PingShengWidgetProvider.updateWidgets(this, manager, darkIds)
+        PingShengLightWidgetProvider.updateWidgets(this, manager, lightIds)
     }
 
     companion object {
@@ -633,7 +672,10 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         private const val APP_PREFERENCES_CHANNEL = "pingsheng_life/app_preferences"
         private const val AUTH_PREFS_NAME = "pingsheng_auth"
         private const val AUTH_SECURE_PREFS_NAME = "pingsheng_auth_secure"
+        private const val STEP_COUNTER_BASELINE_PREFS = "pingsheng_step_counter_baseline"
         private const val KEY_AUTH_SESSION_JSON = "auth_session_json"
+        private const val KEY_STEP_COUNTER_BASELINE_DATE = "date"
+        private const val KEY_STEP_COUNTER_BASELINE_VALUE = "value"
         private const val SENSOR_PERMISSION_REQUEST = 42
         private const val HEALTH_CONNECT_PROVIDER_PACKAGE = "com.google.android.apps.healthdata"
 

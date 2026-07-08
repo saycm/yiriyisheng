@@ -121,6 +121,7 @@ extension _AppDataStoreTables on AppDataStore {
             groups INTEGER NOT NULL
           )
         ''');
+        await _createFoodLogTable(db);
         await _createWorkoutTrainingTables(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
@@ -147,8 +148,25 @@ extension _AppDataStoreTables on AppDataStore {
           await _addColumnIfMissing(db, 'finance_records', 'account TEXT');
           await _addColumnIfMissing(db, 'finance_records', 'tagsJson TEXT');
         }
+        if (oldVersion < 6) {
+          await _createFoodLogTable(db);
+        }
       },
     );
+  }
+
+  Future<void> _createFoodLogTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS food_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        position INTEGER NOT NULL,
+        foodJson TEXT NOT NULL,
+        meal TEXT NOT NULL,
+        servings REAL NOT NULL,
+        note TEXT NOT NULL,
+        recordedAt TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> _createWorkoutTrainingTables(DatabaseExecutor db) async {
@@ -220,6 +238,20 @@ extension _AppDataStoreTables on AppDataStore {
       return 0;
     }
     return int.tryParse(rows.first['value'] as String? ?? '') ?? 0;
+  }
+
+  Future<DateTime?> _readDateMeta(Database db, String key) async {
+    final rows = await db.query(
+      'app_meta',
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: [key],
+      limit: 1,
+    );
+    if (rows.isEmpty) {
+      return null;
+    }
+    return dateFromJson(rows.first['value'] as String?);
   }
 
   Future<String> _readStringMeta(

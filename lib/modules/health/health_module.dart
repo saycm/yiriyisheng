@@ -34,6 +34,7 @@ class HealthDay {
   final String statusMessage;
 
   String get title => '${date.month}月$day日⌄';
+  String get monthDayLabel => '${date.month}月$day日';
 }
 
 class HealthModulePage extends StatefulWidget {
@@ -126,7 +127,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
       if (!mounted) {
         return;
       }
-      // 小组件“健康详情”直达健康总览弹层，显示饮食和锻炼联动后的完整数据。
+      // 小组件“状态详情”直达状态总览弹层，显示饮食和锻炼联动后的完整数据。
       _openSummarySheet();
       widget.onQuickActionHandled();
     });
@@ -168,87 +169,101 @@ class _HealthModulePageState extends State<HealthModulePage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _HealthHeader(
-              onOpenModules: widget.onOpenModules,
-              onOpenSummary: _openSummarySheet,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: widget.moduleNav,
-            ),
-            Expanded(
-              child: ListView(
-                key: const ValueKey('health_main_list'),
-                padding: const EdgeInsets.fromLTRB(
-                  18,
-                  16,
-                  18,
-                  moduleSwitchBarReservedHeight + 24,
-                ),
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _HealthDateStrip(
-                        days: days,
-                        selectedDay: selectedDay,
-                        onSelect: (day) {
-                          setState(() => _selectedIndex = days.indexOf(day));
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _HealthStatusScoreCard(
-                        result: _statusResult,
-                        onRecord: _openManualRecordSheet,
-                      ),
-                      const SizedBox(height: 14),
-                      _HealthQuickRecordCard(
-                        sleep: _sleepFeeling,
-                        energy: _energyFeeling,
-                        stress: _stressFeeling,
-                        body: _bodyFeeling,
-                        mood: _moodFeeling,
-                        onSleepChanged: _updateSleepFeeling,
-                        onEnergyChanged: _updateEnergyFeeling,
-                        onStressChanged: _updateStressFeeling,
-                        onBodyChanged: _updateBodyFeeling,
-                        onMoodChanged: _updateMoodFeeling,
-                      ),
-                      const SizedBox(height: 14),
-                      _HealthImpactCard(impacts: _statusResult.impacts),
-                      const SizedBox(height: 14),
-                      _HealthStatusSuggestionCard(
-                        suggestions: _statusResult.suggestions,
-                      ),
-                      const SizedBox(height: 14),
-                      _HealthStatusTrendCard(result: _statusResult),
-                      const SizedBox(height: 14),
-                      _HealthExternalSourceEntry(
-                        snapshot: _systemHealth,
-                        loading: _loadingHealth,
-                        onTap: _openExternalSourceSheet,
-                      ),
-                    ],
-                  ),
-                ],
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _HealthHeader(
+                onOpenModules: widget.onOpenModules,
+                onOpenSummary: _openSummarySheet,
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: widget.moduleNav,
+              ),
+              Expanded(
+                child: ListView(
+                  key: const ValueKey('health_main_list'),
+                  padding: const EdgeInsets.fromLTRB(
+                    18,
+                    16,
+                    18,
+                    moduleSwitchBarReservedHeight + 24,
+                  ),
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _HealthDateStrip(
+                          days: days,
+                          selectedDay: selectedDay,
+                          onSelect: _openDaySummarySheet,
+                        ),
+                        const SizedBox(height: 16),
+                        _HealthStatusScoreCard(
+                          result: _statusResult,
+                          onRecord: _openManualRecordSheet,
+                        ),
+                        const SizedBox(height: 14),
+                        _HealthQuickRecordCard(
+                          sleep: _sleepFeeling,
+                          energy: _energyFeeling,
+                          stress: _stressFeeling,
+                          body: _bodyFeeling,
+                          mood: _moodFeeling,
+                          onSleepChanged: _updateSleepFeeling,
+                          onEnergyChanged: _updateEnergyFeeling,
+                          onStressChanged: _updateStressFeeling,
+                          onBodyChanged: _updateBodyFeeling,
+                          onMoodChanged: _updateMoodFeeling,
+                        ),
+                        const SizedBox(height: 14),
+                        _HealthImpactCard(impacts: _statusResult.impacts),
+                        const SizedBox(height: 14),
+                        _HealthStatusSuggestionCard(
+                          suggestions: _statusResult.suggestions,
+                        ),
+                        const SizedBox(height: 14),
+                        _HealthStatusTrendCard(result: _statusResult),
+                        const SizedBox(height: 14),
+                        _HealthExternalSourceEntry(
+                          snapshot: _systemHealth,
+                          loading: _loadingHealth,
+                          onTap: _openExternalSourceSheet,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   void _openSummarySheet() {
+    _openDaySummarySheet(
+      _selectedDay,
+      title: '状态总览',
+      helperText: null,
+    );
+  }
+
+  void _openDaySummarySheet(
+    HealthDay day, {
+    String? title,
+    String? helperText = '查看当天摘要，不会修改今日状态记录。',
+  }) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _HealthSummarySheet(
-        day: _selectedDay,
+        day: day,
+        title: title,
+        helperText: helperText,
         foodCalories: widget.foodCalories,
         workoutGroups: widget.workoutGroups,
         bodyTag: _bodyTag,
@@ -536,64 +551,72 @@ class _HealthDateStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: days.map((day) {
-            final selected = day.day == selectedDay.day;
-            return Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => onSelect(day),
-                child: SizedBox(
-                  width: 38,
-                  child: Column(
-                    children: [
-                      Text(
-                        day.week,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: selected ? AppColors.primary : AppColors.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 7),
-                      SizedBox(
-                        width: 35,
-                        height: 35,
-                        child: CustomPaint(
-                          painter: _MiniRingsPainter(
-                            selected: selected,
-                            progress: day.ringProgress,
+    return KeyedSubtree(
+      key: const ValueKey('health_date_strip'),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.82),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: days.map((day) {
+              final selected = day.day == selectedDay.day;
+              return Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Semantics(
+                  button: true,
+                  label: '查看${day.monthDayLabel}状态摘要',
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => onSelect(day),
+                    child: SizedBox(
+                      width: 42,
+                      child: Column(
+                        children: [
+                          Text(
+                            day.week,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: selected
+                                  ? AppColors.primary
+                                  : AppColors.muted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
-                          child: Center(
-                            child: Text(
-                              day.day,
-                              style: TextStyle(
-                                color:
-                                    selected ? AppColors.ink : AppColors.muted,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
+                          const SizedBox(height: 7),
+                          SizedBox(
+                            width: 35,
+                            height: 35,
+                            child: CustomPaint(
+                              painter: _MiniRingsPainter(
+                                selected: selected,
+                                progress: day.ringProgress,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  day.day,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? AppColors.ink
+                                        : AppColors.muted,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       ),
     );

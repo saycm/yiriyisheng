@@ -13,13 +13,10 @@ class _FinanceBudgetInsightCard extends StatelessWidget {
     final fixedCosts = _fixedCostRecords(records);
     final alerts = _budgetAlerts(categories);
 
-    return Container(
+    return GlassSurface(
+      borderRadius: 16,
+      color: AppColors.surface.withValues(alpha: 0.80),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.line),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

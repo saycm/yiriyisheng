@@ -27,91 +27,90 @@ class _ForceUpdatePage extends StatelessWidget {
     final downloadUrl = info?.downloadUrl ?? '';
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const AppIconMark(size: 64),
-                  const SizedBox(height: 24),
-                  const Text(
-                    '需要更新后继续使用',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const AppIconMark(size: 64),
+                    const SizedBox(height: 24),
+                    const Text(
+                      '需要更新后继续使用',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    info?.message?.isNotEmpty == true
-                        ? info!.message!
-                        : '当前版本已低于服务端最低支持版本。',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: AppColors.muted, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 22),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.line),
+                    const SizedBox(height: 12),
+                    Text(
+                      info?.message?.isNotEmpty == true
+                          ? info!.message!
+                          : '当前版本已低于服务端最低支持版本。',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: AppColors.muted, fontWeight: FontWeight.w700),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _UpdateLine(
-                            label: '当前版本',
-                            value: '$appVersionName ($appVersionCode)'),
-                        const SizedBox(height: 10),
-                        _UpdateLine(
-                          label: '最新版本',
-                          value:
-                              '${info?.latestVersionName ?? '-'} (${info?.latestVersionCode ?? '-'})',
-                        ),
-                        if (info?.releaseNotes.isNotEmpty == true) ...[
-                          const SizedBox(height: 12),
-                          ...info!.releaseNotes.map(
-                            (note) => Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Text(
-                                '• $note',
-                                style: const TextStyle(
-                                  color: AppColors.ink,
-                                  fontWeight: FontWeight.w700,
+                    const SizedBox(height: 22),
+                    GlassSurface(
+                      borderRadius: 14,
+                      color: AppColors.surface.withValues(alpha: 0.86),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _UpdateLine(
+                              label: '当前版本',
+                              value: '$appVersionName ($appVersionCode)'),
+                          const SizedBox(height: 10),
+                          _UpdateLine(
+                            label: '最新版本',
+                            value:
+                                '${info?.latestVersionName ?? '-'} (${info?.latestVersionCode ?? '-'})',
+                          ),
+                          if (info?.releaseNotes.isNotEmpty == true) ...[
+                            const SizedBox(height: 12),
+                            ...info!.releaseNotes.map(
+                              (note) => Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  '• $note',
+                                  style: const TextStyle(
+                                    color: AppColors.ink,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
-                      ],
-                    ),
-                  ),
-                  if (downloadUrl.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: () => unawaited(
-                        _openDownload(context, downloadUrl),
-                      ),
-                      icon: const Icon(Icons.open_in_browser_rounded),
-                      label: const Text('立即更新'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        fixedSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
+                    if (downloadUrl.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: () => unawaited(
+                          _openDownload(context, downloadUrl),
+                        ),
+                        icon: const Icon(Icons.open_in_browser_rounded),
+                        label: const Text('立即更新'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          fixedSize: const Size.fromHeight(52),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -150,106 +149,105 @@ class _OptionalUpdatePage extends StatelessWidget {
     final downloadUrl = info?.downloadUrl ?? '';
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const AppIconMark(size: 64),
-                  const SizedBox(height: 24),
-                  const Text(
-                    '发现新版本',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
+      body: LiquidModuleBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const AppIconMark(size: 64),
+                    const SizedBox(height: 24),
+                    const Text(
+                      '发现新版本',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    info?.message?.isNotEmpty == true
-                        ? info!.message!
-                        : '有新版本可用，建议更新后获得最新体验。',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontWeight: FontWeight.w700,
+                    const SizedBox(height: 12),
+                    Text(
+                      info?.message?.isNotEmpty == true
+                          ? info!.message!
+                          : '有新版本可用，建议更新后获得最新体验。',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 22),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.line),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _UpdateLine(
-                          label: '当前版本',
-                          value: '$appVersionName ($appVersionCode)',
-                        ),
-                        const SizedBox(height: 10),
-                        _UpdateLine(
-                          label: '最新版本',
-                          value:
-                              '${info?.latestVersionName ?? '-'} (${info?.latestVersionCode ?? '-'})',
-                        ),
-                        if (info?.releaseNotes.isNotEmpty == true) ...[
-                          const SizedBox(height: 12),
-                          ...info!.releaseNotes.map(
-                            (note) => Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Text(
-                                '• $note',
-                                style: const TextStyle(
-                                  color: AppColors.ink,
-                                  fontWeight: FontWeight.w700,
+                    const SizedBox(height: 22),
+                    GlassSurface(
+                      borderRadius: 14,
+                      color: AppColors.surface.withValues(alpha: 0.86),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _UpdateLine(
+                            label: '当前版本',
+                            value: '$appVersionName ($appVersionCode)',
+                          ),
+                          const SizedBox(height: 10),
+                          _UpdateLine(
+                            label: '最新版本',
+                            value:
+                                '${info?.latestVersionName ?? '-'} (${info?.latestVersionCode ?? '-'})',
+                          ),
+                          if (info?.releaseNotes.isNotEmpty == true) ...[
+                            const SizedBox(height: 12),
+                            ...info!.releaseNotes.map(
+                              (note) => Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  '• $note',
+                                  style: const TextStyle(
+                                    color: AppColors.ink,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (downloadUrl.isNotEmpty)
-                    FilledButton.icon(
-                      onPressed: () => unawaited(
-                        _openDownload(context, downloadUrl),
                       ),
-                      icon: const Icon(Icons.open_in_browser_rounded),
-                      label: const Text('立即更新'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        fixedSize: const Size.fromHeight(52),
+                    ),
+                    const SizedBox(height: 16),
+                    if (downloadUrl.isNotEmpty)
+                      FilledButton.icon(
+                        onPressed: () => unawaited(
+                          _openDownload(context, downloadUrl),
+                        ),
+                        icon: const Icon(Icons.open_in_browser_rounded),
+                        label: const Text('立即更新'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          fixedSize: const Size.fromHeight(52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 10),
+                    OutlinedButton(
+                      onPressed: onSkip,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        fixedSize: const Size.fromHeight(48),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
+                      child: const Text('稍后再说'),
                     ),
-                  const SizedBox(height: 10),
-                  OutlinedButton(
-                    onPressed: onSkip,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      fixedSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('稍后再说'),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

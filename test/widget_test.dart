@@ -249,7 +249,7 @@ void main() {
       (0, 'finance', '财务'),
       (2, 'food', '饮食'),
       (3, 'workout', '锻炼'),
-      (4, 'health', '健康'),
+      (4, 'health', '状态'),
     ];
 
     for (final module in modules) {
@@ -272,6 +272,82 @@ void main() {
     expect(
         find.byKey(const ValueKey('plan_glass_date_picker')), findsOneWidget);
     expect(find.byType(CalendarDatePicker), findsOneWidget);
+  });
+
+  testWidgets('liquid backdrop keeps original module structure',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+    await pumpPingShengApp(tester);
+    await tester.pumpAndSettle();
+
+    expect(
+        find.byKey(const ValueKey('module_liquid_backdrop')), findsOneWidget);
+    expect(find.byKey(const ValueKey('module_glass_header')), findsOneWidget);
+    expect(find.byKey(const ValueKey('module_link_glass_container')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('plan_bottom_nav_container')),
+        findsOneWidget);
+
+    final innerNavFrame =
+        find.byKey(const ValueKey('plan_bottom_nav_container'));
+    expect(tester.getTopLeft(innerNavFrame).dy, greaterThanOrEqualTo(720));
+    expect(tester.getSize(innerNavFrame).height, lessThanOrEqualTo(42));
+  });
+
+  testWidgets('core module summary cards use liquid glass surfaces',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+    await pumpPingShengApp(tester);
+    await tester.pumpAndSettle();
+
+    _expectGlassWrapped(const ValueKey('today_overview_card'));
+    await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
+    await tester.pumpAndSettle();
+    _expectGlassWrapped(const ValueKey('week_plan_day_board'));
+
+    await tester.tap(find.byKey(const ValueKey('module_link_0')));
+    await tester.pumpAndSettle();
+    _expectGlassWrapped(const ValueKey('finance_workspace_card'));
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('finance_health_card')),
+      scrollable: find.byType(Scrollable).last,
+    );
+    _expectGlassWrapped(const ValueKey('finance_health_card'));
+
+    await tester.tap(find.byKey(const ValueKey('module_link_2')));
+    await tester.pumpAndSettle();
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('food_calorie_progress_card')),
+      scrollable: find.byKey(const ValueKey('food_main_list')),
+    );
+    _expectGlassWrapped(const ValueKey('food_calorie_progress_card'));
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('food_trend_block')),
+      scrollable: find.byKey(const ValueKey('food_main_list')),
+    );
+    _expectGlassWrapped(const ValueKey('food_trend_block'));
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+    _expectGlassWrapped(const ValueKey('workout_summary_card'));
+    _expectGlassWrapped(const ValueKey('workout_today_stats_card'));
+
+    await tester.tap(find.byKey(const ValueKey('module_link_4')));
+    await tester.pumpAndSettle();
+    _expectGlassWrapped(const ValueKey('health_status_score_card'));
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('health_status_trend_card')),
+      scrollable: find.byKey(const ValueKey('health_main_list')),
+    );
+    _expectGlassWrapped(const ValueKey('health_status_trend_card'));
   });
 
   testWidgets('finance and workout bottom navs use compact capsules',
@@ -321,7 +397,7 @@ void main() {
 
     expect(find.text('先记录，再联动，最后复盘'), findsOneWidget);
     expect(find.text('第一次打开应该从哪里开始？'), findsOneWidget);
-    expect(find.textContaining('财务、计划、饮食、锻炼、健康'), findsOneWidget);
+    expect(find.textContaining('财务、计划、饮食、锻炼、状态'), findsOneWidget);
     expect(find.text('桌面小组件能做什么？'), findsOneWidget);
     expect(find.textContaining('Health Connect'), findsOneWidget);
   });
@@ -407,10 +483,14 @@ void main() {
         .setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
       if (call.method == 'loadLifeSummary') {
+        final todayIso = DateTime.now().toIso8601String();
         return {
           'foodCalories': 168,
+          'foodLogsJson':
+              '[{"food":{"emoji":"🍱","name":"旧记录","calorie":168,"unit":"1份","group":"自定义"},"meal":"午餐","servings":1,"note":"","recordedAt":"$todayIso"}]',
           'workoutGroups': 2,
           'workoutGroupsJson': '{"蝴蝶机夹胸":2}',
+          'workoutProgressDate': todayIso,
           'todosJson':
               '[{"title":"写周报","category":"工作","done":false},{"title":"复盘","category":"生活","done":true}]',
         };
@@ -448,7 +528,7 @@ void main() {
     expect(
         find.descendant(
           of: healthSummarySheet,
-          matching: find.text('健康总览'),
+          matching: find.text('状态总览'),
         ),
         findsOneWidget);
     expect(
@@ -514,7 +594,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
     await tester.pumpAndSettle();
-    expect(find.text('健康总览'), findsOneWidget);
+    expect(find.text('状态总览'), findsOneWidget);
     expect(find.text('饮食摄入'), findsOneWidget);
     expect(find.text('80 kcal'), findsOneWidget);
 
@@ -549,7 +629,7 @@ void main() {
     expect(
         find.descendant(
           of: healthSummarySheet,
-          matching: find.text('健康总览'),
+          matching: find.text('状态总览'),
         ),
         findsOneWidget);
     expect(
@@ -603,4 +683,23 @@ void main() {
     expect(find.text('80 kcal'), findsWidgets);
     expect(find.text('锻炼 1 组'), findsOneWidget);
   });
+}
+
+void _expectGlassWrapped(ValueKey<String> key) {
+  final target = find.byKey(key);
+  expect(target, findsOneWidget);
+
+  final hasGlassAsAncestor = find
+      .ancestor(of: target, matching: find.byType(BackdropFilter))
+      .evaluate()
+      .isNotEmpty;
+  final hasGlassAsDescendant = find
+      .descendant(of: target, matching: find.byType(BackdropFilter))
+      .evaluate()
+      .isNotEmpty;
+  expect(
+    hasGlassAsAncestor || hasGlassAsDescendant,
+    isTrue,
+    reason: '${key.value} should be wrapped in a liquid glass surface',
+  );
 }

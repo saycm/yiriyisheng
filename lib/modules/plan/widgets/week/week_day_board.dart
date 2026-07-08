@@ -17,39 +17,42 @@ class _WeekDayBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return KeyedSubtree(
       key: const ValueKey('week_plan_day_board'),
-      padding: const EdgeInsets.all(14),
-      decoration: _weekCardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const ModuleSectionTitle(
-            icon: Icons.view_week_rounded,
-            title: '7 天任务板',
-          ),
-          const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: days.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 1.48,
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.82),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const ModuleSectionTitle(
+              icon: Icons.view_week_rounded,
+              title: '7 天任务板',
             ),
-            itemBuilder: (context, index) {
-              final day = days[index];
-              return _WeekDayCard(
-                date: day,
-                todos: _dayTodos(day, todos),
-                selected: DateUtils.isSameDay(day, selectedDate),
-                onTap: () => onSelectDate(day),
-              );
-            },
-          ),
-        ],
+            const SizedBox(height: 12),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: days.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 1.48,
+              ),
+              itemBuilder: (context, index) {
+                final day = days[index];
+                return _WeekDayCard(
+                  date: day,
+                  todos: _dayTodos(day, todos),
+                  selected: DateUtils.isSameDay(day, selectedDate),
+                  onTap: () => onSelectDate(day),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -175,8 +178,9 @@ List<TodoItem> _dayTodos(DateTime day, List<TodoItem> todos) {
 
 BoxDecoration _weekCardDecoration() {
   return BoxDecoration(
-    color: AppColors.surface,
+    color: AppColors.surface.withValues(alpha: 0.88),
     borderRadius: BorderRadius.circular(8),
-    border: Border.all(color: AppColors.line),
+    border: Border.all(color: Colors.white.withValues(alpha: 0.68)),
+    boxShadow: [airyShadow(AppColors.primary)],
   );
 }

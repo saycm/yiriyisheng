@@ -122,6 +122,67 @@ AI 已识别：
     expect(bills.single.category, '三餐');
   });
 
+  test('ai finance client sends multiple bill images in one vision request',
+      () async {
+    Map<String, dynamic>? capturedPayload;
+    final client = AiFinanceClient(
+      transport: ({
+        required apiKey,
+        required payload,
+        required uri,
+      }) async {
+        capturedPayload = payload;
+        return '''
+{
+  "choices": [
+    {
+      "message": {
+        "content": "[{\\"amount\\":-18,\\"note\\":\\"午饭\\",\\"category\\":\\"三餐\\",\\"type\\":\\"expense\\"}]"
+      }
+    }
+  ]
+}
+''';
+      },
+    );
+
+    final bills = await client.parseImages(
+      images: [
+        AiFinanceImageInput(
+          bytes: Uint8List.fromList([1, 2, 3]),
+          mimeType: 'image/jpeg',
+        ),
+        AiFinanceImageInput(
+          bytes: Uint8List.fromList([4, 5, 6]),
+          mimeType: 'image/png',
+        ),
+      ],
+      apiKey: 'glm-key',
+      endpoint: '',
+      model: '',
+    );
+
+    final messages = capturedPayload?['messages'] as List<Object?>;
+    final userMessage = messages.last as Map<String, Object?>;
+    final content = userMessage['content'] as List<Object?>;
+    final imageParts = content
+        .whereType<Map<String, Object?>>()
+        .where((part) => part['type'] == 'image_url')
+        .toList();
+
+    expect(capturedPayload?['model'], 'glm-4.6v');
+    expect(imageParts, hasLength(2));
+    expect(
+      imageParts.first['image_url'],
+      {'url': 'data:image/jpeg;base64,AQID'},
+    );
+    expect(
+      imageParts.last['image_url'],
+      {'url': 'data:image/png;base64,BAUG'},
+    );
+    expect(bills.single.amount, -18);
+  });
+
   testWidgets('ai finance parse strategy can be edited from settings',
       (tester) async {
     final store = _MemoryLifeSummaryStore();
@@ -373,6 +434,35 @@ AI 已识别：
     );
   });
 
+  testWidgets('finance record sheet keeps keyboard close to bottom',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    tester.view.viewInsets = FakeViewPadding.zero;
+    addTearDown(() async {
+      tester.view.resetViewInsets();
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    await pumpPingShengApp(tester);
+
+    await tester.tap(find.byKey(const ValueKey('module_link_0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('finance_bottom_nav_1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('记一笔').first);
+    await tester.pumpAndSettle();
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+    await tester.pumpAndSettle();
+
+    final shellRect = tester
+        .getRect(find.byKey(const ValueKey('finance_record_sheet_shell')));
+    final saveButtonRect =
+        tester.getRect(find.byKey(const ValueKey('save_finance_record')));
+
+    expect(shellRect.bottom - saveButtonRect.bottom, lessThan(96));
+  });
+
   testWidgets('finance date picker uses white dialog background',
       (tester) async {
     await pumpPingShengApp(tester);
@@ -576,16 +666,18 @@ AI 已识别：
     );
   });
 
-  testWidgets('finance ai scales selected bill images before upload',
+  testWidgets('finance ai selects multiple bill images before upload',
       (tester) async {
     const channel = MethodChannel('plugins.flutter.io/image_picker');
     Map<dynamic, dynamic>? capturedArgs;
+    String? capturedMethod;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      if (call.method == 'pickImage') {
+      if (call.method == 'pickMultiImage') {
+        capturedMethod = call.method;
         capturedArgs = call.arguments as Map<dynamic, dynamic>;
       }
-      return null;
+      return <String>[];
     });
     addTearDown(
       () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -619,6 +711,7 @@ AI 已识别：
     await tester.tap(find.byKey(const ValueKey('ai_finance_pick_image')));
     await tester.pumpAndSettle();
 
+    expect(capturedMethod, 'pickMultiImage');
     expect(capturedArgs?['maxWidth'], 1600.0);
     expect(capturedArgs?['maxHeight'], 1600.0);
     expect(capturedArgs?['imageQuality'], 80);
@@ -921,7 +1014,9 @@ class _MemoryLifeSummaryStore implements LifeSummaryStore {
   @override
   Future<void> save({
     required int foodCalories,
+    required List<FoodLogEntry> foodLogs,
     required Map<String, int> workoutGroupsByAction,
+    required DateTime? workoutProgressDate,
     required List<TodoItem> todos,
     required List<FinanceRecord> financeRecords,
     required List<WorkoutPlan> workoutPlans,

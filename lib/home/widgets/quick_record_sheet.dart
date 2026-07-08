@@ -49,7 +49,7 @@ class _QuickRecordSheet extends StatelessWidget {
             key: const ValueKey('quick_record_health'),
             icon: Icons.favorite_rounded,
             color: const Color(0xFFFF6F9D),
-            title: '看健康',
+            title: '看状态',
             subtitle: '打开身体状态仪表盘',
             onTap: () => onSelect(WidgetQuickAction.openHealth),
           ),

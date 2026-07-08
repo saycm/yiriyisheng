@@ -96,6 +96,25 @@ class _LifeHomePageState extends State<LifeHomePage> {
     setState(mutation);
   }
 
+  int todayFoodCaloriesFromState(DateTime today) {
+    return todayFoodCalories(_foodState.logs, today);
+  }
+
+  Map<String, int> todayWorkoutGroupsByActionFromState(DateTime today) {
+    return isSameLocalDay(_workoutState.progressDate, today)
+        ? _workoutState.groupsByAction
+        : const <String, int>{};
+  }
+
+  int todayWorkoutGroupsFromState(DateTime today) {
+    return todayWorkoutGroups(
+      history: _workoutState.history,
+      activeSession: _workoutState.activeSession,
+      progressGroupsByAction: todayWorkoutGroupsByActionFromState(today),
+      today: today,
+    );
+  }
+
   @override
   void dispose() {
     _widgetStore.clearQuickActionHandler();
@@ -104,21 +123,25 @@ class _LifeHomePageState extends State<LifeHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final today = DateTime.now();
+    final todayFoodCalories = todayFoodCaloriesFromState(today);
+    final todayWorkoutGroups = todayWorkoutGroupsFromState(today);
     final page = _buildLifeHomeModulePage(
       module: _module,
       onSwitchModule: _setModule,
       onOpenModules: _openModuleSheet,
       onOpenQuickRecord: _openQuickRecordSheet,
-      foodCalories: _foodState.calories,
-      workoutGroups: _workoutState.finishedGroups,
-      workoutGroupsByAction: _workoutState.groupsByAction,
+      foodCalories: todayFoodCalories,
+      foodLogs: _foodState.logs,
+      workoutGroups: todayWorkoutGroups,
+      workoutGroupsByAction: todayWorkoutGroupsByActionFromState(today),
       workoutPlans: _workoutState.plans,
       activeWorkoutSession: _workoutState.activeSession,
       workoutHistory: _workoutState.history,
       todos: _planState.todos,
       events: _planState.events,
       financeRecords: _financeState.records,
-      todayExpense: _financeState.todayExpense,
+      todayExpense: todayFinanceTotal(_financeState.records, '支出', today),
       aiFinanceEndpoint: _financeState.aiEndpoint,
       aiFinanceModel: _financeState.aiModel,
       aiFinanceApiKey: _financeState.aiApiKey,
@@ -127,7 +150,7 @@ class _LifeHomePageState extends State<LifeHomePage> {
       onAddFinanceRecord: _addFinanceRecord,
       onEditFinanceRecord: _editFinanceRecord,
       onUpdateAiFinanceConfig: _updateAiFinanceConfig,
-      onRecordFoodCalories: _recordFoodCalories,
+      onRecordFoodLogs: _recordFoodLogs,
       onUpdateWorkoutGroups: _updateWorkoutGroups,
       onUpdateWorkoutPlan: _updateWorkoutPlan,
       onStartWorkoutSession: _startWorkoutSession,
