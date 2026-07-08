@@ -286,4 +286,26 @@ func TestDownloadAPK(t *testing.T) {
 	if res.StatusCode != http.StatusOK || string(raw) != "apk" {
 		t.Fatalf("download status = %d body = %q", res.StatusCode, raw)
 	}
+
+	head, err := app.server.Client().Head(app.server.URL + "/downloads/pingsheng-test.apk")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer head.Body.Close()
+	raw, err = io.ReadAll(head.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if head.StatusCode != http.StatusOK {
+		t.Fatalf("head download status = %d", head.StatusCode)
+	}
+	if head.Header.Get("Content-Type") != "application/vnd.android.package-archive" {
+		t.Fatalf("head download content type = %q", head.Header.Get("Content-Type"))
+	}
+	if head.ContentLength != 3 {
+		t.Fatalf("head download content length = %d", head.ContentLength)
+	}
+	if len(raw) != 0 {
+		t.Fatalf("head download body = %q", raw)
+	}
 }

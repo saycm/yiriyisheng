@@ -207,7 +207,7 @@ func routeAPI(w http.ResponseWriter, r *http.Request) error {
 		return checkUpdate(w, r)
 	case r.Method == http.MethodPut && path == "/v1/admin/update-policy":
 		return updatePolicyHandler(w, r)
-	case r.Method == http.MethodGet && strings.HasPrefix(path, "/downloads/"):
+	case (r.Method == http.MethodGet || r.Method == http.MethodHead) && strings.HasPrefix(path, "/downloads/"):
 		return serveDownload(w, r)
 	default:
 		return apiError{Status: http.StatusNotFound, Code: "not_found", Message: "Route not found."}
