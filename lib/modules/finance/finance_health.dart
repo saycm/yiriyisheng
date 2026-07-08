@@ -491,13 +491,10 @@ class _FinanceHealthDetail extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
+        GlassSurface(
+          borderRadius: 16,
+          color: AppColors.surface.withValues(alpha: 0.80),
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.line),
-          ),
           child: Row(
             children: [
               Container(
@@ -559,69 +556,68 @@ class _FinanceHealthDetailMetric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _healthColor(metric.score / metric.maxScore * 100);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  metric.title,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 14,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    metric.title,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${metric.score}/${metric.maxScore}',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 13,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                minHeight: 7,
+                value: metric.progress.clamp(0.0, 1.0),
+                backgroundColor: AppColors.background,
+                color: color,
               ),
-              Text(
-                '${metric.score}/${metric.maxScore}',
-                style: TextStyle(
-                  color: color,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              metric.detail,
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
               ),
-            ],
-          ),
-          const SizedBox(height: 9),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              minHeight: 7,
-              value: metric.progress.clamp(0.0, 1.0),
-              backgroundColor: AppColors.background,
-              color: color,
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            metric.detail,
-            style: const TextStyle(
-              color: AppColors.ink,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
+            const SizedBox(height: 4),
+            Text(
+              metric.advice,
+              style: const TextStyle(
+                color: AppColors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            metric.advice,
-            style: const TextStyle(
-              color: AppColors.muted,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              height: 1.35,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -178,78 +178,77 @@ class _HealthQuickRecordCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 快速记录用枚举值驱动，修改后父级立即重算 HealthStatusResult。
-    return Container(
+    return KeyedSubtree(
       key: const ValueKey('health_quick_record_card'),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.fact_check_rounded,
-                  color: AppColors.primary, size: 21),
-              SizedBox(width: 8),
-              Text(
-                '快速记录',
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.82),
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.fact_check_rounded,
+                    color: AppColors.primary, size: 21),
+                SizedBox(width: 8),
+                Text(
+                  '快速记录',
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _HealthChoiceRow<HealthSleepFeeling>(
-            label: '睡眠',
-            selected: sleep,
-            values: HealthSleepFeeling.values,
-            keyPrefix: 'health_quick_sleep',
-            labelFor: _sleepLabel,
-            onChanged: onSleepChanged,
-          ),
-          const SizedBox(height: 4),
-          _HealthChoiceRow<HealthEnergyFeeling>(
-            label: '精力',
-            selected: energy,
-            values: HealthEnergyFeeling.values,
-            keyPrefix: 'health_quick_energy',
-            labelFor: _energyLabel,
-            onChanged: onEnergyChanged,
-          ),
-          const SizedBox(height: 4),
-          _HealthChoiceRow<HealthStressFeeling>(
-            label: '压力',
-            selected: stress,
-            values: HealthStressFeeling.values,
-            keyPrefix: 'health_quick_stress',
-            labelFor: _stressLabel,
-            onChanged: onStressChanged,
-          ),
-          const SizedBox(height: 4),
-          _HealthChoiceRow<HealthBodyFeeling>(
-            label: '身体',
-            selected: body,
-            values: HealthBodyFeeling.values,
-            keyPrefix: 'health_quick_body',
-            labelFor: _bodyLabel,
-            onChanged: onBodyChanged,
-          ),
-          const SizedBox(height: 4),
-          _HealthChoiceRow<HealthMoodFeeling>(
-            label: '心情',
-            selected: mood,
-            values: HealthMoodFeeling.values,
-            keyPrefix: 'health_quick_mood',
-            labelFor: _moodLabel,
-            onChanged: onMoodChanged,
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            _HealthChoiceRow<HealthSleepFeeling>(
+              label: '睡眠',
+              selected: sleep,
+              values: HealthSleepFeeling.values,
+              keyPrefix: 'health_quick_sleep',
+              labelFor: _sleepLabel,
+              onChanged: onSleepChanged,
+            ),
+            const SizedBox(height: 4),
+            _HealthChoiceRow<HealthEnergyFeeling>(
+              label: '精力',
+              selected: energy,
+              values: HealthEnergyFeeling.values,
+              keyPrefix: 'health_quick_energy',
+              labelFor: _energyLabel,
+              onChanged: onEnergyChanged,
+            ),
+            const SizedBox(height: 4),
+            _HealthChoiceRow<HealthStressFeeling>(
+              label: '压力',
+              selected: stress,
+              values: HealthStressFeeling.values,
+              keyPrefix: 'health_quick_stress',
+              labelFor: _stressLabel,
+              onChanged: onStressChanged,
+            ),
+            const SizedBox(height: 4),
+            _HealthChoiceRow<HealthBodyFeeling>(
+              label: '身体',
+              selected: body,
+              values: HealthBodyFeeling.values,
+              keyPrefix: 'health_quick_body',
+              labelFor: _bodyLabel,
+              onChanged: onBodyChanged,
+            ),
+            const SizedBox(height: 4),
+            _HealthChoiceRow<HealthMoodFeeling>(
+              label: '心情',
+              selected: mood,
+              values: HealthMoodFeeling.values,
+              keyPrefix: 'health_quick_mood',
+              labelFor: _moodLabel,
+              onChanged: onMoodChanged,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -365,33 +364,32 @@ class _HealthImpactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return KeyedSubtree(
       key: const ValueKey('health_impact_card'),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '影响因素',
-            style: TextStyle(
-              color: AppColors.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.82),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '影响因素',
+              style: TextStyle(
+                color: AppColors.ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          ...impacts.map(
-            (impact) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _HealthImpactRow(impact: impact),
+            const SizedBox(height: 12),
+            ...impacts.map(
+              (impact) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _HealthImpactRow(impact: impact),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -477,54 +475,53 @@ class _HealthStatusSuggestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return KeyedSubtree(
       key: const ValueKey('health_status_suggestion_card'),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '状态建议',
-            style: TextStyle(
-              color: AppColors.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...suggestions.map(
-            (suggestion) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: AppColors.success,
-                    size: 17,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      suggestion,
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        height: 1.35,
-                      ),
-                    ),
-                  ),
-                ],
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.82),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '状态建议',
+              style: TextStyle(
+                color: AppColors.ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            ...suggestions.map(
+              (suggestion) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.success,
+                      size: 17,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        suggestion,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

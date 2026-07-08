@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import '../auth/auth.dart';
 import '../core/app_core.dart';
@@ -62,6 +63,11 @@ class _PingShengAppState extends State<PingShengApp> {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: '平生',
+            locale: const Locale('zh', 'CN'),
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            supportedLocales: const [
+              Locale('zh', 'CN'),
+            ],
             themeMode: _settingsController.themePreference.themeMode,
             theme: _buildLightTheme(),
             darkTheme: _buildDarkTheme(),

@@ -313,9 +313,38 @@ void main() {
         findsOneWidget);
     expect(find.text('外部数据源'), findsOneWidget);
     expect(find.text('系统健康数据已连接'), findsNothing);
+    expect(find.byKey(const ValueKey('health_date_strip')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('health_date_strip')),
+        matching: find.byType(BackdropFilter),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('health_quick_record_card')),
+        matching: find.byType(BackdropFilter),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('health_impact_card')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('health_impact_card')),
+        matching: find.byType(BackdropFilter),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('health_status_suggestion_card')),
         findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('health_status_suggestion_card')),
+        matching: find.byType(BackdropFilter),
+      ),
+      findsOneWidget,
+    );
     expect(
         find.byKey(const ValueKey('health_status_trend_card')), findsOneWidget);
     expect(find.byKey(const ValueKey('health_status_trend_chart')),
@@ -365,6 +394,45 @@ void main() {
       find.descendant(
         of: externalSheet,
         matching: find.text('系统健康数据已连接'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('health date strip opens selected day summary sheet',
+      (tester) async {
+    mockSystemHealthSnapshot();
+
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    addTearDown(
+      () => tester.binding.platformDispatcher.defaultRouteNameTestValue = '/',
+    );
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('3').first);
+    await tester.pumpAndSettle();
+
+    final sheet = find.byType(BottomSheet);
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.text('6月3日状态总览'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.text('查看当天摘要，不会修改今日状态记录。'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.text('4,300 步'),
       ),
       findsOneWidget,
     );

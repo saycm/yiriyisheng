@@ -34,6 +34,7 @@ class HealthDay {
   final String statusMessage;
 
   String get title => '${date.month}月$day日⌄';
+  String get monthDayLabel => '${date.month}月$day日';
 }
 
 class HealthModulePage extends StatefulWidget {
@@ -196,9 +197,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
                         _HealthDateStrip(
                           days: days,
                           selectedDay: selectedDay,
-                          onSelect: (day) {
-                            setState(() => _selectedIndex = days.indexOf(day));
-                          },
+                          onSelect: _openDaySummarySheet,
                         ),
                         const SizedBox(height: 16),
                         _HealthStatusScoreCard(
@@ -245,12 +244,26 @@ class _HealthModulePageState extends State<HealthModulePage> {
   }
 
   void _openSummarySheet() {
+    _openDaySummarySheet(
+      _selectedDay,
+      title: '状态总览',
+      helperText: null,
+    );
+  }
+
+  void _openDaySummarySheet(
+    HealthDay day, {
+    String? title,
+    String? helperText = '查看当天摘要，不会修改今日状态记录。',
+  }) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _HealthSummarySheet(
-        day: _selectedDay,
+        day: day,
+        title: title,
+        helperText: helperText,
         foodCalories: widget.foodCalories,
         workoutGroups: widget.workoutGroups,
         bodyTag: _bodyTag,
@@ -538,64 +551,72 @@ class _HealthDateStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: days.map((day) {
-            final selected = day.day == selectedDay.day;
-            return Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => onSelect(day),
-                child: SizedBox(
-                  width: 38,
-                  child: Column(
-                    children: [
-                      Text(
-                        day.week,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: selected ? AppColors.primary : AppColors.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 7),
-                      SizedBox(
-                        width: 35,
-                        height: 35,
-                        child: CustomPaint(
-                          painter: _MiniRingsPainter(
-                            selected: selected,
-                            progress: day.ringProgress,
+    return KeyedSubtree(
+      key: const ValueKey('health_date_strip'),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.82),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: days.map((day) {
+              final selected = day.day == selectedDay.day;
+              return Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Semantics(
+                  button: true,
+                  label: '查看${day.monthDayLabel}状态摘要',
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => onSelect(day),
+                    child: SizedBox(
+                      width: 42,
+                      child: Column(
+                        children: [
+                          Text(
+                            day.week,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: selected
+                                  ? AppColors.primary
+                                  : AppColors.muted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
-                          child: Center(
-                            child: Text(
-                              day.day,
-                              style: TextStyle(
-                                color:
-                                    selected ? AppColors.ink : AppColors.muted,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
+                          const SizedBox(height: 7),
+                          SizedBox(
+                            width: 35,
+                            height: 35,
+                            child: CustomPaint(
+                              painter: _MiniRingsPainter(
+                                selected: selected,
+                                progress: day.ringProgress,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  day.day,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? AppColors.ink
+                                        : AppColors.muted,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       ),
     );

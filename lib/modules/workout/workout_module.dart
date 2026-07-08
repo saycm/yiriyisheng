@@ -438,11 +438,6 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
               ('已练', '$_finishedGroupsTotal 组'),
             ],
           ),
-          const SizedBox(height: 12),
-          _WorkoutFoodLinkCard(
-            foodCalories: widget.foodCalories,
-            onOpenFood: () => widget.onSwitchModule(LifeModule.food),
-          ),
         ],
       ],
     );

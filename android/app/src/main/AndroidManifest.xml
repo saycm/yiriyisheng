@@ -62,18 +62,31 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
             </intent-filter>
         </activity-alias>
-        <!-- 桌面小组件入口：放在手机桌面后，点击小组件可以回到平生主应用。 -->
+        <!-- 桌面小组件深色入口：放在手机桌面后展示今日摘要。 -->
         <receiver
             android:name=".PingShengWidgetProvider"
             android:exported="true"
-            android:label="@string/pingsheng_widget_name">
+            android:label="@string/pingsheng_widget_dark_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/pingsheng_widget_info" />
+                android:resource="@xml/pingsheng_widget_dark_info" />
+        </receiver>
+        <!-- 桌面小组件白色入口：和深色版读取同一份真实数据，仅视觉主题不同。 -->
+        <receiver
+            android:name=".PingShengLightWidgetProvider"
+            android:exported="true"
+            android:label="@string/pingsheng_widget_light_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pingsheng_widget_light_info" />
         </receiver>
         <!-- 每日记录提醒：用户开启后每天晚上提醒补计划、饮食和锻炼记录。 -->
         <receiver

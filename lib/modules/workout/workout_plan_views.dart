@@ -219,86 +219,90 @@ class _WorkoutPlanCard extends StatelessWidget {
       _WorkoutPlanIntensity.medium,
     );
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: InkWell(
-        key: ValueKey('workout_plan_${plan.id}'),
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.13),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.assignment_rounded, color: color, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            key: ValueKey('workout_plan_${plan.id}'),
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child:
+                        Icon(Icons.assignment_rounded, color: color, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            plan.name,
-                            style: const TextStyle(
-                              color: AppColors.ink,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                plan.name,
+                                style: const TextStyle(
+                                  color: AppColors.ink,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
                             ),
+                            _WorkoutPlanLoadTag(
+                                label: recommended.intensity.label),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          plan.target,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        _WorkoutPlanLoadTag(label: recommended.intensity.label),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      plan.target,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _WorkoutPlanMiniMeta(
-                          label: '${recommended.estimatedMinutes} 分钟',
-                        ),
-                        _WorkoutPlanMiniMeta(
-                          label: '${recommended.actions.length} 动作',
-                        ),
-                        _WorkoutPlanMiniMeta(
-                          label: '${recommended.totalGroups} 组',
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _WorkoutPlanMiniMeta(
+                              label: '${recommended.estimatedMinutes} 分钟',
+                            ),
+                            _WorkoutPlanMiniMeta(
+                              label: '${recommended.actions.length} 动作',
+                            ),
+                            _WorkoutPlanMiniMeta(
+                              label: '${recommended.totalGroups} 组',
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.muted,
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.muted,
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -515,138 +519,140 @@ class _WorkoutPlanDetailSheetState extends State<_WorkoutPlanDetailSheet> {
     final hasActions = variant.actions.isNotEmpty;
 
     return SafeArea(
-      child: Container(
+      child: KeyedSubtree(
         key: const ValueKey('workout_plan_detail_sheet'),
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(8),
-            bottom: Radius.circular(8),
-          ),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: GlassSurface(
+            borderRadius: 18,
+            color: AppColors.surface.withValues(alpha: 0.86),
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.13),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.assignment_rounded, color: color),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      widget.plan.name,
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _WorkoutPlanIntensitySelector(
-                selected: _intensity,
-                onChanged: (value) => setState(() => _intensity = value),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _WorkoutPlanInfoPill(label: '${variant.actions.length} 个动作'),
-                  _WorkoutPlanInfoPill(label: '${variant.totalGroups} 组'),
-                  _WorkoutPlanInfoPill(label: '${variant.estimatedMinutes} 分钟'),
-                  _WorkoutPlanInfoPill(label: widget.plan.target),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ...variant.actions.map(
-                (action) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
+                  Row(
                     children: [
-                      const Icon(Icons.fitness_center_rounded,
-                          color: color, size: 20),
-                      const SizedBox(width: 10),
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.13),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child:
+                            const Icon(Icons.assignment_rounded, color: color),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              action.name,
-                              style: const TextStyle(
-                                color: AppColors.ink,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              action.detail,
-                              style: const TextStyle(
-                                color: AppColors.muted,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          widget.plan.name,
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: OutlinedButton.icon(
-                  onPressed: widget.onEdit,
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.line),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 14),
+                  _WorkoutPlanIntensitySelector(
+                    selected: _intensity,
+                    onChanged: (value) => setState(() => _intensity = value),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _WorkoutPlanInfoPill(
+                          label: '${variant.actions.length} 个动作'),
+                      _WorkoutPlanInfoPill(label: '${variant.totalGroups} 组'),
+                      _WorkoutPlanInfoPill(
+                          label: '${variant.estimatedMinutes} 分钟'),
+                      _WorkoutPlanInfoPill(label: widget.plan.target),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ...variant.actions.map(
+                    (action) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.fitness_center_rounded,
+                              color: color, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  action.name,
+                                  style: const TextStyle(
+                                    color: AppColors.ink,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  action.detail,
+                                  style: const TextStyle(
+                                    color: AppColors.muted,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  icon: const Icon(Icons.edit_rounded, size: 18),
-                  label: const Text(
-                    '编辑计划',
-                    style: TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: FilledButton.icon(
-                  onPressed:
-                      hasActions ? () => widget.onStart(_intensity) : null,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: OutlinedButton.icon(
+                      onPressed: widget.onEdit,
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.line),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.edit_rounded, size: 18),
+                      label: const Text(
+                        '编辑计划',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
                     ),
                   ),
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text(
-                    '开始训练',
-                    style: TextStyle(fontWeight: FontWeight.w900),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton.icon(
+                      onPressed:
+                          hasActions ? () => widget.onStart(_intensity) : null,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      label: const Text(
+                        '开始训练',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -707,92 +713,94 @@ class _WorkoutPlanEditSheetState extends State<_WorkoutPlanEditSheet> {
         .toList();
 
     return SafeArea(
-      child: Container(
+      child: KeyedSubtree(
         key: const ValueKey('workout_plan_edit_sheet'),
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: GlassSurface(
+            borderRadius: 18,
+            color: AppColors.surface.withValues(alpha: 0.86),
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    _plan.name,
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _plan.name,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  '已选动作',
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      key: const ValueKey('workout_plan_selected_actions'),
+                      children: selectedActions
+                          .map(
+                            (action) => _WorkoutPlanEditRow(
+                              action: action,
+                              icon: Icons.remove_circle_outline_rounded,
+                              color: AppColors.financeRed,
+                              keyValue: 'workout_plan_remove_${action.name}',
+                              onTap: () => _removeAction(action),
+                            ),
+                          )
+                          .toList(),
                     ),
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded),
+                const SizedBox(height: 12),
+                const Text(
+                  '可添加动作',
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: availableActions
+                          .map(
+                            (action) => _WorkoutPlanEditRow(
+                              action: action,
+                              icon: Icons.add_circle_outline_rounded,
+                              color: AppColors.primary,
+                              keyValue: 'workout_plan_add_${action.name}',
+                              onTap: () => _addAction(action),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            const Text(
-              '已选动作',
-              style: TextStyle(
-                color: AppColors.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  key: const ValueKey('workout_plan_selected_actions'),
-                  children: selectedActions
-                      .map(
-                        (action) => _WorkoutPlanEditRow(
-                          action: action,
-                          icon: Icons.remove_circle_outline_rounded,
-                          color: AppColors.financeRed,
-                          keyValue: 'workout_plan_remove_${action.name}',
-                          onTap: () => _removeAction(action),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              '可添加动作',
-              style: TextStyle(
-                color: AppColors.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: availableActions
-                      .map(
-                        (action) => _WorkoutPlanEditRow(
-                          action: action,
-                          icon: Icons.add_circle_outline_rounded,
-                          color: AppColors.primary,
-                          keyValue: 'workout_plan_add_${action.name}',
-                          onTap: () => _addAction(action),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -920,13 +928,10 @@ class _WorkoutTemplateRail extends StatelessWidget {
       ),
     ];
 
-    return Container(
+    return GlassSurface(
+      borderRadius: 14,
+      color: AppColors.surface.withValues(alpha: 0.78),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

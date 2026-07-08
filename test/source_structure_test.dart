@@ -238,24 +238,37 @@ void main() {
     expect(categoryTile, contains('GlassSurface'));
   });
 
-  test('android widget stays content dense and display-only for finance totals',
+  test('android widgets stay content dense and display-only for finance totals',
       () {
-    final layout =
-        _file('android/app/src/main/res/layout/pingsheng_widget.xml');
+    final darkLayout =
+        _file('android/app/src/main/res/layout/pingsheng_widget_dark.xml');
+    final lightLayout =
+        _file('android/app/src/main/res/layout/pingsheng_widget_light.xml');
     final provider = _file(
       'android/app/src/main/kotlin/com/pingsheng/pingsheng_life/PingShengWidgetProvider.kt',
     );
+    final manifest = _file('android/app/src/main/AndroidManifest.xml');
 
-    expect(layout, contains('@+id/widget_left_summary'));
-    expect(layout, contains('@+id/widget_primary_metric_value'));
-    expect(layout, contains('@+id/widget_next_todo'));
-    expect(layout, contains('@+id/widget_food'));
-    expect(layout, contains('@+id/widget_workout'));
-    expect(layout, isNot(contains('平生')));
+    for (final layout in [darkLayout, lightLayout]) {
+      expect(layout, contains('@+id/widget_left_summary'));
+      expect(layout, contains('@+id/widget_primary_metric_value'));
+      expect(layout, contains('@+id/widget_next_todo'));
+      expect(layout, contains('@+id/widget_food'));
+      expect(layout, contains('@+id/widget_workout'));
+      expect(layout, isNot(contains('平生')));
 
-    expect(layout, contains('@+id/widget_finance_expense'));
-    expect(layout, contains('@+id/widget_finance_income'));
-    expect(layout, contains('android:autoSizeTextType="uniform"'));
+      expect(layout, contains('@+id/widget_finance_expense'));
+      expect(layout, contains('@+id/widget_finance_income'));
+      expect(layout, contains('android:autoSizeTextType="uniform"'));
+    }
+
+    expect(manifest, contains('.PingShengWidgetProvider'));
+    expect(manifest, contains('.PingShengLightWidgetProvider'));
+    expect(manifest, contains('@xml/pingsheng_widget_dark_info'));
+    expect(manifest, contains('@xml/pingsheng_widget_light_info'));
+    expect(provider, contains('class PingShengLightWidgetProvider'));
+    expect(provider, contains('R.layout.pingsheng_widget_dark'));
+    expect(provider, contains('R.layout.pingsheng_widget_light'));
     expect(provider, contains('todayExpense(financeRecords)'));
     expect(provider, contains('todayIncome(financeRecords)'));
     expect(provider, isNot(contains('R.id.widget_expense_card,')));

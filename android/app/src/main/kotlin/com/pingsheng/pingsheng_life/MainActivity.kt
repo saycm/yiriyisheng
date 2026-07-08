@@ -652,10 +652,14 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
 
     private fun refreshHomeWidgets() {
         val manager = AppWidgetManager.getInstance(this)
-        val ids = manager.getAppWidgetIds(
+        val darkIds = manager.getAppWidgetIds(
             ComponentName(this, PingShengWidgetProvider::class.java)
         )
-        PingShengWidgetProvider.updateWidgets(this, manager, ids)
+        val lightIds = manager.getAppWidgetIds(
+            ComponentName(this, PingShengLightWidgetProvider::class.java)
+        )
+        PingShengWidgetProvider.updateWidgets(this, manager, darkIds)
+        PingShengLightWidgetProvider.updateWidgets(this, manager, lightIds)
     }
 
     companion object {

@@ -220,12 +220,10 @@ class _FoodEmptyState extends StatelessWidget {
     final title = query.isEmpty ? '这里还没有食物' : '没有匹配的食物';
     final subtitle = query.isEmpty ? '添加常吃项后会出现在这里' : '换个关键词试试，或添加为自定义食物';
 
-    return Container(
+    return GlassSurface(
+      borderRadius: 14,
+      color: AppColors.surface.withValues(alpha: 0.78),
       padding: const EdgeInsets.fromLTRB(18, 26, 18, 24),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
       child: Column(
         children: [
           const Icon(Icons.search_off_rounded,
@@ -286,68 +284,67 @@ class _FoodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onAdd,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFB8C0D9).withValues(alpha: 0.10),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(food.emoji, style: const TextStyle(fontSize: 26)),
-              ),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onAdd,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+              child: Row(
                 children: [
-                  Text(
-                    food.name,
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(food.emoji,
+                          style: const TextStyle(fontSize: 26)),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${food.calorie} 千卡 / ${food.unit}',
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          food.name,
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${food.calorie} 千卡 / ${food.unit}',
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                  _FoodQuantityControl(
+                    foodName: food.name,
+                    count: selectedCount,
+                    onAdd: onAdd,
+                    onRemove: onRemove,
                   ),
                 ],
               ),
             ),
-            _FoodQuantityControl(
-              foodName: food.name,
-              count: selectedCount,
-              onAdd: onAdd,
-              onRemove: onRemove,
-            ),
-          ],
+          ),
         ),
       ),
     );

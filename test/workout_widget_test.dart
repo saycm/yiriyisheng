@@ -753,10 +753,85 @@ void main() {
 
   testWidgets('workout history shows calendar and progress trends',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    final history = [
+      WorkoutHistoryEntry(
+        planId: 'plan-chest-back',
+        planName: '胸背强化',
+        startedAt: DateTime(2026, 7, 1, 8),
+        finishedAt: DateTime(2026, 7, 1, 8, 30),
+        durationMinutes: 30,
+        totalGroups: 7,
+        estimatedCalories: 206,
+        actionResults: const [
+          WorkoutActionResult(
+            actionName: '器械推胸',
+            bodyPart: '胸背',
+            targetGroups: 4,
+            finishedGroups: 3,
+            reps: '10次',
+            weight: '20kg',
+          ),
+          WorkoutActionResult(
+            actionName: '宽握高位下拉',
+            bodyPart: '胸背',
+            targetGroups: 4,
+            finishedGroups: 4,
+            reps: '10次',
+            weight: '25kg',
+          ),
+        ],
+      ),
+      WorkoutHistoryEntry(
+        planId: 'plan-chest-back',
+        planName: '胸背强化',
+        startedAt: DateTime(2026, 7, 3, 8),
+        finishedAt: DateTime(2026, 7, 3, 8, 34),
+        durationMinutes: 34,
+        totalGroups: 9,
+        estimatedCalories: 242,
+        actionResults: const [
+          WorkoutActionResult(
+            actionName: '器械推胸',
+            bodyPart: '胸背',
+            targetGroups: 4,
+            finishedGroups: 4,
+            reps: '12次',
+            weight: '26kg',
+          ),
+          WorkoutActionResult(
+            actionName: '宽握高位下拉',
+            bodyPart: '胸背',
+            targetGroups: 4,
+            finishedGroups: 5,
+            reps: '12次',
+            weight: '28kg',
+          ),
+        ],
+      ),
+    ];
 
-    await tester.tap(find.byKey(const ValueKey('module_link_3')));
-    await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkoutModulePage(
+          moduleNav: const SizedBox.shrink(),
+          onOpenModules: () {},
+          onSwitchModule: (_) {},
+          finishedGroupsByAction: const {},
+          onUpdateActionGroups: (_, __) {},
+          workoutPlans: createDefaultWorkoutPlans(),
+          onUpdateWorkoutPlan: (_) {},
+          activeWorkoutSession: null,
+          workoutHistory: history,
+          onStartWorkoutSession: (_) {},
+          onUpdateWorkoutSession: (_) {},
+          onFinishWorkoutSession: (_) {},
+          foodCalories: 0,
+          quickAction: null,
+          quickActionToken: 0,
+          onQuickActionHandled: () {},
+        ),
+      ),
+    );
 
     await tester.tap(find.byKey(const ValueKey('workout_top_tab_3')));
     await tester.pumpAndSettle();
@@ -768,11 +843,28 @@ void main() {
     expect(find.text('绿色圆点：有训练'), findsOneWidget);
     expect(find.text('灰色：空档'), findsOneWidget);
     expect(find.text('动作历史曲线'), findsOneWidget);
-    expect(find.text('蝴蝶机夹胸'), findsWidgets);
+    expect(find.text('器械推胸'), findsWidgets);
+    expect(find.text('2 次真实记录'), findsWidgets);
     expect(find.text('重量进步'), findsOneWidget);
-    expect(find.text('30kg → 35kg'), findsOneWidget);
+    expect(find.text('20kg → 26kg'), findsOneWidget);
     expect(find.text('次数进步'), findsOneWidget);
-    expect(find.text('8次 → 12次'), findsOneWidget);
+    expect(find.text('10次 → 12次'), findsOneWidget);
+    expect(find.text('30kg → 35kg'), findsNothing);
+  });
+
+  testWidgets('workout history does not show fake trends without history',
+      (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_3')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('动作历史曲线'), findsOneWidget);
+    expect(find.text('暂无动作趋势'), findsOneWidget);
+    expect(find.text('30kg → 35kg'), findsNothing);
+    expect(find.text('8次 → 12次'), findsNothing);
   });
 
   testWidgets('workout body part filters expose expanded exercise library',
@@ -1015,7 +1107,7 @@ void main() {
     expect(find.text('0 次 · 0 组'), findsOneWidget);
   });
 
-  testWidgets('workout feedback rest timer and food link are interactive',
+  testWidgets('workout feedback and rest timer stay visible without food link',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());
 
@@ -1066,16 +1158,9 @@ void main() {
     );
     expect(find.text('太累'), findsOneWidget);
 
-    await dragUntilFound(
-      tester,
-      find.byKey(const ValueKey('workout_food_link_card')),
-      scrollable: workoutList,
-    );
-    expect(find.textContaining('夜宵'), findsWidgets);
-    await tester.tap(find.byKey(const ValueKey('workout_open_food_link')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('module_glass_header_title_food')),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('workout_food_link_card')), findsNothing);
+    expect(find.byKey(const ValueKey('workout_open_food_link')), findsNothing);
+    expect(find.textContaining('夜宵'), findsNothing);
   });
 
   testWidgets('workout rest timer counts down after finishing a set',

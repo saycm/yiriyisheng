@@ -107,7 +107,7 @@ void _showPlanTodoEditorSheet({
                               const SizedBox(height: 12),
                               TextField(
                                 controller: titleController,
-                                autofocus: true,
+                                autofocus: false,
                                 style: const TextStyle(
                                   color: AppColors.ink,
                                   fontSize: 14,

@@ -160,40 +160,39 @@ class _QaSheet extends StatelessWidget {
       child: Column(
         children: items
             .map(
-              (item) => Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.line),
-                ),
-                child: ExpansionTile(
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 14),
-                  childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                  iconColor: AppColors.primary,
-                  collapsedIconColor: AppColors.muted,
-                  title: Text(
-                    item.$1,
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        item.$2,
-                        style: const TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          height: 1.45,
-                        ),
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: GlassSurface(
+                  borderRadius: 14,
+                  color: AppColors.surface.withValues(alpha: 0.78),
+                  child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+                    childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                    iconColor: AppColors.primary,
+                    collapsedIconColor: AppColors.muted,
+                    title: Text(
+                      item.$1,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                  ],
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          item.$2,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            height: 1.45,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             )
@@ -253,57 +252,58 @@ class _SettingsSwitchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return KeyedSubtree(
       key: tileKey,
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => onChanged(!value),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-            child: Row(
-              children: [
-                _SettingsIcon(icon: icon),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: AppColors.ink,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                        ),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: GlassSurface(
+          borderRadius: 14,
+          color: AppColors.surface.withValues(alpha: 0.78),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => onChanged(!value),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+                child: Row(
+                  children: [
+                    _SettingsIcon(icon: icon),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: AppColors.ink,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    Switch(
+                      value: value,
+                      activeColor: AppColors.primary,
+                      onChanged: onChanged,
+                    ),
+                  ],
                 ),
-                Switch(
-                  value: value,
-                  activeColor: AppColors.primary,
-                  onChanged: onChanged,
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -329,51 +329,50 @@ class _SettingsChoiceCard<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppColors.ink,
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: options.map((option) {
-              final selected = option == value;
-              final label = labelBuilder(option);
-              return ChoiceChip(
-                key: ValueKey('setting_choice_$label'),
-                label: Text(label),
-                selected: selected,
-                selectedColor: AppColors.primarySoft,
-                backgroundColor: AppColors.background,
-                showCheckmark: false,
-                labelStyle: TextStyle(
-                  color: selected ? AppColors.primary : AppColors.muted,
-                  fontWeight: FontWeight.w800,
-                ),
-                side: BorderSide(
-                  color: selected ? AppColors.primary : AppColors.line,
-                ),
-                onSelected: (_) => onChanged(option),
-              );
-            }).toList(),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: options.map((option) {
+                final selected = option == value;
+                final label = labelBuilder(option);
+                return ChoiceChip(
+                  key: ValueKey('setting_choice_$label'),
+                  label: Text(label),
+                  selected: selected,
+                  selectedColor: AppColors.primarySoft,
+                  backgroundColor: AppColors.background,
+                  showCheckmark: false,
+                  labelStyle: TextStyle(
+                    color: selected ? AppColors.primary : AppColors.muted,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  side: BorderSide(
+                    color: selected ? AppColors.primary : AppColors.line,
+                  ),
+                  onSelected: (_) => onChanged(option),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -394,49 +393,51 @@ class _SettingsActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              _SettingsIcon(icon: icon),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.78),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  _SettingsIcon(icon: icon),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded,
+                      color: AppColors.muted, size: 22),
+                ],
               ),
-              const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.muted, size: 22),
-            ],
+            ),
           ),
         ),
       ),
