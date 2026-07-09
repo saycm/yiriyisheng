@@ -84,126 +84,420 @@ class _FoodSelectedBar extends StatelessWidget {
   }
 }
 
-class _FoodCategorySheet extends StatelessWidget {
-  const _FoodCategorySheet({
-    required this.selected,
-    required this.onSelect,
+class _FoodToolsSheet extends StatelessWidget {
+  const _FoodToolsSheet({
+    required this.selectedCount,
+    required this.todayCalories,
+    required this.suggestedCalories,
+    required this.protein,
+    required this.carbs,
+    required this.fat,
+    required this.activeMeal,
+    required this.onAddCustomFood,
+    required this.onRepeatLastMeal,
+    required this.onShowTodayLogs,
+    required this.onClearSelected,
   });
 
-  final String selected;
-  final ValueChanged<String> onSelect;
+  final int selectedCount;
+  final int todayCalories;
+  final int suggestedCalories;
+  final double protein;
+  final double carbs;
+  final double fat;
+  final String activeMeal;
+  final VoidCallback onAddCustomFood;
+  final VoidCallback onRepeatLastMeal;
+  final VoidCallback onShowTodayLogs;
+  final VoidCallback? onClearSelected;
 
   @override
   Widget build(BuildContext context) {
-    const sections = [
-      (
-        '餐饮',
-        Icons.restaurant_rounded,
-        [
-          ('三餐', '🍽️'),
-          ('外卖', '🥡'),
-          ('饮品', '🧋'),
-          ('咖啡', '☕'),
-          ('零食饮水', '🧃'),
-          ('食材', '🥦'),
-          ('烘焙甜品', '🍰'),
-          ('酒水', '🍷'),
-        ],
-      ),
-      (
-        '交通',
-        Icons.directions_car_filled_rounded,
-        [
-          ('打车', '🚙'),
-          ('公共交通', '🚍'),
-          ('火车', '🚄'),
-          ('机票', '✈️'),
-          ('共享单车', '🚲'),
-          ('充电', '🔌'),
-          ('停车', '🅿️'),
-          ('加油', '⛽'),
-          ('车辆维护', '🛠️'),
-        ],
-      ),
-    ];
-
     return InfoSheetFrame(
-      title: '分类',
+      title: '饮食工具',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: sections.map((section) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _FoodToolSection(
+            icon: Icons.edit_note_rounded,
+            title: '记录',
             children: [
-              ModuleSectionTitle(icon: section.$2, title: section.$1),
-              const SizedBox(height: 10),
-              GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.08,
-                children: section.$3.map((item) {
-                  return _FoodCategoryTile(
-                    emoji: item.$2,
-                    label: item.$1,
-                    selected: selected == item.$1,
-                    onTap: () => onSelect(item.$1),
-                  );
-                }).toList(),
+              _FoodToolTile(
+                keyValue: 'food_tool_add_custom',
+                icon: Icons.add_circle_rounded,
+                title: '添加自定义食物',
+                subtitle: '新增名称、热量、单位和分类',
+                onTap: onAddCustomFood,
               ),
-              const SizedBox(height: 22),
+              _FoodToolTile(
+                keyValue: 'food_tool_repeat_last_meal',
+                icon: Icons.replay_rounded,
+                title: '一键再吃',
+                subtitle: '按当前餐次复用最近记录或常用搭配',
+                onTap: onRepeatLastMeal,
+              ),
+              _FoodToolTile(
+                keyValue: 'food_tool_today_logs',
+                icon: Icons.receipt_long_rounded,
+                title: '查看今日记录',
+                subtitle: '核对今天已经记录的食物',
+                onTap: onShowTodayLogs,
+              ),
+              const _FoodToolTile(
+                keyValue: 'food_tool_image_recognition',
+                icon: Icons.image_search_rounded,
+                title: '图片识别',
+                subtitle: '待接入食物图片解析',
+                badge: '待接入',
+              ),
             ],
-          );
-        }).toList(),
+          ),
+          const SizedBox(height: 14),
+          _FoodToolSection(
+            icon: Icons.flag_rounded,
+            title: '目标',
+            children: [
+              _FoodToolInfoCard(
+                icon: Icons.local_fire_department_rounded,
+                title: '热量目标',
+                value: '$todayCalories / $suggestedCalories kcal',
+                subtitle: '当前餐次：$activeMeal',
+              ),
+              _FoodToolInfoCard(
+                icon: Icons.pie_chart_rounded,
+                title: '营养汇总',
+                value:
+                    '蛋白 ${protein.round()}g · 碳水 ${carbs.round()}g · 脂肪 ${fat.round()}g',
+                subtitle: '来自今日真实饮食记录',
+              ),
+              const _FoodToolInfoCard(
+                icon: Icons.schedule_rounded,
+                title: '餐次规则',
+                value: '按本机时间自动判断',
+                subtitle: '05:00 早餐，11:00 午餐，16:00 晚餐，21:00 夜宵',
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _FoodToolSection(
+            icon: Icons.tune_rounded,
+            title: '管理',
+            children: [
+              _FoodToolTile(
+                keyValue: 'food_tool_clear_selected',
+                icon: Icons.cleaning_services_rounded,
+                title: '清空当前已选',
+                subtitle: selectedCount == 0
+                    ? '当前没有已选食物'
+                    : '清空 $selectedCount 项待记录食物',
+                onTap: onClearSelected,
+                badge: selectedCount == 0 ? '无已选' : null,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-class _FoodCategoryTile extends StatelessWidget {
-  const _FoodCategoryTile({
-    required this.emoji,
-    required this.label,
-    required this.selected,
-    required this.onTap,
+class _FoodToolSection extends StatelessWidget {
+  const _FoodToolSection({
+    required this.icon,
+    required this.title,
+    required this.children,
   });
 
-  final String emoji;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
+  final IconData icon;
+  final String title;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ModuleSectionTitle(icon: icon, title: title),
+        const SizedBox(height: 10),
+        ...children,
+      ],
+    );
+  }
+}
+
+class _FoodToolTile extends StatelessWidget {
+  const _FoodToolTile({
+    required this.keyValue,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+    this.badge,
+  });
+
+  final String keyValue;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+  final String? badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final color = enabled ? AppColors.primary : AppColors.muted;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
       child: GlassSurface(
-        borderRadius: 8,
-        padding: const EdgeInsets.all(10),
-        color: AppColors.surface.withValues(alpha: selected ? 0.92 : 0.72),
-        child: AnimatedScale(
-          scale: selected ? 0.98 : 1,
-          duration: const Duration(milliseconds: 160),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(emoji, style: const TextStyle(fontSize: 26)),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: selected ? const Color(0xFF7A5D11) : AppColors.ink,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                ),
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: enabled ? 0.78 : 0.54),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            key: ValueKey(keyValue),
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(13),
+              child: Row(
+                children: [
+                  Icon(icon, color: color, size: 22),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: enabled ? AppColors.ink : AppColors.muted,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (badge != null) ...[
+                    const SizedBox(width: 8),
+                    _FoodToolBadge(label: badge!),
+                  ] else
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.muted,
+                      size: 20,
+                    ),
+                ],
               ),
-            ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FoodToolInfoCard extends StatelessWidget {
+  const _FoodToolInfoCard({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.70),
+        padding: const EdgeInsets.all(13),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.primary, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FoodToolBadge extends StatelessWidget {
+  const _FoodToolBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.primarySoft,
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.primary,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FoodTodayLogsSheet extends StatelessWidget {
+  const _FoodTodayLogsSheet({required this.logs});
+
+  final List<FoodLogEntry> logs;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = logs.fold(0, (value, entry) => value + entry.calories);
+
+    return InfoSheetFrame(
+      title: '今日记录',
+      child: logs.isEmpty
+          ? const _FoodToolInfoCard(
+              icon: Icons.receipt_long_rounded,
+              title: '还没有饮食记录',
+              value: '先记录最近一餐',
+              subtitle: '记录后这里会显示食物、餐次和热量',
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _FoodToolInfoCard(
+                  icon: Icons.local_fire_department_rounded,
+                  title: '今日合计',
+                  value: '$total kcal',
+                  subtitle: '共 ${logs.length} 条饮食记录',
+                ),
+                const SizedBox(height: 8),
+                ...logs.reversed.map(
+                  (entry) => _FoodTodayLogTile(entry: entry),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+class _FoodTodayLogTile extends StatelessWidget {
+  const _FoodTodayLogTile({required this.entry});
+
+  final FoodLogEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GlassSurface(
+        borderRadius: 14,
+        color: AppColors.surface.withValues(alpha: 0.74),
+        padding: const EdgeInsets.all(13),
+        child: Row(
+          children: [
+            Text(entry.food.emoji, style: const TextStyle(fontSize: 24)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.food.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${entry.meal} · ${entry.food.unit}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '${entry.calories} kcal',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
         ),
       ),
     );

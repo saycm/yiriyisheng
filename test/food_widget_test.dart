@@ -67,7 +67,34 @@ void main() {
     expect(tester.getTopLeft(calorieCard).dy,
         lessThan(tester.getTopLeft(categoryScroller).dy));
     expect(find.text('今日热量'), findsOneWidget);
+    expect(find.text('饮食联动'), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('food more menu shows food tools instead of unrelated categories',
+      (tester) async {
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('module_link_2')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('饮食工具'), findsOneWidget);
+    expect(find.text('添加自定义食物'), findsOneWidget);
+    expect(find.text('查看今日记录'), findsOneWidget);
+    expect(find.text('图片识别'), findsOneWidget);
+    expect(find.text('待接入'), findsOneWidget);
+    expect(find.text('交通'), findsNothing);
+    expect(find.text('打车'), findsNothing);
+    expect(find.text('机票'), findsNothing);
+
+    await tester.tap(find.text('添加自定义食物'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('custom_food_name')), findsOneWidget);
   });
 
   testWidgets('food search filters items and custom food can be added',
@@ -232,6 +259,26 @@ void main() {
 
     expect(find.text('已选 0 项 · 0 千卡'), findsOneWidget);
     expect(find.byKey(const ValueKey('food_remove_米饭')), findsNothing);
+  });
+
+  testWidgets('food item cards stay compact with safe add target',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('module_link_2')));
+    await tester.pumpAndSettle();
+
+    final saladCard = find.byKey(const ValueKey('food_card_混合沙拉'));
+    final saladAdd = find.byKey(const ValueKey('food_add_混合沙拉'));
+
+    expect(saladCard, findsOneWidget);
+    expect(tester.getSize(saladCard).height, lessThanOrEqualTo(72));
+    expect(tester.getSize(saladAdd).height, greaterThanOrEqualTo(44));
+    expect(tester.getSize(saladAdd).width, greaterThanOrEqualTo(44));
   });
 
   testWidgets('food templates and meal summary update nutrition view',

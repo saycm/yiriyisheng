@@ -18,23 +18,22 @@ class _FoodMealSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 58,
+      height: 52,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: meals.map((meal) {
           final selected = activeMeal == meal;
           final calories = caloriesByMeal[meal] ?? 0;
           return Padding(
-            padding: const EdgeInsets.only(right: 10),
+            padding: const EdgeInsets.only(right: 8),
             child: InkWell(
               key: ValueKey('food_meal_$meal'),
               borderRadius: BorderRadius.circular(8),
               onTap: () => onChanged(meal),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 160),
-                width: 88,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                width: 78,
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
                 decoration: BoxDecoration(
                   color: selected ? AppColors.primary : AppColors.surface,
                   borderRadius: BorderRadius.circular(8),
@@ -51,7 +50,7 @@ class _FoodMealSelector extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: selected ? Colors.white : AppColors.ink,
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -64,7 +63,7 @@ class _FoodMealSelector extends StatelessWidget {
                         color: selected
                             ? Colors.white.withValues(alpha: 0.86)
                             : AppColors.muted,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -103,7 +102,7 @@ class _FoodCalorieProgressCard extends StatelessWidget {
       child: GlassSurface(
         borderRadius: 14,
         color: AppColors.surface.withValues(alpha: 0.82),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(13),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -114,7 +113,7 @@ class _FoodCalorieProgressCard extends StatelessWidget {
                     '今日热量',
                     style: TextStyle(
                       color: AppColors.ink,
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -123,25 +122,25 @@ class _FoodCalorieProgressCard extends StatelessWidget {
                   '$consumed / $suggested kcal',
                   style: const TextStyle(
                     color: AppColors.primary,
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             ClipRRect(
               borderRadius: BorderRadius.circular(99),
               child: LinearProgressIndicator(
                 value: progress.toDouble(),
-                minHeight: 10,
+                minHeight: 8,
                 backgroundColor: AppColors.background,
                 color: consumed > suggested
                     ? AppColors.financeRed
                     : AppColors.primary,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
@@ -190,7 +189,7 @@ class _FoodMacroPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
@@ -204,16 +203,16 @@ class _FoodMacroPill extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: color,
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             value,
             style: const TextStyle(
               color: AppColors.ink,
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w900,
             ),
           ),

@@ -244,7 +244,6 @@ class _FoodModulePageState extends State<FoodModulePage> {
   final List<FoodItem> _selectedFoods = [];
   final TextEditingController _foodSearchController = TextEditingController();
   String _activeFoodCategory = '常用';
-  String _category = '三餐';
   String _activeMeal = foodMealForTime(DateTime.now());
   String _foodQuery = '';
   int _handledQuickActionToken = 0;
@@ -350,7 +349,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
                 children: [
                   _FoodHeader(
                     onOpenModules: widget.onOpenModules,
-                    onOpenCategories: _openCategorySheet,
+                    onOpenTools: _openFoodToolsSheet,
                   ),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -386,17 +385,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
                           carbs: _todayCarbs,
                           fat: _todayFat,
                         ),
-                        const SizedBox(height: 12),
-                        ModuleLinkedSummaryCard(
-                          title: '饮食联动',
-                          subtitle: '已记录的摄入会同步到状态、计划和桌面入口。',
-                          icon: Icons.restaurant_rounded,
-                          values: [
-                            ('今日', '$_todayCalories kcal'),
-                            ('锻炼', '${widget.workoutGroups} 组'),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
                         _FoodCategoryScroller(
                           activeCategory: _activeFoodCategory,
                           onChanged: (category) =>
@@ -572,20 +561,57 @@ class _FoodModulePageState extends State<FoodModulePage> {
     setState(() => _activeMeal = meal);
   }
 
-  void _openCategorySheet() {
+  void _openFoodToolsSheet() {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return _FoodCategorySheet(
-          selected: _category,
-          onSelect: (category) {
-            Navigator.of(context).pop();
-            setState(() => _category = category);
-          },
+      builder: (sheetContext) {
+        return _FoodToolsSheet(
+          selectedCount: _selectedFoods.length,
+          todayCalories: _todayCalories,
+          suggestedCalories: _suggestedCalories,
+          protein: _todayProtein,
+          carbs: _todayCarbs,
+          fat: _todayFat,
+          activeMeal: _activeMeal,
+          onAddCustomFood: () =>
+              _closeSheetAndRun(sheetContext, _openCustomFoodSheet),
+          onRepeatLastMeal: () =>
+              _closeSheetAndRun(sheetContext, _repeatLastMeal),
+          onShowTodayLogs: () =>
+              _closeSheetAndRun(sheetContext, _openTodayFoodLogsSheet),
+          onClearSelected: _selectedFoods.isEmpty
+              ? null
+              : () => _closeSheetAndRun(sheetContext, () {
+                    setState(_selectedFoods.clear);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('已清空当前已选食物'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }),
         );
       },
+    );
+  }
+
+  void _closeSheetAndRun(BuildContext sheetContext, VoidCallback action) {
+    Navigator.of(sheetContext).pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        action();
+      }
+    });
+  }
+
+  void _openTodayFoodLogsSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _FoodTodayLogsSheet(logs: _todayLogs),
     );
   }
 

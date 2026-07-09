@@ -222,20 +222,21 @@ void main() {
     expect(assetCard, isNot(contains('Color(0xFF2C3D73)')));
   });
 
-  test('food category picker uses the shared glass sheet shell', () {
+  test('food tools sheet uses the shared glass sheet shell', () {
     final foodCategory =
         _file('lib/modules/food/food_selected_category_views.dart');
 
-    final categorySheet = _section(
+    final toolsSheet = _section(
       foodCategory,
-      'class _FoodCategorySheet',
-      'class _FoodCategoryTile',
+      'class _FoodToolsSheet',
+      'class _FoodToolSection',
     );
-    expect(categorySheet, contains('InfoSheetFrame'));
-    expect(categorySheet, isNot(contains('color: AppColors.background')));
+    expect(toolsSheet, contains('InfoSheetFrame'));
+    expect(toolsSheet, contains("title: '饮食工具'"));
+    expect(toolsSheet, isNot(contains("'交通'")));
 
-    final categoryTile = _sectionToEnd(foodCategory, 'class _FoodCategoryTile');
-    expect(categoryTile, contains('GlassSurface'));
+    final toolTile = _sectionToEnd(foodCategory, 'class _FoodToolTile');
+    expect(toolTile, contains('GlassSurface'));
   });
 
   test('android widgets stay content dense and display-only for finance totals',

@@ -655,9 +655,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('module_link_2')));
     await tester.pumpAndSettle();
 
-    expect(find.text('饮食联动'), findsOneWidget);
+    expect(find.text('饮食联动'), findsNothing);
     expect(find.text('80 kcal'), findsWidgets);
-    expect(find.text('1 组'), findsWidgets);
 
     await tester.tap(find.byKey(const ValueKey('module_link_1')));
     await tester.pumpAndSettle();

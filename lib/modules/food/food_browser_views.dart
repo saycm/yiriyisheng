@@ -5,11 +5,11 @@ part of 'food.dart';
 class _FoodHeader extends StatelessWidget {
   const _FoodHeader({
     required this.onOpenModules,
-    required this.onOpenCategories,
+    required this.onOpenTools,
   });
 
   final VoidCallback onOpenModules;
-  final VoidCallback onOpenCategories;
+  final VoidCallback onOpenTools;
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +17,7 @@ class _FoodHeader extends StatelessWidget {
       module: LifeModule.food,
       title: '饮食',
       onOpenModules: onOpenModules,
-      onOpenMore: onOpenCategories,
+      onOpenMore: onOpenTools,
     );
   }
 }
@@ -285,63 +285,70 @@ class _FoodCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GlassSurface(
-        borderRadius: 14,
-        color: AppColors.surface.withValues(alpha: 0.78),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: onAdd,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(8),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: KeyedSubtree(
+        key: ValueKey('food_card_${food.name}'),
+        child: GlassSurface(
+          borderRadius: 12,
+          color: AppColors.surface.withValues(alpha: 0.78),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: onAdd,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(food.emoji,
+                            style: const TextStyle(fontSize: 22)),
+                      ),
                     ),
-                    child: Center(
-                      child: Text(food.emoji,
-                          style: const TextStyle(fontSize: 26)),
-                    ),
-                  ),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          food.name,
-                          style: const TextStyle(
-                            color: AppColors.ink,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            food.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.ink,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${food.calorie} 千卡 / ${food.unit}',
-                          style: const TextStyle(
-                            color: AppColors.muted,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                          const SizedBox(height: 2),
+                          Text(
+                            '${food.calorie} 千卡 / ${food.unit}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  _FoodQuantityControl(
-                    foodName: food.name,
-                    count: selectedCount,
-                    onAdd: onAdd,
-                    onRemove: onRemove,
-                  ),
-                ],
+                    _FoodQuantityControl(
+                      foodName: food.name,
+                      count: selectedCount,
+                      onAdd: onAdd,
+                      onRemove: onRemove,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -440,14 +447,20 @@ class _FoodRoundAction extends StatelessWidget {
       key: ValueKey(keyValue),
       customBorder: const CircleBorder(),
       onTap: onTap,
-      child: Container(
-        width: 30,
-        height: 30,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Center(
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: foregroundColor, size: 20),
+          ),
         ),
-        child: Icon(icon, color: foregroundColor, size: 20),
       ),
     );
   }
