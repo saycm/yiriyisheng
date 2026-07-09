@@ -29,7 +29,7 @@ class _WeekCommandCenter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       key: const ValueKey('week_plan_command_center'),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: _weekCardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,8 +38,8 @@ class _WeekCommandCenter extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
@@ -47,10 +47,10 @@ class _WeekCommandCenter extends StatelessWidget {
                 child: const Icon(
                   Icons.dashboard_customize_rounded,
                   color: AppColors.primary,
-                  size: 21,
+                  size: 19,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,17 +59,19 @@ class _WeekCommandCenter extends StatelessWidget {
                       '一周安排工作台',
                       style: TextStyle(
                         color: AppColors.ink,
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       insight,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: AppColors.muted,
-                        fontSize: 12,
-                        height: 1.35,
+                        fontSize: 11.5,
+                        height: 1.25,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -78,7 +80,7 @@ class _WeekCommandCenter extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -88,7 +90,7 @@ class _WeekCommandCenter extends StatelessWidget {
                   color: AppColors.primary,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 child: _WeekMetricTile(
                   label: '完成',
@@ -96,7 +98,7 @@ class _WeekCommandCenter extends StatelessWidget {
                   color: AppColors.success,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 child: _WeekMetricTile(
                   label: '待安排',
@@ -104,7 +106,7 @@ class _WeekCommandCenter extends StatelessWidget {
                   color: const Color(0xFFFF9559),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 child: _WeekMetricTile(
                   label: '风险',
@@ -114,7 +116,7 @@ class _WeekCommandCenter extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -127,39 +129,44 @@ class _WeekCommandCenter extends StatelessWidget {
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: AppColors.primarySoft,
                 disabledForegroundColor: AppColors.muted,
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                minimumSize: const Size.fromHeight(44),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          const SizedBox(height: 6),
+          Row(
             children: [
-              _WeekCommandButton(
-                key: const ValueKey('week_plan_balance_week'),
-                onPressed: onBalanceWeek,
-                icon: Icons.balance_rounded,
-                label: '平衡本周',
+              Expanded(
+                child: _WeekCommandButton(
+                  key: const ValueKey('week_plan_balance_week'),
+                  onPressed: onBalanceWeek,
+                  icon: Icons.balance_rounded,
+                  label: '平衡本周',
+                ),
               ),
-              _WeekCommandButton(
-                key: const ValueKey('week_plan_clean_overdue'),
-                onPressed: onCleanOverdue,
-                icon: Icons.history_toggle_off_rounded,
-                label: '清理逾期',
+              const SizedBox(width: 6),
+              Expanded(
+                child: _WeekCommandButton(
+                  key: const ValueKey('week_plan_clean_overdue'),
+                  onPressed: onCleanOverdue,
+                  icon: Icons.history_toggle_off_rounded,
+                  label: '清理逾期',
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _WeekCommandButton(
+                  key: const ValueKey('week_plan_move_low_priority_next_week'),
+                  onPressed: onMoveLowPriorityNextWeek,
+                  icon: Icons.low_priority_rounded,
+                  label: '低优先级移到下周',
+                ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          _WeekCommandButton(
-            key: const ValueKey('week_plan_move_low_priority_next_week'),
-            onPressed: onMoveLowPriorityNextWeek,
-            icon: Icons.low_priority_rounded,
-            label: '低优先级移到下周',
-            fullWidth: true,
           ),
         ],
       ),
@@ -173,45 +180,48 @@ class _WeekCommandButton extends StatelessWidget {
     required this.onPressed,
     required this.icon,
     required this.label,
-    this.fullWidth = false,
   });
 
   final VoidCallback? onPressed;
   final IconData icon;
   final String label;
-  final bool fullWidth;
 
   @override
   Widget build(BuildContext context) {
-    final button = OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 17),
-      label: Text(
-        label,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        textAlign: TextAlign.center,
-      ),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.primary,
-        side: BorderSide(color: AppColors.primary.withValues(alpha: 0.24)),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        textStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
+    return SizedBox(
+      height: 44,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          disabledForegroundColor: AppColors.muted.withValues(alpha: 0.7),
+          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.24)),
+          minimumSize: const Size(0, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          textStyle: const TextStyle(
+            fontSize: 11,
+            height: 1.08,
+            fontWeight: FontWeight.w900,
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 15),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
       ),
-    );
-    if (fullWidth) {
-      return SizedBox(width: double.infinity, child: button);
-    }
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final available = (constraints.maxWidth - 8) / 2;
-        final width = available < 124.0 ? 124.0 : available;
-        return SizedBox(width: width, child: button);
-      },
     );
   }
 }
@@ -230,7 +240,7 @@ class _WeekMetricTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(8),
@@ -244,16 +254,18 @@ class _WeekMetricTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: color,
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: AppColors.ink,
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w900,
             ),
           ),

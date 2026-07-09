@@ -46,6 +46,30 @@ void main() {
     expect(tester.getSize(recordButton).height, lessThanOrEqualTo(40));
   });
 
+  testWidgets('food nutrition overview appears before food browser',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('module_link_2')));
+    await tester.pumpAndSettle();
+
+    final calorieCard =
+        find.byKey(const ValueKey('food_calorie_progress_card'));
+    final categoryScroller =
+        find.byKey(const ValueKey('food_category_scroller'));
+
+    expect(calorieCard, findsOneWidget);
+    expect(categoryScroller, findsOneWidget);
+    expect(tester.getTopLeft(calorieCard).dy,
+        lessThan(tester.getTopLeft(categoryScroller).dy));
+    expect(find.text('今日热量'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('food search filters items and custom food can be added',
       (tester) async {
     await tester.pumpWidget(const PingShengApp());

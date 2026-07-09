@@ -312,6 +312,50 @@ void main() {
     expect(find.text('待安排任务'), findsOneWidget);
   });
 
+  testWidgets('week command center stays compact on narrow screens',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 780));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+    await pumpPingShengApp(tester);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
+    await tester.pumpAndSettle();
+
+    final commandCenter =
+        find.byKey(const ValueKey('week_plan_command_center'));
+    expect(commandCenter, findsOneWidget);
+    expect(tester.getSize(commandCenter).height, lessThanOrEqualTo(240));
+
+    for (final label in [
+      '一周安排工作台',
+      '一键排周',
+      '平衡本周',
+      '清理逾期',
+      '低优先级移到下周',
+    ]) {
+      expect(find.descendant(of: commandCenter, matching: find.text(label)),
+          findsOneWidget);
+    }
+
+    final cardRect = tester.getRect(commandCenter);
+    for (final key in [
+      'week_plan_auto_schedule',
+      'week_plan_balance_week',
+      'week_plan_clean_overdue',
+      'week_plan_move_low_priority_next_week',
+    ]) {
+      final button = find.byKey(ValueKey(key));
+      expect(button, findsOneWidget);
+      final buttonRect = tester.getRect(button);
+      expect(buttonRect.left, greaterThanOrEqualTo(cardRect.left));
+      expect(buttonRect.right, lessThanOrEqualTo(cardRect.right));
+      expect(buttonRect.height, greaterThanOrEqualTo(44));
+    }
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('week day task badge stays inside day card on narrow screens',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 780));
@@ -522,16 +566,25 @@ void main() {
     expect(deleteAction, findsOneWidget);
     expect(
       find.descendant(of: targetCard, matching: find.text('删除')),
-      findsNothing,
+      findsOneWidget,
     );
 
-    final actionLabels = ['完成', '延后', '归档'];
+    final cardRect = tester.getRect(targetCard);
+    final actionLabels = ['完成', '延后', '归档', '删除'];
+    final actionWidths = <double>[];
     final actionTops = actionLabels.map((label) {
       final action =
           find.descendant(of: targetCard, matching: find.text(label));
+      final actionRect = tester.getRect(action);
+      expect(actionRect.left, greaterThanOrEqualTo(cardRect.left));
+      expect(actionRect.right, lessThanOrEqualTo(cardRect.right));
+      actionWidths.add(tester.getSize(action).width);
       return tester.getTopLeft(action).dy;
     }).toSet();
     expect(actionTops.length, 1);
+    for (final width in actionWidths) {
+      expect(width, greaterThanOrEqualTo(actionWidths.last - 2));
+    }
 
     await tester.tap(deleteAction);
     await tester.pumpAndSettle();

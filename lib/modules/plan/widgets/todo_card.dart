@@ -249,7 +249,6 @@ class _TodoQuickActions extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          flex: done ? 18 : 14,
           child: _TodoActionButton(
             label: done ? '重新打开' : '完成',
             icon: done ? Icons.undo_rounded : Icons.check_rounded,
@@ -260,7 +259,6 @@ class _TodoQuickActions extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Expanded(
-          flex: 18,
           child: _TodoActionButton(
             label: '延后',
             icon: Icons.event_repeat_rounded,
@@ -270,7 +268,6 @@ class _TodoQuickActions extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Expanded(
-          flex: 14,
           child: _TodoActionButton(
             label: '归档',
             icon: Icons.archive_rounded,
@@ -279,9 +276,11 @@ class _TodoQuickActions extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        _TodoDeleteButton(
-          title: title,
-          onDelete: onDelete,
+        Expanded(
+          child: _TodoDeleteButton(
+            title: title,
+            onDelete: onDelete,
+          ),
         ),
       ],
     );
@@ -310,8 +309,8 @@ class _TodoDeleteButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           onTap: () => _confirmDelete(context),
           child: Container(
-            width: 44,
-            height: 40,
+            constraints: const BoxConstraints(minHeight: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
@@ -319,10 +318,29 @@ class _TodoDeleteButton extends StatelessWidget {
                 color: AppColors.financeRed.withValues(alpha: 0.16),
               ),
             ),
-            child: Icon(
-              Icons.delete_outline_rounded,
-              color: AppColors.financeRed.withValues(alpha: 0.86),
-              size: 18,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.financeRed.withValues(alpha: 0.86),
+                  size: 15,
+                ),
+                const SizedBox(width: 3),
+                Flexible(
+                  child: Text(
+                    '删除',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppColors.financeRed.withValues(alpha: 0.86),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -425,19 +443,22 @@ class _TodoActionButton extends StatelessWidget {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           children: [
             Icon(icon, size: 15, color: foreground),
-            const SizedBox(width: 4),
+            const SizedBox(width: 3),
             Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: foreground,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: foreground,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ),

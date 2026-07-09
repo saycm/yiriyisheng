@@ -371,6 +371,22 @@ class _FoodModulePageState extends State<FoodModulePage> {
                         96,
                       ),
                       children: [
+                        _FoodMealSelector(
+                          meals: _meals,
+                          activeMeal: _activeMeal,
+                          caloriesByMeal: _caloriesByMeal(),
+                          onChanged: (meal) =>
+                              setState(() => _activeMeal = meal),
+                        ),
+                        const SizedBox(height: 12),
+                        _FoodCalorieProgressCard(
+                          consumed: _todayCalories,
+                          suggested: _suggestedCalories,
+                          protein: _todayProtein,
+                          carbs: _todayCarbs,
+                          fat: _todayFat,
+                        ),
+                        const SizedBox(height: 12),
                         ModuleLinkedSummaryCard(
                           title: '饮食联动',
                           subtitle: '已记录的摄入会同步到状态、计划和桌面入口。',
@@ -405,22 +421,6 @@ class _FoodModulePageState extends State<FoodModulePage> {
                             );
                           }),
                         const SizedBox(height: 2),
-                        _FoodMealSelector(
-                          meals: _meals,
-                          activeMeal: _activeMeal,
-                          caloriesByMeal: _caloriesByMeal(),
-                          onChanged: (meal) =>
-                              setState(() => _activeMeal = meal),
-                        ),
-                        const SizedBox(height: 12),
-                        _FoodCalorieProgressCard(
-                          consumed: _todayCalories,
-                          suggested: _suggestedCalories,
-                          protein: _todayProtein,
-                          carbs: _todayCarbs,
-                          fat: _todayFat,
-                        ),
-                        const SizedBox(height: 12),
                         _FoodQuickSections(
                           logs: _todayLogs,
                           templates: _mealTemplates,
