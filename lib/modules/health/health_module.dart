@@ -19,7 +19,6 @@ class HealthDay {
     required this.date,
     required this.week,
     required this.day,
-    required this.ringProgress,
     required this.ringLabels,
     required this.metrics,
     required this.statusMessage,
@@ -28,7 +27,6 @@ class HealthDay {
   final DateTime date;
   final String week;
   final String day;
-  final List<double> ringProgress;
   final List<String> ringLabels;
   final List<HealthMetric> metrics;
   final String statusMessage;
@@ -197,9 +195,10 @@ class _HealthModulePageState extends State<HealthModulePage> {
                         _HealthDateStrip(
                           days: days,
                           selectedDay: selectedDay,
+                          statusResult: _statusResult,
                           onSelect: _openDaySummarySheet,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         _HealthStatusScoreCard(
                           result: _statusResult,
                           onRecord: _openManualRecordSheet,
@@ -403,10 +402,19 @@ class _HealthModulePageState extends State<HealthModulePage> {
 
   List<HealthDay> _buildHealthDays(HealthSystemSnapshot snapshot) {
     // 健康页只接受系统健康/传感器返回值；缺权限时保留真实日期但不填假指标。
-    final samples = snapshot.days.isEmpty
-        ? [HealthSystemDaySample.empty(DateTime.now())]
-        : snapshot.days;
+    final samples =
+        snapshot.hasAnyData ? snapshot.days : _recentEmptyHealthSamples();
     return samples.map((sample) => _buildHealthDay(sample, snapshot)).toList();
+  }
+
+  List<HealthSystemDaySample> _recentEmptyHealthSamples() {
+    final today = DateTime.now();
+    return List.generate(
+      7,
+      (index) => HealthSystemDaySample.empty(
+        today.subtract(Duration(days: 6 - index)),
+      ),
+    );
   }
 
   HealthDay _buildHealthDay(
@@ -423,11 +431,6 @@ class _HealthModulePageState extends State<HealthModulePage> {
       week: _weekdayLabel(sample.date),
       day: sample.date.day.toString(),
       statusMessage: snapshot.message,
-      ringProgress: [
-        _progress(sample.steps, 10000),
-        _progress(sample.activeCaloriesKcal, 500),
-        snapshot.sensors.accelerometerAvailable ? 1.0 : 0.0,
-      ],
       ringLabels: [
         _percentLabel(sample.steps, 10000),
         _percentLabel(sample.activeCaloriesKcal, 500),
@@ -478,13 +481,6 @@ class _HealthModulePageState extends State<HealthModulePage> {
       value: value ?? '--',
       unit: value == null ? '无系统记录' : unit,
     );
-  }
-
-  double _progress(num? value, num goal) {
-    if (value == null || goal <= 0) {
-      return 0;
-    }
-    return (value / goal).clamp(0.0, 1.0).toDouble();
   }
 
   String _percentLabel(num? value, num goal) {
@@ -542,83 +538,241 @@ class _HealthDateStrip extends StatelessWidget {
   const _HealthDateStrip({
     required this.days,
     required this.selectedDay,
+    required this.statusResult,
     required this.onSelect,
   });
 
   final List<HealthDay> days;
   final HealthDay selectedDay;
+  final HealthStatusResult statusResult;
   final ValueChanged<HealthDay> onSelect;
 
   @override
   Widget build(BuildContext context) {
+    final today = DateTime.now();
     return KeyedSubtree(
       key: const ValueKey('health_date_strip'),
       child: GlassSurface(
         borderRadius: 14,
         color: AppColors.surface.withValues(alpha: 0.82),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: days.map((day) {
-              final selected = day.day == selectedDay.day;
-              return Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: Semantics(
-                  button: true,
-                  label: '查看${day.monthDayLabel}状态摘要',
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(10),
-                    onTap: () => onSelect(day),
-                    child: SizedBox(
-                      width: 42,
-                      child: Column(
-                        children: [
-                          Text(
-                            day.week,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: selected
-                                  ? AppColors.primary
-                                  : AppColors.muted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 7),
-                          SizedBox(
-                            width: 35,
-                            height: 35,
-                            child: CustomPaint(
-                              painter: _MiniRingsPainter(
-                                selected: selected,
-                                progress: day.ringProgress,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  day.day,
-                                  style: TextStyle(
-                                    color: selected
-                                        ? AppColors.ink
-                                        : AppColors.muted,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      '近 7 天状态',
+                      style: TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                   ),
+                  Text(
+                    '今天 ${today.month}月${today.day}日',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 5),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (days.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+
+                const gap = 4.0;
+                final itemWidth =
+                    ((constraints.maxWidth - gap * (days.length - 1)) /
+                            days.length)
+                        .clamp(40.0, 54.0)
+                        .toDouble();
+
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (var index = 0; index < days.length; index++)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            right: index == days.length - 1 ? 0 : gap,
+                          ),
+                          child: _HealthDayPill(
+                            day: days[index],
+                            width: itemWidth,
+                            selected: DateUtils.isSameDay(
+                              days[index].date,
+                              selectedDay.date,
+                            ),
+                            isToday:
+                                DateUtils.isSameDay(days[index].date, today),
+                            score: DateUtils.isSameDay(days[index].date, today)
+                                ? statusResult.score
+                                : null,
+                            onTap: () => onSelect(days[index]),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HealthDayPill extends StatelessWidget {
+  const _HealthDayPill({
+    required this.day,
+    required this.width,
+    required this.selected,
+    required this.isToday,
+    required this.score,
+    required this.onTap,
+  });
+
+  final HealthDay day;
+  final double width;
+  final bool selected;
+  final bool isToday;
+  final int? score;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _accentColor(score);
+    final dateKey = _dateKey(day.date);
+    final statusLabel = score == null ? '未记录' : '$score分';
+    final foreground = selected || score != null ? accent : AppColors.muted;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '查看${day.monthDayLabel}状态摘要，$statusLabel',
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: AnimatedContainer(
+            key: ValueKey(
+                isToday ? 'health_day_pill_today' : 'health_day_pill_$dateKey'),
+            duration: const Duration(milliseconds: 160),
+            width: width,
+            constraints: const BoxConstraints(minHeight: 52),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+            decoration: BoxDecoration(
+              color: _backgroundColor(score),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected ? accent : AppColors.line,
+                width: selected ? 1.4 : 1,
+              ),
+              boxShadow: selected
+                  ? [
+                      BoxShadow(
+                        color: accent.withValues(alpha: 0.18),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ]
+                  : const [],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isToday ? '今天' : day.week,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: foreground,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              );
-            }).toList(),
+                const SizedBox(height: 3),
+                Text(
+                  day.day,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 17,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  statusLabel,
+                  key: ValueKey(
+                    isToday
+                        ? 'health_day_status_today'
+                        : 'health_day_status_$dateKey',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: foreground,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  String _dateKey(DateTime date) {
+    return '${date.year}_${date.month}_${date.day}';
+  }
+
+  Color _accentColor(int? score) {
+    if (score == null) {
+      return AppColors.muted;
+    }
+    if (score >= 85) {
+      return AppColors.success;
+    }
+    if (score >= 70) {
+      return AppColors.primary;
+    }
+    if (score >= 55) {
+      return AppColors.sun;
+    }
+    return AppColors.financeRed;
+  }
+
+  Color _backgroundColor(int? score) {
+    if (score == null) {
+      return AppColors.surface.withValues(alpha: 0.74);
+    }
+    if (score >= 85) {
+      return AppColors.mintSoft.withValues(alpha: 0.92);
+    }
+    if (score >= 70) {
+      return AppColors.primarySoft.withValues(alpha: 0.92);
+    }
+    if (score >= 55) {
+      return AppColors.sun.withValues(alpha: 0.14);
+    }
+    return AppColors.roseSoft.withValues(alpha: 0.94);
   }
 }

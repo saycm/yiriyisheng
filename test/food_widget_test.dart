@@ -347,6 +347,68 @@ void main() {
       find.byKey(const ValueKey('food_trend_block')),
       scrollable: foodList,
     );
-    expect(find.text('7 天热量趋势'), findsOneWidget);
+    expect(find.text('近 7 天摄入'), findsOneWidget);
+    expect(find.text('均值 304 kcal'), findsOneWidget);
   });
+
+  testWidgets('food trend uses real recent logs and marks missing days',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+    final now = DateTime.now();
+    final logs = [
+      _foodLog('今日记录', 600, now),
+      _foodLog('前两天记录', 300, now.subtract(const Duration(days: 2))),
+      _foodLog('八天前记录', 900, now.subtract(const Duration(days: 8))),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FoodModulePage(
+          moduleNav: const SizedBox.shrink(),
+          onOpenModules: () {},
+          onSwitchModule: (_) {},
+          onRecordFoodLogs: (_) {},
+          foodCalories: 600,
+          foodLogs: logs,
+          workoutGroups: 0,
+          quickAction: null,
+          quickActionToken: 0,
+          onQuickActionHandled: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('food_trend_block')),
+      scrollable: find.byKey(const ValueKey('food_main_list')),
+      maxDrags: 18,
+    );
+
+    expect(find.text('近 7 天摄入'), findsOneWidget);
+    expect(find.text('均值 450 kcal'), findsOneWidget);
+    expect(find.text('2 天有记录 · 最高 600 kcal'), findsOneWidget);
+    expect(find.text('未'), findsWidgets);
+    expect(find.text('均值 1494'), findsNothing);
+    expect(find.text('7 天热量趋势'), findsNothing);
+  });
+}
+
+FoodLogEntry _foodLog(String name, int calories, DateTime recordedAt) {
+  return FoodLogEntry(
+    food: FoodItem(
+      emoji: '',
+      name: name,
+      calorie: calories,
+      unit: '1 份',
+      group: '自定义',
+    ),
+    meal: '午餐',
+    servings: 1,
+    note: '',
+    recordedAt: recordedAt,
+  );
 }

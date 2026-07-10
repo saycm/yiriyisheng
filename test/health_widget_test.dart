@@ -100,6 +100,33 @@ void main() {
     );
   });
 
+  testWidgets('external source entry shows today step count', (tester) async {
+    mockSystemHealthSnapshot();
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    addTearDown(
+      () => tester.binding.platformDispatcher.defaultRouteNameTestValue = '/',
+    );
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('health_external_source_entry')),
+      scrollable: find.byKey(const ValueKey('health_main_list')),
+    );
+
+    final entry = find.byKey(const ValueKey('health_external_source_entry'));
+    expect(find.descendant(of: entry, matching: find.text('今日步数')),
+        findsOneWidget);
+    expect(
+      find.descendant(of: entry, matching: find.text('6,320 步 · 手机计步器')),
+      findsOneWidget,
+    );
+    expect(find.descendant(of: entry, matching: find.text('外部数据源')),
+        findsNothing);
+  });
+
   testWidgets('health module shows status center before external data source',
       (tester) async {
     mockSystemHealthStatus(
@@ -311,7 +338,7 @@ void main() {
         find.byKey(const ValueKey('health_status_score_card')), findsOneWidget);
     expect(find.byKey(const ValueKey('health_external_source_entry')),
         findsOneWidget);
-    expect(find.text('外部数据源'), findsOneWidget);
+    expect(find.text('今日步数'), findsOneWidget);
     expect(find.text('系统健康数据已连接'), findsNothing);
     expect(find.byKey(const ValueKey('health_date_strip')), findsOneWidget);
     expect(
@@ -396,6 +423,56 @@ void main() {
         matching: find.text('系统健康数据已连接'),
       ),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('health date strip uses readable status pills instead of rings',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 780));
+    addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+    mockSystemHealthStatus(
+      status: 'permissionRequired',
+      message: '还没有授予步数、睡眠和心率权限。',
+    );
+    tester.binding.platformDispatcher.defaultRouteNameTestValue = '/health';
+    addTearDown(
+      () => tester.binding.platformDispatcher.defaultRouteNameTestValue = '/',
+    );
+
+    await tester.pumpWidget(const PingShengApp());
+    await tester.pumpAndSettle();
+
+    final dateStrip = find.byKey(const ValueKey('health_date_strip'));
+
+    expect(
+      find.descendant(of: dateStrip, matching: find.text('近 7 天状态')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('health_day_pill_today')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('health_day_status_today')),
+      findsOneWidget,
+    );
+    final stripRect = tester.getRect(dateStrip);
+    final todayRect =
+        tester.getRect(find.byKey(const ValueKey('health_day_pill_today')));
+    expect(todayRect.left, greaterThanOrEqualTo(stripRect.left));
+    expect(todayRect.right, lessThanOrEqualTo(stripRect.right));
+    expect(
+      find.descendant(of: dateStrip, matching: find.textContaining('分')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: dateStrip, matching: find.text('未记录')),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(
+        of: dateStrip,
+        matching: find.byKey(const ValueKey('health_day_ring_today')),
+      ),
+      findsNothing,
     );
   });
 
@@ -640,7 +717,7 @@ void main() {
         {'dateIso': '2026-06-05'},
       ],
     );
-    expect(find.text('外部数据源'), findsOneWidget);
+    expect(find.text('今日步数'), findsOneWidget);
     expect(find.text('Health Connect 已连接，暂无数据'), findsNothing);
     expect(find.text('数据为空'), findsNothing);
   });

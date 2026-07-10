@@ -235,7 +235,7 @@ class _FoodQuickSections extends StatelessWidget {
   final List<FoodLogEntry> logs;
   final List<_FoodMealTemplate> templates;
   final List<String> reminders;
-  final List<double> trend;
+  final List<_FoodTrendDay> trend;
   final VoidCallback onRepeatLastMeal;
   final ValueChanged<_FoodMealTemplate> onUseTemplate;
 
@@ -294,6 +294,20 @@ class _FoodQuickSections extends StatelessWidget {
       ..sort((a, b) => b.count.compareTo(a.count));
     return result.take(3).toList();
   }
+}
+
+class _FoodTrendDay {
+  const _FoodTrendDay({
+    required this.label,
+    required this.calories,
+    required this.hasRecord,
+    required this.isToday,
+  });
+
+  final String label;
+  final int calories;
+  final bool hasRecord;
+  final bool isToday;
 }
 
 class _FoodSectionHeader extends StatelessWidget {
@@ -593,13 +607,22 @@ class _FoodReminderBlock extends StatelessWidget {
 class _FoodTrendBlock extends StatelessWidget {
   const _FoodTrendBlock({required this.values});
 
-  final List<double> values;
+  final List<_FoodTrendDay> values;
 
   @override
   Widget build(BuildContext context) {
-    final average = values.isEmpty
+    final recorded = values.where((day) => day.hasRecord).toList();
+    final average = recorded.isEmpty
         ? 0
-        : values.fold<double>(0, (sum, value) => sum + value) / values.length;
+        : recorded.fold<int>(0, (sum, day) => sum + day.calories) /
+            recorded.length;
+    final maxCalories = recorded.fold<int>(
+      0,
+      (max, day) => day.calories > max ? day.calories : max,
+    );
+    final summary = recorded.isEmpty
+        ? '暂无连续记录，先记录今天一餐'
+        : '${recorded.length} 天有记录 · 最高 $maxCalories kcal';
 
     return KeyedSubtree(
       key: const ValueKey('food_trend_block'),
@@ -608,7 +631,7 @@ class _FoodTrendBlock extends StatelessWidget {
         color: AppColors.surface.withValues(alpha: 0.82),
         padding: const EdgeInsets.all(14),
         child: SizedBox(
-          height: 114,
+          height: 156,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -616,7 +639,7 @@ class _FoodTrendBlock extends StatelessWidget {
                 children: [
                   const Expanded(
                     child: Text(
-                      '7 天热量趋势',
+                      '近 7 天摄入',
                       style: TextStyle(
                         color: AppColors.ink,
                         fontSize: 15,
@@ -625,7 +648,7 @@ class _FoodTrendBlock extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '均值 ${average.round()}',
+                    '均值 ${average.round()} kcal',
                     style: const TextStyle(
                       color: AppColors.muted,
                       fontSize: 12,
@@ -634,19 +657,112 @@ class _FoodTrendBlock extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Expanded(
-                child: CustomPaint(
-                  painter: TinyBarsPainter(
-                    values: values,
-                    color: AppColors.success,
-                  ),
-                  child: const SizedBox.expand(),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: values
+                      .map(
+                        (day) => Expanded(
+                          child: _FoodTrendDayColumn(
+                            day: day,
+                            maxCalories: maxCalories,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                summary,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FoodTrendDayColumn extends StatelessWidget {
+  const _FoodTrendDayColumn({
+    required this.day,
+    required this.maxCalories,
+  });
+
+  final _FoodTrendDay day;
+  final int maxCalories;
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio =
+        !day.hasRecord || maxCalories <= 0 ? 0.0 : day.calories / maxCalories;
+    final barHeight = day.hasRecord ? 18.0 + ratio * 52.0 : 12.0;
+    final barColor = day.hasRecord
+        ? (day.isToday ? AppColors.primary : AppColors.success)
+        : AppColors.muted.withValues(alpha: 0.18);
+    final labelColor = day.isToday ? AppColors.primary : AppColors.muted;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: Column(
+        children: [
+          Expanded(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                width: 24,
+                height: barHeight,
+                decoration: BoxDecoration(
+                  color: barColor.withValues(alpha: day.hasRecord ? 0.62 : 1),
+                  borderRadius: BorderRadius.circular(999),
+                  border: day.isToday
+                      ? Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.34),
+                        )
+                      : null,
+                  boxShadow: day.isToday
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.16),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            day.label,
+            style: TextStyle(
+              color: labelColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            day.hasRecord ? '${day.calories}' : '未',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: day.hasRecord ? AppColors.ink : AppColors.muted,
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }

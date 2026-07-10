@@ -2,6 +2,19 @@
 
 part of 'health.dart';
 
+String _formatHealthSteps(int value) {
+  final text = value.toString();
+  final buffer = StringBuffer();
+  for (var i = 0; i < text.length; i++) {
+    final remaining = text.length - i;
+    buffer.write(text[i]);
+    if (remaining > 1 && remaining % 3 == 1) {
+      buffer.write(',');
+    }
+  }
+  return buffer.toString();
+}
+
 class _HealthSensorCard extends StatelessWidget {
   const _HealthSensorCard({required this.snapshot});
 
@@ -15,7 +28,7 @@ class _HealthSensorCard extends StatelessWidget {
         '今日步数',
         snapshot.stepCounterToday == null
             ? (snapshot.stepCounterAvailable ? '可用' : '无')
-            : '${_formatSensorSteps(snapshot.stepCounterToday!)} 步'
+            : '${_formatHealthSteps(snapshot.stepCounterToday!)} 步'
       ),
       (
         '心率',
@@ -37,19 +50,6 @@ class _HealthSensorCard extends StatelessWidget {
       values: values,
     );
   }
-
-  String _formatSensorSteps(int value) {
-    final text = value.toString();
-    final buffer = StringBuffer();
-    for (var i = 0; i < text.length; i++) {
-      final remaining = text.length - i;
-      buffer.write(text[i]);
-      if (remaining > 1 && remaining % 3 == 1) {
-        buffer.write(',');
-      }
-    }
-    return buffer.toString();
-  }
 }
 
 class _HealthExternalSourceEntry extends StatelessWidget {
@@ -66,6 +66,7 @@ class _HealthExternalSourceEntry extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = _HealthConnectionState.fromSnapshot(snapshot, loading);
+    final stepSummary = _HealthStepSummary.fromSnapshot(snapshot, loading);
 
     return KeyedSubtree(
       key: const ValueKey('health_external_source_entry'),
@@ -88,16 +89,17 @@ class _HealthExternalSourceEntry extends StatelessWidget {
                       color: state.color.withValues(alpha: 0.13),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.sync_alt_rounded, color: state.color),
+                    child: Icon(Icons.directions_walk_rounded,
+                        color: state.color),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '外部数据源',
-                          style: TextStyle(
+                        Text(
+                          stepSummary.title,
+                          style: const TextStyle(
                             color: AppColors.ink,
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
@@ -105,7 +107,7 @@ class _HealthExternalSourceEntry extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Health Connect 是可选数据源，不影响状态中心。',
+                          stepSummary.subtitle,
                           style: const TextStyle(
                             color: AppColors.muted,
                             fontSize: 12,
@@ -125,6 +127,68 @@ class _HealthExternalSourceEntry extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _HealthStepSummary {
+  const _HealthStepSummary({
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  factory _HealthStepSummary.fromSnapshot(
+    HealthSystemSnapshot snapshot,
+    bool loading,
+  ) {
+    if (loading) {
+      return const _HealthStepSummary(
+        title: '今日步数',
+        subtitle: '正在读取步数数据',
+      );
+    }
+
+    final sensorSteps = snapshot.sensors.stepCounterToday;
+    if (sensorSteps != null) {
+      return _HealthStepSummary(
+        title: '今日步数',
+        subtitle: '${_formatHealthSteps(sensorSteps)} 步 · 手机计步器',
+      );
+    }
+
+    final healthConnectSteps = _todayHealthConnectSteps(snapshot.days);
+    if (healthConnectSteps != null) {
+      return _HealthStepSummary(
+        title: '今日步数',
+        subtitle: '${_formatHealthSteps(healthConnectSteps)} 步 · Health Connect',
+      );
+    }
+
+    if (snapshot.needsPermission) {
+      return const _HealthStepSummary(
+        title: '今日步数',
+        subtitle: '未授权，点击查看数据源',
+      );
+    }
+
+    return const _HealthStepSummary(
+      title: '今日步数',
+      subtitle: '暂无步数，点击查看数据源',
+    );
+  }
+
+  static int? _todayHealthConnectSteps(List<HealthSystemDaySample> days) {
+    final now = DateTime.now();
+    for (final day in days) {
+      if (day.date.year == now.year &&
+          day.date.month == now.month &&
+          day.date.day == now.day) {
+        return day.steps;
+      }
+    }
+    return null;
   }
 }
 

@@ -414,7 +414,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
                           logs: _todayLogs,
                           templates: _mealTemplates,
                           reminders: _foodReminders(),
-                          trend: _foodTrendValues(),
+                          trend: _foodTrendDays(),
                           onRepeatLastMeal: _repeatLastMeal,
                           onUseTemplate: _useMealTemplate,
                         ),
@@ -491,9 +491,35 @@ class _FoodModulePageState extends State<FoodModulePage> {
     return reminders;
   }
 
-  List<double> _foodTrendValues() {
-    final today = _todayCalories.toDouble();
-    return [1520, 1680, 1440, 1880, 1610, 1730, today];
+  List<_FoodTrendDay> _foodTrendDays() {
+    final today = DateUtils.dateOnly(DateTime.now());
+    return List.generate(7, (index) {
+      final date = today.subtract(Duration(days: 6 - index));
+      final dayLogs = widget.foodLogs
+          .where((entry) => DateUtils.isSameDay(entry.recordedAt, date))
+          .toList(growable: false);
+      final calories =
+          dayLogs.fold<int>(0, (total, entry) => total + entry.calories);
+      return _FoodTrendDay(
+        label: index == 6 ? '今' : _foodWeekdayLabel(date),
+        calories: calories,
+        hasRecord: dayLogs.isNotEmpty,
+        isToday: index == 6,
+      );
+    });
+  }
+
+  String _foodWeekdayLabel(DateTime date) {
+    return switch (date.weekday) {
+      DateTime.monday => '一',
+      DateTime.tuesday => '二',
+      DateTime.wednesday => '三',
+      DateTime.thursday => '四',
+      DateTime.friday => '五',
+      DateTime.saturday => '六',
+      DateTime.sunday => '日',
+      _ => '',
+    };
   }
 
   void _repeatLastMeal() {
