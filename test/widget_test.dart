@@ -39,7 +39,7 @@ void main() {
     expect(find.byKey(const ValueKey('finance_ai_record')), findsOneWidget);
   });
 
-  testWidgets('module settings opens and options are interactive',
+  testWidgets('module settings only shows settings backed by real behavior',
       (tester) async {
     final preferenceCalls = <MethodCall>[];
     const preferencesChannel = MethodChannel('pingsheng_life/app_preferences');
@@ -86,17 +86,10 @@ void main() {
     await tester.tap(settingsTile);
     await tester.pumpAndSettle();
 
-    expect(find.text('桌面小组件'), findsOneWidget);
-    expect(find.text('快捷按钮直接记录'), findsOneWidget);
-
-    await tester
-        .tap(find.byKey(const ValueKey('setting_widget_direct_record')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('setting_choice_晚餐')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('默认餐次'), findsOneWidget);
-    expect(find.text('晚餐'), findsWidgets);
+    expect(find.text('快捷按钮直接记录'), findsNothing);
+    expect(find.text('摘要进入详情'), findsNothing);
+    expect(find.text('默认餐次'), findsNothing);
+    expect(find.text('轻食提示'), findsNothing);
     expect(find.text('刷新桌面小组件'), findsNothing);
     expect(find.text('导出本地记录'), findsNothing);
 
@@ -136,6 +129,60 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('手动状态记录'), findsWidgets);
     expect(find.textContaining('Health Connect 是可选数据源'), findsWidgets);
+  });
+
+  testWidgets('feedback copies non-empty text without claiming it was sent',
+      (tester) async {
+    String? clipboardText;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        final arguments = call.arguments;
+        if (arguments is Map) {
+          clipboardText = arguments['text']?.toString();
+        }
+      }
+      return null;
+    });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+
+    await pumpPingShengApp(tester);
+    await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
+    await tester.pumpAndSettle();
+
+    final feedbackTile = find.text('问题反馈');
+    await tester.scrollUntilVisible(
+      feedbackTile,
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(feedbackTile);
+    await tester.pumpAndSettle();
+
+    final copyButton = find.widgetWithText(FilledButton, '复制反馈内容');
+    expect(copyButton, findsOneWidget);
+    expect(tester.widget<FilledButton>(copyButton).onPressed, isNull);
+
+    final feedbackInput = find.byType(TextField).last;
+    await tester.enterText(feedbackInput, '   ');
+    await tester.pump();
+    expect(tester.widget<FilledButton>(copyButton).onPressed, isNull);
+    expect(clipboardText, isNull);
+
+    await tester.enterText(feedbackInput, '计划页按钮无法点击');
+    await tester.pump();
+    expect(tester.widget<FilledButton>(copyButton).onPressed, isNotNull);
+    await tester.tap(copyButton);
+    await tester.pumpAndSettle();
+
+    expect(clipboardText, '计划页按钮无法点击');
+    expect(find.text('已复制，尚未发送'), findsOneWidget);
+    expect(find.text('已收到'), findsNothing);
+    expect(find.text('提交成功'), findsNothing);
   });
 
   testWidgets('module sheet presents compact module center content',
@@ -667,7 +714,7 @@ void main() {
     expect(find.text('80 kcal'), findsWidgets);
     expect(find.text('1 组'), findsWidgets);
     await dragPageUp(tester);
-    expect(find.text('联动记录'), findsOneWidget);
+    expect(find.text('最近联动记录'), findsOneWidget);
     expect(find.text('记录饮食'), findsWidgets);
     expect(find.text('完成锻炼'), findsWidgets);
 

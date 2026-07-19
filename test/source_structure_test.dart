@@ -281,7 +281,7 @@ void main() {
       'android/app/src/main/kotlin/com/pingsheng/pingsheng_life/MainActivity.kt',
     );
     final sensorSnapshot = _section(mainActivity,
-        'private fun buildSensorSnapshot()', 'private fun saveHealthForWidget');
+        'private fun buildSensorSnapshot(', 'private fun saveHealthForWidget');
 
     expect(mainActivity, contains('STEP_COUNTER_BASELINE_PREFS'));
     expect(mainActivity, contains('stepCounterToday'));
@@ -305,5 +305,27 @@ void main() {
     expect(mainActivity, isNot(contains('健康待授权')));
     expect(widgetProvider, isNot(contains('健康待授权')));
     expect(strings, isNot(contains('健康摘要')));
+  });
+
+  test('health copy only lists external metrics the app can read', () {
+    final healthModule = _file('lib/modules/health/health_module.dart');
+    final settings = _file('lib/shared/module_settings_sheet.dart');
+    final info = _file('lib/shared/module_info_sheets.dart');
+
+    expect(healthModule, isNot(contains("title: '今日呼吸'")));
+    expect(settings, isNot(contains('心率和呼吸数据')));
+    expect(info, isNot(contains('能量和呼吸参考')));
+    expect(info, isNot(contains('能量和呼吸等系统健康参考')));
+  });
+
+  test('sqlite column migration checks schema and never swallows errors', () {
+    final tables = _file('lib/storage/app_data_tables.dart');
+    final addColumn = _sectionToEnd(
+      tables,
+      'Future<void> _addColumnIfMissing(',
+    );
+
+    expect(addColumn, contains('PRAGMA table_info'));
+    expect(addColumn, isNot(contains('catch (_)')));
   });
 }

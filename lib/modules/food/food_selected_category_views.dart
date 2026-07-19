@@ -88,7 +88,6 @@ class _FoodToolsSheet extends StatelessWidget {
   const _FoodToolsSheet({
     required this.selectedCount,
     required this.todayCalories,
-    required this.suggestedCalories,
     required this.protein,
     required this.carbs,
     required this.fat,
@@ -101,7 +100,6 @@ class _FoodToolsSheet extends StatelessWidget {
 
   final int selectedCount;
   final int todayCalories;
-  final int suggestedCalories;
   final double protein;
   final double carbs;
   final double fat;
@@ -155,12 +153,12 @@ class _FoodToolsSheet extends StatelessWidget {
           const SizedBox(height: 14),
           _FoodToolSection(
             icon: Icons.flag_rounded,
-            title: '目标',
+            title: '今日汇总',
             children: [
               _FoodToolInfoCard(
                 icon: Icons.local_fire_department_rounded,
-                title: '热量目标',
-                value: '$todayCalories / $suggestedCalories kcal',
+                title: '已摄入热量',
+                value: '$todayCalories kcal',
                 subtitle: '当前餐次：$activeMeal',
               ),
               _FoodToolInfoCard(
@@ -168,7 +166,7 @@ class _FoodToolsSheet extends StatelessWidget {
                 title: '营养汇总',
                 value:
                     '蛋白 ${protein.round()}g · 碳水 ${carbs.round()}g · 脂肪 ${fat.round()}g',
-                subtitle: '来自今日真实饮食记录',
+                subtitle: '根据食物分类估算，请以包装或称量数据为准',
               ),
               const _FoodToolInfoCard(
                 icon: Icons.schedule_rounded,

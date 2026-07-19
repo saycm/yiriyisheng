@@ -3,16 +3,23 @@
 part of 'life_home.dart';
 
 class LifeHomePage extends StatefulWidget {
-  const LifeHomePage({super.key, this.onSignOut, this.appDataStore});
+  const LifeHomePage({
+    super.key,
+    this.onSignOut,
+    this.appDataStore,
+    this.now,
+  });
 
   final Future<void> Function()? onSignOut;
   final LifeSummaryStore? appDataStore;
+  final DateTime Function()? now;
 
   @override
   State<LifeHomePage> createState() => _LifeHomePageState();
 }
 
-class _LifeHomePageState extends State<LifeHomePage> {
+class _LifeHomePageState extends State<LifeHomePage>
+    with WidgetsBindingObserver {
   static const _defaultAppDataStore = AppDataStore();
   static const _widgetStore = LifeWidgetStore();
 
@@ -25,19 +32,39 @@ class _LifeHomePageState extends State<LifeHomePage> {
   final _planState = _PlanHomeState();
   final _financeState = _FinanceHomeState();
   bool _appDataSaveFailed = false;
+  bool _appDataLoadFailed = false;
+  bool _appDataRestoreComplete = false;
+  late DateTime _visibleDay;
 
   LifeSummaryStore get _appDataStore =>
       widget.appDataStore ?? _defaultAppDataStore;
 
+  DateTime get _now => widget.now?.call() ?? DateTime.now();
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _visibleDay = DateUtils.dateOnly(_now);
     final initialRoute =
         WidgetsBinding.instance.platformDispatcher.defaultRouteName;
     // Android 桌面小组件会把目标模块和快捷动作写进初始路由，冷启动时直接落到对应操作。
     _module = _lifeModuleFromRoute(initialRoute);
     _widgetStore.setQuickActionHandler(_handleWidgetQuickAction);
     unawaited(_restoreAppData());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !mounted) {
+      return;
+    }
+    final currentDay = DateUtils.dateOnly(_now);
+    if (DateUtils.isSameDay(currentDay, _visibleDay)) {
+      return;
+    }
+    setState(() => _visibleDay = currentDay);
+    _syncLinkedSummaryToWidget();
   }
 
   @override
@@ -100,6 +127,15 @@ class _LifeHomePageState extends State<LifeHomePage> {
     return todayFoodCalories(_foodState.logs, today);
   }
 
+  int weekFoodCaloriesFromState(DateTime today) {
+    final start = _startOfWeek(today);
+    final end = start.add(const Duration(days: 7));
+    return _foodState.logs
+        .where((entry) =>
+            !entry.recordedAt.isBefore(start) && entry.recordedAt.isBefore(end))
+        .fold(0, (total, entry) => total + entry.calories);
+  }
+
   Map<String, int> todayWorkoutGroupsByActionFromState(DateTime today) {
     return isSameLocalDay(_workoutState.progressDate, today)
         ? _workoutState.groupsByAction
@@ -115,15 +151,45 @@ class _LifeHomePageState extends State<LifeHomePage> {
     );
   }
 
+  int weekWorkoutGroupsFromState(DateTime today) {
+    final start = _startOfWeek(today);
+    final end = start.add(const Duration(days: 7));
+    var total = _workoutState.history
+        .where((entry) =>
+            !entry.finishedAt.isBefore(start) && entry.finishedAt.isBefore(end))
+        .fold<int>(0, (sum, entry) => sum + entry.totalGroups);
+    final activeSession = _workoutState.activeSession;
+    if (activeSession != null &&
+        !activeSession.startedAt.isBefore(start) &&
+        activeSession.startedAt.isBefore(end)) {
+      total += activeSession.actionProgress.values
+          .fold<int>(0, (sum, groups) => sum + groups);
+    }
+    final progressDate = _workoutState.progressDate;
+    if (progressDate != null &&
+        !progressDate.isBefore(start) &&
+        progressDate.isBefore(end)) {
+      total += _workoutState.groupsByAction.values
+          .fold<int>(0, (sum, groups) => sum + groups);
+    }
+    return total;
+  }
+
+  DateTime _startOfWeek(DateTime day) {
+    final date = DateUtils.dateOnly(day);
+    return date.subtract(Duration(days: date.weekday - DateTime.monday));
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _widgetStore.clearQuickActionHandler();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
+    final today = _now;
     final todayFoodCalories = todayFoodCaloriesFromState(today);
     final todayWorkoutGroups = todayWorkoutGroupsFromState(today);
     final page = _buildLifeHomeModulePage(
@@ -131,9 +197,12 @@ class _LifeHomePageState extends State<LifeHomePage> {
       onSwitchModule: _setModule,
       onOpenModules: _openModuleSheet,
       onOpenQuickRecord: _openQuickRecordSheet,
+      currentDate: today,
       foodCalories: todayFoodCalories,
+      weeklyFoodCalories: weekFoodCaloriesFromState(today),
       foodLogs: _foodState.logs,
       workoutGroups: todayWorkoutGroups,
+      weeklyWorkoutGroups: weekWorkoutGroupsFromState(today),
       workoutGroupsByAction: todayWorkoutGroupsByActionFromState(today),
       workoutPlans: _workoutState.plans,
       activeWorkoutSession: _workoutState.activeSession,
@@ -164,17 +233,36 @@ class _LifeHomePageState extends State<LifeHomePage> {
       onAddTodo: _addTodo,
       onClearCompletedTodos: _clearCompletedTodos,
       onOpenLinkedTodoAction: _openLinkedModuleAction,
-      quickAction: _pendingQuickAction,
+      quickAction: _appDataRestoreComplete ? _pendingQuickAction : null,
       quickActionToken: _quickActionToken,
       onQuickActionHandled: _markQuickActionHandled,
     );
-    if (!_appDataSaveFailed) {
+    if (_appDataRestoreComplete && !_appDataSaveFailed && !_appDataLoadFailed) {
       return page;
     }
     return Stack(
       children: [
-        page,
-        const _AppDataSaveFailureBanner(),
+        AbsorbPointer(
+          absorbing: !_appDataRestoreComplete,
+          child: page,
+        ),
+        if (!_appDataRestoreComplete)
+          const Positioned.fill(
+            child: ColoredBox(
+              color: Color(0x66F4F7FC),
+              child: Center(
+                child: SizedBox.square(
+                  key: ValueKey('app_data_restore_progress'),
+                  dimension: 28,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
+              ),
+            ),
+          ),
+        if (_appDataSaveFailed || _appDataLoadFailed)
+          _AppDataFailureBanner(
+            message: _appDataLoadFailed ? '数据读取失败，已停止自动保存。' : '数据保存失败，请稍后重试。',
+          ),
       ],
     );
   }
@@ -182,8 +270,10 @@ class _LifeHomePageState extends State<LifeHomePage> {
   int get _pendingTodoCount => _planState.pendingTodoCount;
 }
 
-class _AppDataSaveFailureBanner extends StatelessWidget {
-  const _AppDataSaveFailureBanner();
+class _AppDataFailureBanner extends StatelessWidget {
+  const _AppDataFailureBanner({required this.message});
+
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -198,11 +288,12 @@ class _AppDataSaveFailureBanner extends StatelessWidget {
               color: AppColors.financeRed,
               elevation: 10,
               borderRadius: BorderRadius.circular(8),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 child: Text(
-                  '数据保存失败，请稍后重试。',
-                  style: TextStyle(
+                  message,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
                     fontWeight: FontWeight.w900,

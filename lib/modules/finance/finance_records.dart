@@ -223,7 +223,12 @@ class _FinanceRecordTile extends StatelessWidget {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            _FinanceAccountBadge(account: record.account),
+                            _FinanceAccountBadge(
+                              account: record.type == '转账' &&
+                                      record.toAccount != null
+                                  ? '${record.account} → ${record.toAccount}'
+                                  : record.account,
+                            ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(

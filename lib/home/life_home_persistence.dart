@@ -4,23 +4,38 @@ part of 'life_home.dart';
 
 extension _LifeHomePersistence on _LifeHomePageState {
   Future<void> _restoreAppData() async {
-    final stored = await _appDataStore.load();
-    if (!mounted) {
-      return;
-    }
-    if (stored != null) {
-      _updateState(() => _applyLifeSummarySnapshot(stored));
-      _syncLinkedSummaryToWidget();
-      return;
-    }
+    try {
+      final stored = await _appDataStore.load();
+      if (!mounted) {
+        return;
+      }
+      if (stored != null) {
+        _updateState(() {
+          _applyLifeSummarySnapshot(stored);
+          _appDataRestoreComplete = true;
+        });
+        _syncLinkedSummaryToWidget();
+        return;
+      }
 
-    final snapshot = await _LifeHomePageState._widgetStore.load();
-    if (!mounted) {
-      return;
+      final snapshot = await _LifeHomePageState._widgetStore.load();
+      if (!mounted) {
+        return;
+      }
+      // 兼容旧版本：首次有 SQLite 前，从桌面小组件共享摘要迁移一次。
+      _updateState(() {
+        _applyLifeSummarySnapshot(snapshot);
+        _appDataRestoreComplete = true;
+      });
+      _syncLinkedSummaryToWidget();
+    } catch (_) {
+      if (mounted) {
+        _updateState(() {
+          _appDataLoadFailed = true;
+          _appDataRestoreComplete = true;
+        });
+      }
     }
-    // 兼容旧版本：首次有 SQLite 前，从桌面小组件共享摘要迁移一次。
-    _updateState(() => _applyLifeSummarySnapshot(snapshot));
-    _syncLinkedSummaryToWidget();
   }
 
   void _applyLifeSummarySnapshot(LifeSummarySnapshot snapshot) {
@@ -31,8 +46,11 @@ extension _LifeHomePersistence on _LifeHomePageState {
   }
 
   void _syncLinkedSummaryToWidget() {
+    if (!_appDataRestoreComplete || _appDataLoadFailed) {
+      return;
+    }
     // App 主数据写 SQLite；桌面小组件只接收摘要和快捷入口数据。
-    final today = DateTime.now();
+    final today = _now;
     final foodCalories = todayFoodCaloriesFromState(today);
     final workoutGroups = todayWorkoutGroupsFromState(today);
     unawaited(_saveAppData());
@@ -50,9 +68,12 @@ extension _LifeHomePersistence on _LifeHomePageState {
   }
 
   Future<void> _saveAppData() async {
+    if (!_appDataRestoreComplete || _appDataLoadFailed) {
+      return;
+    }
     try {
       await _appDataStore.save(
-        foodCalories: todayFoodCaloriesFromState(DateTime.now()),
+        foodCalories: todayFoodCaloriesFromState(_now),
         foodLogs: _foodState.logs,
         workoutGroupsByAction: _workoutState.groupsByAction,
         workoutProgressDate: _workoutState.progressDate,

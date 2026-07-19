@@ -43,6 +43,9 @@ class HealthModulePage extends StatefulWidget {
     required this.onSwitchModule,
     required this.foodCalories,
     required this.workoutGroups,
+    this.foodLogs = const [],
+    this.workoutHistory = const [],
+    this.currentDate,
     required this.quickAction,
     required this.quickActionToken,
     required this.onQuickActionHandled,
@@ -53,6 +56,9 @@ class HealthModulePage extends StatefulWidget {
   final ValueChanged<LifeModule> onSwitchModule;
   final int foodCalories;
   final int workoutGroups;
+  final List<FoodLogEntry> foodLogs;
+  final List<WorkoutHistoryEntry> workoutHistory;
+  final DateTime? currentDate;
   final WidgetQuickAction? quickAction;
   final int quickActionToken;
   final VoidCallback onQuickActionHandled;
@@ -63,6 +69,7 @@ class HealthModulePage extends StatefulWidget {
 
 class _HealthModulePageState extends State<HealthModulePage> {
   static const _healthStore = SystemHealthStore();
+  static const _manualStore = HealthManualStore();
 
   var _selectedIndex = 0;
   int _handledQuickActionToken = 0;
@@ -79,6 +86,13 @@ class _HealthModulePageState extends State<HealthModulePage> {
   HealthStressFeeling _stressFeeling = HealthStressFeeling.medium;
   HealthBodyFeeling _bodyFeeling = HealthBodyFeeling.normal;
   HealthMoodFeeling _moodFeeling = HealthMoodFeeling.calm;
+  Map<String, HealthManualRecordData> _manualRecords = const {};
+  var _manualRecordChangedWhileLoading = false;
+  late String _manualRecordDateKey;
+
+  DateTime get _today => DateUtils.dateOnly(
+        widget.currentDate ?? DateTime.now(),
+      );
 
   List<HealthDay> get _days => _buildHealthDays(_systemHealth);
 
@@ -89,29 +103,40 @@ class _HealthModulePageState extends State<HealthModulePage> {
   }
 
   HealthStatusResult get _statusResult {
-    return const HealthStatusCalculator().calculate(
-      input: HealthStatusInput(
-        sleep: _sleepFeeling,
-        energy: _energyFeeling,
-        stress: _stressFeeling,
-        body: _bodyFeeling,
-        mood: _moodFeeling,
-        foodCalories: widget.foodCalories,
-        workoutGroups: widget.workoutGroups,
-      ),
+    return _calculateStatus(
+      sleep: _sleepFeeling,
+      energy: _energyFeeling,
+      stress: _stressFeeling,
+      body: _bodyFeeling,
+      mood: _moodFeeling,
+      foodCalories: widget.foodCalories,
+      workoutGroups: widget.workoutGroups,
     );
   }
 
   @override
   void initState() {
     super.initState();
+    _manualRecordDateKey = healthManualDateKey(_today);
     unawaited(_loadSystemHealth());
+    unawaited(_loadManualRecords());
     _maybeHandleQuickAction();
   }
 
   @override
   void didUpdateWidget(covariant HealthModulePage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final currentDateKey = healthManualDateKey(_today);
+    if (currentDateKey != _manualRecordDateKey) {
+      _manualRecordDateKey = currentDateKey;
+      final record = _manualRecords[currentDateKey];
+      if (record == null) {
+        _resetManualRecord();
+      } else {
+        _applyManualRecord(record);
+      }
+      unawaited(_loadSystemHealth());
+    }
     _maybeHandleQuickAction();
   }
 
@@ -195,7 +220,13 @@ class _HealthModulePageState extends State<HealthModulePage> {
                         _HealthDateStrip(
                           days: days,
                           selectedDay: selectedDay,
-                          statusResult: _statusResult,
+                          today: _today,
+                          statusScores: {
+                            for (final day in days)
+                              if (_statusScoreForDay(day.date)
+                                  case final score?)
+                                healthManualDateKey(day.date): score,
+                          },
                           onSelect: _openDaySummarySheet,
                         ),
                         const SizedBox(height: 10),
@@ -243,8 +274,16 @@ class _HealthModulePageState extends State<HealthModulePage> {
   }
 
   void _openSummarySheet() {
+    final days = _days;
+    final today = days.firstWhere(
+      (day) => DateUtils.isSameDay(day.date, _today),
+      orElse: () => _buildHealthDay(
+        HealthSystemDaySample.empty(_today),
+        _systemHealth,
+      ),
+    );
     _openDaySummarySheet(
-      _selectedDay,
+      today,
       title: '状态总览',
       helperText: null,
     );
@@ -255,6 +294,8 @@ class _HealthModulePageState extends State<HealthModulePage> {
     String? title,
     String? helperText = '查看当天摘要，不会修改今日状态记录。',
   }) {
+    final isToday = DateUtils.isSameDay(day.date, _today);
+    final manualRecord = _manualRecords[healthManualDateKey(day.date)];
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -263,10 +304,10 @@ class _HealthModulePageState extends State<HealthModulePage> {
         day: day,
         title: title,
         helperText: helperText,
-        foodCalories: widget.foodCalories,
-        workoutGroups: widget.workoutGroups,
-        bodyTag: _bodyTag,
-        moodNote: _moodNote,
+        foodCalories: _foodCaloriesForDay(day.date),
+        workoutGroups: _workoutGroupsForDay(day.date),
+        bodyTag: isToday ? _bodyTag : manualRecord?.bodyTag,
+        moodNote: isToday ? _moodNote : manualRecord?.moodNote,
       ),
     );
   }
@@ -295,6 +336,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
         _bodyTag = '正常';
       }
     });
+    _persistCurrentManualRecord();
   }
 
   void _updateEnergyFeeling(HealthEnergyFeeling value) {
@@ -316,6 +358,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
         _bodyTag = '正常';
       }
     });
+    _persistCurrentManualRecord();
   }
 
   void _updateStressFeeling(HealthStressFeeling value) {
@@ -332,6 +375,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
         _bodyTag = '正常';
       }
     });
+    _persistCurrentManualRecord();
   }
 
   void _updateBodyFeeling(HealthBodyFeeling value) {
@@ -339,6 +383,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
       _bodyFeeling = value;
       _painNote = _painNoteForBody(value);
     });
+    _persistCurrentManualRecord();
   }
 
   void _updateMoodFeeling(HealthMoodFeeling value) {
@@ -346,6 +391,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
       _moodFeeling = value;
       _moodNote = _moodLabel(value);
     });
+    _persistCurrentManualRecord();
   }
 
   void _openManualRecordSheet() {
@@ -380,9 +426,204 @@ class _HealthModulePageState extends State<HealthModulePage> {
             _bodyFeeling = record.body;
             _moodFeeling = record.mood;
           });
+          _persistCurrentManualRecord();
         },
       ),
     );
+  }
+
+  Future<void> _loadManualRecords() async {
+    final records = await _manualStore.load();
+    if (!mounted) {
+      return;
+    }
+    final loaded = {
+      for (final record in records) record.dateKey: record,
+    };
+    final todayKey = _manualRecordDateKey;
+    if (_manualRecordChangedWhileLoading) {
+      loaded.addAll(_manualRecords);
+    }
+    setState(() {
+      _manualRecords = loaded;
+      final todayRecord = loaded[todayKey];
+      if (todayRecord != null) {
+        _applyManualRecord(todayRecord);
+      }
+    });
+    if (_manualRecordChangedWhileLoading) {
+      _manualRecordChangedWhileLoading = false;
+      unawaited(_manualStore.save(loaded.values));
+    }
+  }
+
+  void _persistCurrentManualRecord() {
+    _manualRecordChangedWhileLoading = true;
+    final record = _currentManualRecord();
+    final updated = Map<String, HealthManualRecordData>.of(_manualRecords)
+      ..[record.dateKey] = record;
+    _manualRecords = updated;
+    unawaited(_manualStore.save(updated.values));
+  }
+
+  HealthManualRecordData _currentManualRecord() {
+    return HealthManualRecordData(
+      date: _today,
+      bodyTag: _bodyTag,
+      energyLevel: _energyLevel,
+      fatigueLevel: _fatigueLevel,
+      stressLevel: _stressLevel,
+      painNote: _painNote,
+      moodNote: _moodNote,
+      sleep: _sleepFeeling.name,
+      energy: _energyFeeling.name,
+      stress: _stressFeeling.name,
+      body: _bodyFeeling.name,
+      mood: _moodFeeling.name,
+    );
+  }
+
+  void _applyManualRecord(HealthManualRecordData record) {
+    _bodyTag = record.bodyTag;
+    _energyLevel = record.energyLevel;
+    _fatigueLevel = record.fatigueLevel;
+    _stressLevel = record.stressLevel;
+    _painNote = record.painNote;
+    _moodNote = record.moodNote;
+    _sleepFeeling = _enumValue(
+      HealthSleepFeeling.values,
+      record.sleep,
+      HealthSleepFeeling.normal,
+    );
+    _energyFeeling = _enumValue(
+      HealthEnergyFeeling.values,
+      record.energy,
+      HealthEnergyFeeling.normal,
+    );
+    _stressFeeling = _enumValue(
+      HealthStressFeeling.values,
+      record.stress,
+      HealthStressFeeling.medium,
+    );
+    _bodyFeeling = _enumValue(
+      HealthBodyFeeling.values,
+      record.body,
+      HealthBodyFeeling.normal,
+    );
+    _moodFeeling = _enumValue(
+      HealthMoodFeeling.values,
+      record.mood,
+      HealthMoodFeeling.calm,
+    );
+  }
+
+  void _resetManualRecord() {
+    _bodyTag = '正常';
+    _energyLevel = 3;
+    _fatigueLevel = 2;
+    _stressLevel = 3;
+    _painNote = '';
+    _moodNote = '平稳';
+    _sleepFeeling = HealthSleepFeeling.normal;
+    _energyFeeling = HealthEnergyFeeling.normal;
+    _stressFeeling = HealthStressFeeling.medium;
+    _bodyFeeling = HealthBodyFeeling.normal;
+    _moodFeeling = HealthMoodFeeling.calm;
+  }
+
+  int? _statusScoreForDay(DateTime date) {
+    if (DateUtils.isSameDay(date, _today)) {
+      return _statusResult.score;
+    }
+    final record = _manualRecords[healthManualDateKey(date)];
+    if (record == null) {
+      return null;
+    }
+    return _calculateStatusForRecord(record, date).score;
+  }
+
+  HealthStatusResult _calculateStatusForRecord(
+    HealthManualRecordData record,
+    DateTime date,
+  ) {
+    return _calculateStatus(
+      sleep: _enumValue(
+        HealthSleepFeeling.values,
+        record.sleep,
+        HealthSleepFeeling.normal,
+      ),
+      energy: _enumValue(
+        HealthEnergyFeeling.values,
+        record.energy,
+        HealthEnergyFeeling.normal,
+      ),
+      stress: _enumValue(
+        HealthStressFeeling.values,
+        record.stress,
+        HealthStressFeeling.medium,
+      ),
+      body: _enumValue(
+        HealthBodyFeeling.values,
+        record.body,
+        HealthBodyFeeling.normal,
+      ),
+      mood: _enumValue(
+        HealthMoodFeeling.values,
+        record.mood,
+        HealthMoodFeeling.calm,
+      ),
+      foodCalories: _foodCaloriesForDay(date),
+      workoutGroups: _workoutGroupsForDay(date),
+    );
+  }
+
+  int _foodCaloriesForDay(DateTime date) {
+    if (DateUtils.isSameDay(date, _today)) {
+      return widget.foodCalories;
+    }
+    return widget.foodLogs
+        .where((entry) => DateUtils.isSameDay(entry.recordedAt, date))
+        .fold(0, (total, entry) => total + entry.calories);
+  }
+
+  int _workoutGroupsForDay(DateTime date) {
+    if (DateUtils.isSameDay(date, _today)) {
+      return widget.workoutGroups;
+    }
+    return widget.workoutHistory
+        .where((entry) => DateUtils.isSameDay(entry.finishedAt, date))
+        .fold(0, (total, entry) => total + entry.totalGroups);
+  }
+
+  HealthStatusResult _calculateStatus({
+    required HealthSleepFeeling sleep,
+    required HealthEnergyFeeling energy,
+    required HealthStressFeeling stress,
+    required HealthBodyFeeling body,
+    required HealthMoodFeeling mood,
+    required int foodCalories,
+    required int workoutGroups,
+  }) {
+    return const HealthStatusCalculator().calculate(
+      input: HealthStatusInput(
+        sleep: sleep,
+        energy: energy,
+        stress: stress,
+        body: body,
+        mood: mood,
+        foodCalories: foodCalories,
+        workoutGroups: workoutGroups,
+      ),
+    );
+  }
+
+  T _enumValue<T extends Enum>(List<T> values, String name, T fallback) {
+    for (final value in values) {
+      if (value.name == name) {
+        return value;
+      }
+    }
+    return fallback;
   }
 
   String _painNoteForBody(HealthBodyFeeling value) {
@@ -408,7 +649,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
   }
 
   List<HealthSystemDaySample> _recentEmptyHealthSamples() {
-    final today = DateTime.now();
+    final today = _today;
     return List.generate(
       7,
       (index) => HealthSystemDaySample.empty(
@@ -462,11 +703,6 @@ class _HealthModulePageState extends State<HealthModulePage> {
           value: heartRate?.toString(),
           unit: 'bpm',
         ),
-        _metric(
-          title: '今日呼吸',
-          value: sample.respiratoryRate?.toStringAsFixed(1),
-          unit: '次/分',
-        ),
       ],
     );
   }
@@ -491,7 +727,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
   }
 
   String _weekdayLabel(DateTime date) {
-    final today = DateTime.now();
+    final today = _today;
     if (date.year == today.year &&
         date.month == today.month &&
         date.day == today.day) {
@@ -538,18 +774,19 @@ class _HealthDateStrip extends StatelessWidget {
   const _HealthDateStrip({
     required this.days,
     required this.selectedDay,
-    required this.statusResult,
+    required this.today,
+    required this.statusScores,
     required this.onSelect,
   });
 
   final List<HealthDay> days;
   final HealthDay selectedDay;
-  final HealthStatusResult statusResult;
+  final DateTime today;
+  final Map<String, int> statusScores;
   final ValueChanged<HealthDay> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
     return KeyedSubtree(
       key: const ValueKey('health_date_strip'),
       child: GlassSurface(
@@ -616,9 +853,8 @@ class _HealthDateStrip extends StatelessWidget {
                             ),
                             isToday:
                                 DateUtils.isSameDay(days[index].date, today),
-                            score: DateUtils.isSameDay(days[index].date, today)
-                                ? statusResult.score
-                                : null,
+                            score: statusScores[
+                                healthManualDateKey(days[index].date)],
                             onTap: () => onSelect(days[index]),
                           ),
                         ),

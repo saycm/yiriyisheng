@@ -52,6 +52,7 @@ class PingShengWidgetProvider : PingShengBaseWidgetProvider(R.layout.pingsheng_w
     companion object {
         const val PREFS_NAME = "pingsheng_life_widget_summary"
         const val KEY_FOOD_CALORIES = "food_calories"
+        const val KEY_FOOD_SUMMARY_DATE = "food_summary_date"
         const val KEY_FOOD_LOGS_JSON = "food_logs_json"
         const val KEY_PENDING_TODOS = "pending_todos"
         const val KEY_TODOS_JSON = "todos_json"
@@ -60,6 +61,7 @@ class PingShengWidgetProvider : PingShengBaseWidgetProvider(R.layout.pingsheng_w
         const val KEY_WORKOUT_GROUPS_JSON = "workout_groups_json"
         const val KEY_WORKOUT_PROGRESS_DATE = "workout_progress_date"
         const val KEY_HEALTH_TEXT = "health_text"
+        const val KEY_HEALTH_SUMMARY_DATE = "health_summary_date"
 
         fun updateWidgets(
             context: Context,
@@ -96,8 +98,6 @@ class PingShengLightWidgetProvider : PingShengBaseWidgetProvider(R.layout.pingsh
 }
 
 private object PingShengWidgetRenderer {
-    private const val TOTAL_WORKOUT_GROUPS = 19
-
     fun updateWidgets(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -120,7 +120,12 @@ private object PingShengWidgetRenderer {
     ) {
         // 小组件没有 Flutter 运行时，只能读取 MainActivity 写入的 SharedPreferences 摘要。
         val prefs = context.getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
+        val today = java.time.LocalDate.now()
         val foodCalories = prefs.getInt(PingShengWidgetProvider.KEY_FOOD_CALORIES, 0)
+        val foodSummaryDate = prefs.getString(
+            PingShengWidgetProvider.KEY_FOOD_SUMMARY_DATE,
+            null
+        )
         val pendingTodos = prefs.getInt(PingShengWidgetProvider.KEY_PENDING_TODOS, 0)
         val todos = safeJsonArray(
             prefs.getString(PingShengWidgetProvider.KEY_TODOS_JSON, null),
@@ -134,14 +139,26 @@ private object PingShengWidgetRenderer {
         val todayExpense = todayExpense(financeRecords)
         val todayIncome = todayIncome(financeRecords)
         val workoutGroups = prefs.getInt(PingShengWidgetProvider.KEY_WORKOUT_GROUPS, 0)
+        val workoutSummaryDate = prefs.getString(
+            PingShengWidgetProvider.KEY_WORKOUT_PROGRESS_DATE,
+            null
+        )
         val healthText = prefs.getString(PingShengWidgetProvider.KEY_HEALTH_TEXT, "状态待授权").orEmpty()
-        val activeCalories = extractCalories(healthText)
-        val foodText = if (foodCalories > 0) {
-            "饮食\n${foodCalories} kcal"
-        } else {
-            "饮食\n待记录"
-        }
-        val workoutText = "锻炼\n${workoutGroups}/${TOTAL_WORKOUT_GROUPS}组"
+        val healthSummaryDate = prefs.getString(
+            PingShengWidgetProvider.KEY_HEALTH_SUMMARY_DATE,
+            null
+        )
+        val healthCardText = WidgetSummaryPolicy.healthCardText(
+            healthText,
+            healthSummaryDate,
+            today
+        )
+        val foodText = WidgetSummaryPolicy.foodText(foodCalories, foodSummaryDate, today)
+        val workoutText = WidgetSummaryPolicy.workoutText(
+            workoutGroups,
+            workoutSummaryDate,
+            today
+        )
         val expenseText = "¥${formatMoney(todayExpense)}"
         val incomeText = "¥${formatMoney(todayIncome)}"
 
@@ -163,11 +180,7 @@ private object PingShengWidgetRenderer {
         views.setTextViewText(R.id.widget_quick_finance, "记账\n快捷支出")
         views.setTextViewText(
             R.id.widget_active_calories,
-            if (activeCalories > 0) {
-                "今日消耗\n${activeCalories} kcal"
-            } else {
-                "今日消耗\n待同步"
-            }
+            healthCardText
         )
 
         // 需要输入内容的操作进入 App 的真实编辑流程；刷新动作留在小组件内完成。
@@ -300,11 +313,6 @@ private object PingShengWidgetRenderer {
         } else {
             String.format("%.2f", amount)
         }
-    }
-
-    private fun extractCalories(text: String): Int {
-        val match = Regex("""(\d+)\s*kcal""").find(text)
-        return match?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
     }
 
     private fun safeJsonArray(raw: String?, fallback: String): JSONArray {

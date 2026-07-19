@@ -28,9 +28,15 @@ extension _LifeHomeMutations on _LifeHomePageState {
 
   void _updateWorkoutGroups(String actionName, int finishedGroups) {
     // 锻炼模块完成组数保存在父级，切换到状态/饮食/计划后仍能联动展示。
-    final previousGroups = _workoutState.groupsByAction[actionName] ?? 0;
+    final today = DateUtils.dateOnly(_now);
+    final startsNewDay = !isSameLocalDay(_workoutState.progressDate, today);
+    final previousGroups =
+        startsNewDay ? 0 : _workoutState.groupsByAction[actionName] ?? 0;
     _updateState(() {
-      _workoutState.progressDate = DateUtils.dateOnly(DateTime.now());
+      if (startsNewDay) {
+        _workoutState.groupsByAction.clear();
+      }
+      _workoutState.progressDate = today;
       _workoutState.groupsByAction[actionName] = finishedGroups;
       if (finishedGroups > previousGroups) {
         _pushLifeEvent(
@@ -49,6 +55,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
   void _startWorkoutSession(ActiveWorkoutSession session) {
     _updateState(() {
       _workoutState.activeSession = session;
+      _workoutState.progressDate = DateUtils.dateOnly(session.startedAt);
       _pushLifeEvent(
         LifeEvent(
           title: '开始训练',
@@ -62,7 +69,10 @@ extension _LifeHomeMutations on _LifeHomePageState {
   }
 
   void _updateWorkoutSession(ActiveWorkoutSession session) {
-    _updateState(() => _workoutState.activeSession = session);
+    _updateState(() {
+      _workoutState.activeSession = session;
+      _workoutState.progressDate = DateUtils.dateOnly(session.startedAt);
+    });
     _syncLinkedSummaryToWidget();
   }
 
@@ -71,9 +81,6 @@ extension _LifeHomeMutations on _LifeHomePageState {
       _workoutState.history.insert(0, entry);
       _workoutState.activeSession = null;
       _workoutState.progressDate = DateUtils.dateOnly(entry.finishedAt);
-      for (final result in entry.actionResults) {
-        _workoutState.groupsByAction[result.actionName] = result.finishedGroups;
-      }
       _pushLifeEvent(
         LifeEvent(
           title: '完成训练',
@@ -100,8 +107,19 @@ extension _LifeHomeMutations on _LifeHomePageState {
 
   void _toggleTodo(TodoItem todo) {
     final wasDone = todo.done;
+    final generatedOccurrence = wasDone ? todo.createNextOccurrence() : null;
     _updateState(() {
       todo.done = !todo.done;
+      final nextOccurrence = !wasDone ? todo.createNextOccurrence() : null;
+      if (nextOccurrence != null &&
+          !_planState.todos.any((item) => item.id == nextOccurrence.id)) {
+        _planState.todos.add(nextOccurrence);
+      }
+      if (generatedOccurrence != null) {
+        _planState.todos.removeWhere(
+          (item) => isUntouchedTodoOccurrence(item, generatedOccurrence),
+        );
+      }
       _pushLifeEvent(
         LifeEvent(
           title: todo.done ? '完成待办' : '重新打开待办',

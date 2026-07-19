@@ -357,13 +357,19 @@ class _WorkoutTodayRecommendationCard extends StatelessWidget {
 
 class _WorkoutTodayStatsCard extends StatelessWidget {
   const _WorkoutTodayStatsCard({
+    required this.title,
     required this.finishedGroups,
     required this.totalGroups,
+    required this.weekSessions,
+    required this.weekGroups,
     required this.feedback,
   });
 
+  final String title;
   final int finishedGroups;
   final int totalGroups;
+  final int weekSessions;
+  final int weekGroups;
   final String feedback;
 
   @override
@@ -371,8 +377,6 @@ class _WorkoutTodayStatsCard extends StatelessWidget {
     final progress = totalGroups == 0
         ? 0.0
         : (finishedGroups / totalGroups).clamp(0, 1).toDouble();
-    final sessions = finishedGroups == 0 ? 0 : 1;
-
     return KeyedSubtree(
       key: const ValueKey('workout_today_stats_card'),
       child: GlassSurface(
@@ -384,10 +388,10 @@ class _WorkoutTodayStatsCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    '今日训练计划',
-                    style: TextStyle(
+                    title,
+                    style: const TextStyle(
                       color: AppColors.ink,
                       fontSize: 15,
                       fontWeight: FontWeight.w900,
@@ -419,7 +423,7 @@ class _WorkoutTodayStatsCard extends StatelessWidget {
                 Expanded(
                   child: _WorkoutMiniStat(
                     label: '本周次数',
-                    value: '$sessions 次',
+                    value: '$weekSessions 次',
                     color: AppColors.success,
                   ),
                 ),
@@ -427,7 +431,7 @@ class _WorkoutTodayStatsCard extends StatelessWidget {
                 Expanded(
                   child: _WorkoutMiniStat(
                     label: '本周总组数',
-                    value: '$finishedGroups 组',
+                    value: '$weekGroups 组',
                     color: AppColors.primary,
                   ),
                 ),

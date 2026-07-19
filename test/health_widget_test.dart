@@ -1,12 +1,43 @@
 // 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pingsheng_life/main.dart';
+import 'package:pingsheng_life/modules/health/health.dart';
+import 'package:pingsheng_life/modules/health/health_manual_store.dart';
 
 import 'helpers/widget_test_helpers.dart';
 
 void main() {
+  setUp(mockDefaultWidgetSummary);
+
+  test('damaged manual health fields are ignored instead of crashing',
+      () async {
+    const channel = MethodChannel('pingsheng_life/health_manual');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'loadHealthManualRecords') {
+        return jsonEncode([
+          {
+            'date': '2026-07-10',
+            'bodyTag': 123,
+            'moodNote': true,
+          },
+        ]);
+      }
+      return null;
+    });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    expect(await const HealthManualStore().load(), isEmpty);
+  });
+
   testWidgets('health status chips stay readable in dark system theme',
       (tester) async {
     mockSystemHealthSnapshot();
@@ -123,8 +154,8 @@ void main() {
       find.descendant(of: entry, matching: find.text('6,320 步 · 手机计步器')),
       findsOneWidget,
     );
-    expect(find.descendant(of: entry, matching: find.text('外部数据源')),
-        findsNothing);
+    expect(
+        find.descendant(of: entry, matching: find.text('外部数据源')), findsNothing);
   });
 
   testWidgets('health module shows status center before external data source',
@@ -667,6 +698,194 @@ void main() {
     expect(find.text('睡眠一般'), findsNothing);
   });
 
+  testWidgets('quick health record survives rebuilding the health page',
+      (tester) async {
+    mockSystemHealthStatus(
+      status: 'permissionRequired',
+      message: '还没有授予步数、睡眠和心率权限。',
+    );
+    final manualStore = _mockHealthManualStore();
+
+    await tester.pumpWidget(_healthPage());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('health_quick_sleep_poor')));
+    await tester.pumpAndSettle();
+
+    expect(manualStore.savedRecords, isNotEmpty);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(_healthPage());
+    await tester.pumpAndSettle();
+
+    expect(find.text('睡眠感较差'), findsWidgets);
+    expect(find.text('睡眠一般'), findsNothing);
+  });
+
+  testWidgets('historical day uses its own manual health record and score',
+      (tester) async {
+    mockSystemHealthStatus(
+      status: 'permissionRequired',
+      message: '还没有授予步数、睡眠和心率权限。',
+    );
+    final today = DateTime.now();
+    final historyDate = DateTime(today.year, today.month, today.day)
+        .subtract(const Duration(days: 1));
+    _mockHealthManualStore(
+      initialRecords: [
+        _manualRecordJson(
+          date: historyDate,
+          bodyTag: '历史疲惫',
+          moodNote: '历史低落',
+          sleep: 'poor',
+          energy: 'tired',
+          stress: 'high',
+          body: 'neckPain',
+          mood: 'low',
+        ),
+        _manualRecordJson(
+          date: today,
+          bodyTag: '今日很好',
+          moodNote: '今日开心',
+          sleep: 'good',
+          energy: 'strong',
+          stress: 'low',
+          body: 'normal',
+          mood: 'happy',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _healthPage(
+        foodCalories: 999,
+        workoutGroups: 9,
+        foodLogs: [
+          FoodLogEntry(
+            food: const FoodItem(
+              emoji: '',
+              name: '历史饮食',
+              calorie: 321,
+              unit: '1 份',
+              group: '自定义',
+            ),
+            meal: '午餐',
+            servings: 1,
+            note: '',
+            recordedAt: historyDate.add(const Duration(hours: 12)),
+          ),
+        ],
+        workoutHistory: [
+          WorkoutHistoryEntry(
+            planId: 'history-plan',
+            planName: '历史训练',
+            startedAt: historyDate.add(const Duration(hours: 18)),
+            finishedAt: historyDate.add(const Duration(hours: 19)),
+            durationMinutes: 60,
+            totalGroups: 4,
+            estimatedCalories: 200,
+            actionResults: const [],
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final dateKey = _healthDateKey(historyDate);
+    final historyStatus = find.byKey(ValueKey('health_day_status_$dateKey'));
+    expect(tester.widget<Text>(historyStatus).data, contains('分'));
+
+    await tester.tap(find.byKey(ValueKey('health_day_pill_$dateKey')));
+    await tester.pumpAndSettle();
+
+    final sheet = find.byType(BottomSheet);
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.text('历史疲惫 · 历史低落'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.descendant(of: sheet, matching: find.textContaining('今日很好')),
+        findsNothing);
+  });
+
+  testWidgets('unrecorded historical day never reuses today health values',
+      (tester) async {
+    mockSystemHealthStatus(
+      status: 'permissionRequired',
+      message: '还没有授予步数、睡眠和心率权限。',
+    );
+    final today = DateTime.now();
+    final historyDate = DateTime(today.year, today.month, today.day)
+        .subtract(const Duration(days: 2));
+    _mockHealthManualStore(
+      initialRecords: [
+        _manualRecordJson(
+          date: today,
+          bodyTag: '今日很好',
+          moodNote: '今日开心',
+          sleep: 'good',
+          energy: 'strong',
+          stress: 'low',
+          body: 'normal',
+          mood: 'happy',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _healthPage(
+        foodCalories: 999,
+        workoutGroups: 9,
+        foodLogs: [
+          FoodLogEntry(
+            food: const FoodItem(
+              emoji: '',
+              name: '历史饮食',
+              calorie: 321,
+              unit: '1 份',
+              group: '自定义',
+            ),
+            meal: '午餐',
+            servings: 1,
+            note: '',
+            recordedAt: historyDate.add(const Duration(hours: 12)),
+          ),
+        ],
+        workoutHistory: [
+          WorkoutHistoryEntry(
+            planId: 'history-plan',
+            planName: '历史训练',
+            startedAt: historyDate.add(const Duration(hours: 18)),
+            finishedAt: historyDate.add(const Duration(hours: 19)),
+            durationMinutes: 60,
+            totalGroups: 4,
+            estimatedCalories: 200,
+            actionResults: const [],
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(ValueKey('health_day_pill_${_healthDateKey(historyDate)}')),
+    );
+    await tester.pumpAndSettle();
+
+    final sheet = find.byType(BottomSheet);
+    expect(
+        find.descendant(of: sheet, matching: find.text('未记录')), findsOneWidget);
+    expect(find.descendant(of: sheet, matching: find.text('321 kcal')),
+        findsOneWidget);
+    expect(
+        find.descendant(of: sheet, matching: find.text('4 组')), findsOneWidget);
+    expect(find.descendant(of: sheet, matching: find.text('999 kcal')),
+        findsNothing);
+    expect(
+        find.descendant(of: sheet, matching: find.text('9 组')), findsNothing);
+  });
+
   testWidgets('health connect status stays behind optional source entry',
       (tester) async {
     Future<void> pumpHealthWithStatus({
@@ -722,3 +941,96 @@ void main() {
     expect(find.text('数据为空'), findsNothing);
   });
 }
+
+Widget _healthPage({
+  int foodCalories = 0,
+  int workoutGroups = 0,
+  List<FoodLogEntry> foodLogs = const [],
+  List<WorkoutHistoryEntry> workoutHistory = const [],
+}) {
+  return MaterialApp(
+    home: HealthModulePage(
+      moduleNav: const SizedBox.shrink(),
+      onOpenModules: () {},
+      onSwitchModule: (_) {},
+      foodCalories: foodCalories,
+      workoutGroups: workoutGroups,
+      foodLogs: foodLogs,
+      workoutHistory: workoutHistory,
+      quickAction: null,
+      quickActionToken: 0,
+      onQuickActionHandled: () {},
+    ),
+  );
+}
+
+_HealthManualStoreHarness _mockHealthManualStore({
+  List<Map<String, Object?>> initialRecords = const [],
+}) {
+  const channel = MethodChannel('pingsheng_life/health_manual');
+  final harness = _HealthManualStoreHarness(initialRecords);
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(channel, (call) async {
+    switch (call.method) {
+      case 'loadHealthManualRecords':
+        return jsonEncode(harness.savedRecords);
+      case 'saveHealthManualRecords':
+        final arguments = (call.arguments as Map?)?.cast<Object?, Object?>();
+        final recordsJson = arguments?['recordsJson'] as String? ?? '[]';
+        harness.savedRecords = (jsonDecode(recordsJson) as List)
+            .whereType<Map>()
+            .map((record) => record.cast<String, Object?>())
+            .toList();
+        return null;
+      default:
+        throw PlatformException(code: 'not_implemented');
+    }
+  });
+  addTearDown(
+    () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null),
+  );
+  return harness;
+}
+
+class _HealthManualStoreHarness {
+  _HealthManualStoreHarness(List<Map<String, Object?>> initialRecords)
+      : savedRecords = List.of(initialRecords);
+
+  List<Map<String, Object?>> savedRecords;
+}
+
+Map<String, Object?> _manualRecordJson({
+  required DateTime date,
+  required String bodyTag,
+  required String moodNote,
+  required String sleep,
+  required String energy,
+  required String stress,
+  required String body,
+  required String mood,
+}) {
+  return {
+    'date': _dateIso(date),
+    'bodyTag': bodyTag,
+    'energyLevel': 3.0,
+    'fatigueLevel': 2.0,
+    'stressLevel': 3.0,
+    'painNote': '',
+    'moodNote': moodNote,
+    'sleep': sleep,
+    'energy': energy,
+    'stress': stress,
+    'body': body,
+    'mood': mood,
+  };
+}
+
+String _dateIso(DateTime date) {
+  return '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
+}
+
+String _healthDateKey(DateTime date) =>
+    '${date.year}_${date.month}_${date.day}';

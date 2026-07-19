@@ -56,7 +56,11 @@ class FinanceHealthCalculator {
       _cashflowMetric(income: income, expense: expense),
       _emergencyMetric(records: records, anchor: anchor),
       _budgetMetric(records: monthlyRecords),
-      _fixedCostMetric(records: monthlyRecords, income: income),
+      _fixedCostMetric(
+        records: monthlyRecords,
+        income: income,
+        month: anchor,
+      ),
       _spendingStructureMetric(records: monthlyRecords),
     ];
     final total = metrics.fold<int>(0, (sum, metric) => sum + metric.score);
@@ -219,8 +223,9 @@ class FinanceHealthCalculator {
   FinanceHealthMetric _fixedCostMetric({
     required List<FinanceRecord> records,
     required double income,
+    required DateTime month,
   }) {
-    final fixedCost = _fixedCostRecords(records)
+    final fixedCost = _fixedCostRecords(records, month: month)
         .fold<double>(0, (sum, record) => sum + record.amount);
     if (income <= 0) {
       return FinanceHealthMetric(

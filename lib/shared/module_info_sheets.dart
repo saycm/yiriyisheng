@@ -60,7 +60,7 @@ class _AboutAppSheet extends StatelessWidget {
             icon: Icons.monitor_heart_rounded,
             title: '状态',
             body:
-                '状态中心整合手动身体记录、饮食摄入、锻炼负载和计划压力。Health Connect 是可选外部数据源，可补充步数、睡眠、心率、能量和呼吸参考。',
+                '状态中心整合手动身体记录、饮食摄入、锻炼负载和计划压力。Health Connect 是可选外部数据源，可补充步数、睡眠、心率和能量参考。',
             color: Color(0xFFFF747C),
           ),
           const _FeatureIntroCard(
@@ -248,7 +248,7 @@ class _GuideSheet extends StatelessWidget {
           _GuideQuestion(
             question: 'Health Connect 必须开启吗？',
             answer:
-                '不是必须。没有授权或设备不支持时，状态中心仍然可以用手动记录、饮食、锻炼和计划数据正常工作。授权后，App 会额外读取步数、睡眠、心率、能量和呼吸等系统健康参考。',
+                '不是必须。没有授权或设备不支持时，状态中心仍然可以用手动记录、饮食、锻炼和计划数据正常工作。授权后，App 会额外读取步数、睡眠、心率和能量等系统健康参考。',
           ),
           _GuideQuestion(
             question: '桌面小组件能做什么？',
@@ -418,12 +418,32 @@ class _FeedbackSheet extends StatefulWidget {
 
 class _FeedbackSheetState extends State<_FeedbackSheet> {
   final _controller = TextEditingController();
-  bool _sent = false;
+  final _focusNode = FocusNode();
+  bool _copied = false;
 
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  void _copyFeedback() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) {
+      return;
+    }
+    _controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection(baseOffset: 0, extentOffset: text.length),
+    );
+    _focusNode.requestFocus();
+    final focusContext = _focusNode.context;
+    if (focusContext == null) {
+      return;
+    }
+    Actions.invoke(focusContext, CopySelectionTextIntent.copy);
+    setState(() => _copied = true);
   }
 
   @override
@@ -435,8 +455,10 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
         children: [
           TextField(
             controller: _controller,
+            focusNode: _focusNode,
             minLines: 5,
             maxLines: 7,
+            onChanged: (_) => setState(() => _copied = false),
             cursorColor: AppColors.primary,
             style: const TextStyle(
               color: AppColors.ink,
@@ -462,9 +484,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
             width: double.infinity,
             height: 52,
             child: FilledButton(
-              onPressed: () {
-                setState(() => _sent = true);
-              },
+              onPressed: _controller.text.trim().isEmpty ? null : _copyFeedback,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
@@ -472,16 +492,16 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                 ),
               ),
               child: const Text(
-                '提交反馈',
+                '复制反馈内容',
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
             ),
           ),
-          if (_sent) ...[
+          if (_copied) ...[
             const SizedBox(height: 14),
             const EmptyCard(
-              title: '已收到',
-              subtitle: '原型里先做本地反馈状态，后续可以接入邮件、接口或工单系统。',
+              title: '已复制，尚未发送',
+              subtitle: '请将反馈内容粘贴到你选择的沟通渠道后发送。',
             ),
           ],
         ],

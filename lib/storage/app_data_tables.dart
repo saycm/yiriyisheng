@@ -96,6 +96,7 @@ extension _AppDataStoreTables on AppDataStore {
             dueDate TEXT,
             note TEXT,
             repeatRule TEXT,
+            repeatAnchorDay INTEGER,
             linkedModulesJson TEXT,
             postponedCount INTEGER,
             createdAt TEXT,
@@ -112,6 +113,7 @@ extension _AppDataStoreTables on AppDataStore {
             type TEXT NOT NULL,
             date TEXT,
             account TEXT,
+            toAccount TEXT,
             tagsJson TEXT
           )
         ''');
@@ -150,6 +152,12 @@ extension _AppDataStoreTables on AppDataStore {
         }
         if (oldVersion < 6) {
           await _createFoodLogTable(db);
+        }
+        if (oldVersion < 7) {
+          await _addColumnIfMissing(db, 'finance_records', 'toAccount TEXT');
+        }
+        if (oldVersion < 8) {
+          await _addColumnIfMissing(db, 'todos', 'repeatAnchorDay INTEGER');
         }
       },
     );
@@ -219,11 +227,13 @@ extension _AppDataStoreTables on AppDataStore {
     String table,
     String columnDefinition,
   ) async {
-    try {
-      await db.execute('ALTER TABLE $table ADD COLUMN $columnDefinition');
-    } catch (_) {
-      // 旧库可能已经被部分升级过；重复列直接跳过。
+    final columnName = columnDefinition.trim().split(RegExp(r'\s+')).first;
+    final quotedTable = '"${table.replaceAll('"', '""')}"';
+    final columns = await db.rawQuery('PRAGMA table_info($quotedTable)');
+    if (columns.any((column) => column['name'] == columnName)) {
+      return;
     }
+    await db.execute('ALTER TABLE $quotedTable ADD COLUMN $columnDefinition');
   }
 
   Future<int> _readIntMeta(Database db, String key) async {

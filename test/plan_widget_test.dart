@@ -115,6 +115,14 @@ void main() {
         find.byKey(const ValueKey('today_overview_metric_训练'));
 
     expect(healthPanel, findsOneWidget);
+    expect(
+      find.descendant(of: healthPanel, matching: find.text('待记录')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: healthPanel, matching: find.text('正常')),
+      findsNothing,
+    );
     expect(todoMetric, findsOneWidget);
     expect(expenseMetric, findsOneWidget);
     expect(caloriesMetric, findsOneWidget);
@@ -194,6 +202,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('清理已完成 (1)'));
     await tester.pumpAndSettle();
+
+    expect(find.text('撤销'), findsNothing);
 
     await dragUntilFound(
       tester,
@@ -310,6 +320,24 @@ void main() {
     expect(find.byKey(const ValueKey('week_plan_selected_tasks_panel')),
         findsOneWidget);
     expect(find.text('待安排任务'), findsOneWidget);
+  });
+
+  testWidgets('week plan displays Monday before Sunday', (tester) async {
+    await pumpPingShengApp(tester);
+
+    await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
+    await tester.pumpAndSettle();
+
+    final board = find.byKey(const ValueKey('week_plan_day_board'));
+    await tester.ensureVisible(board);
+    await tester.pumpAndSettle();
+    final monday = find.text('一');
+    final sunday = find.text('日');
+
+    expect(monday, findsOneWidget);
+    expect(sunday, findsOneWidget);
+    expect(
+        tester.getTopLeft(monday).dy, lessThan(tester.getTopLeft(sunday).dy));
   });
 
   testWidgets('week command center stays compact on narrow screens',
@@ -603,6 +631,75 @@ void main() {
     expect(find.text('已完成：整理学习清单'), findsOneWidget);
   });
 
+  testWidgets('repeating todo creates only one next occurrence after undo',
+      (tester) async {
+    await pumpPingShengApp(tester);
+
+    await tester.tap(find.byKey(const ValueKey('plan_add_todo_fab')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '每日复盘');
+    await tester.ensureVisible(find.widgetWithText(ChoiceChip, '每天'));
+    await tester.tap(find.widgetWithText(ChoiceChip, '每天'));
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '保存'));
+    await tester.tap(find.widgetWithText(FilledButton, '保存'));
+    await tester.pumpAndSettle();
+
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('todo_card_每日复盘')),
+      scrollable: find.byType(Scrollable).last,
+    );
+    await _tapTodoAction(tester, '每日复盘', '完成');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('撤销'));
+    await tester.pumpAndSettle();
+
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    await tester.tap(find.byKey(const ValueKey('plan_header_date_button')));
+    await tester.pumpAndSettle();
+    final datePicker =
+        tester.widget<CalendarDatePicker>(find.byType(CalendarDatePicker));
+    datePicker.onDateChanged(tomorrow);
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '确定'));
+    await tester.pumpAndSettle();
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('week_plan_selected_tasks_panel')),
+      scrollable: find.byKey(const ValueKey('week_plan_list')),
+    );
+    var selectedPanel =
+        find.byKey(const ValueKey('week_plan_selected_tasks_panel'));
+    expect(
+      find.descendant(of: selectedPanel, matching: find.text('每日复盘')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_0')));
+    await tester.pumpAndSettle();
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('todo_card_每日复盘')),
+      scrollable: find.byType(Scrollable).last,
+    );
+    await _tapTodoAction(tester, '每日复盘', '完成');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('plan_bottom_nav_2')));
+    await tester.pumpAndSettle();
+
+    await dragUntilFound(
+      tester,
+      find.byKey(const ValueKey('week_plan_selected_tasks_panel')),
+      scrollable: find.byKey(const ValueKey('week_plan_list')),
+    );
+    selectedPanel =
+        find.byKey(const ValueKey('week_plan_selected_tasks_panel'));
+    expect(
+      find.descendant(of: selectedPanel, matching: find.text('每日复盘')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('week plan undoes scheduling one backlog item', (tester) async {
     await pumpPingShengApp(tester);
 
@@ -746,6 +843,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('本周复盘'), findsOneWidget);
+    expect(find.textContaining('未完成'), findsWidgets);
+    expect(find.textContaining('延后'), findsWidgets);
     await dragUntilFound(
       tester,
       find.text('下周建议'),
@@ -754,8 +853,6 @@ void main() {
     expect(find.text('下周建议'), findsOneWidget);
     expect(find.text('20,885步'), findsNothing);
     expect(find.text('499.96元'), findsNothing);
-    expect(find.textContaining('未完成'), findsWidgets);
-    expect(find.textContaining('延后'), findsWidgets);
   });
 }
 

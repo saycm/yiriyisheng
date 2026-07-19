@@ -27,6 +27,7 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
   late String _type;
   late _FinanceCategorySpec _category;
   late String _account;
+  late String _toAccount;
   late String _amountText;
   late DateTime _date;
   double _accumulator = 0;
@@ -54,6 +55,10 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
     _FinanceCategorySpec(Icons.work_history_rounded, '兼职'),
   ];
 
+  static const _transferCategories = [
+    _FinanceCategorySpec(Icons.swap_horiz_rounded, '转账'),
+  ];
+
   static const _accounts = ['银行卡', '微信', '支付宝', '现金', '信用卡'];
 
   @override
@@ -63,6 +68,8 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
     _type = record?.type ?? '支出';
     _category = _categoryForRecord(record);
     _account = record?.account ?? '银行卡';
+    _toAccount = record?.toAccount ??
+        _accounts.firstWhere((account) => account != _account);
     _subtitleController = TextEditingController(
         text: record?.subtitle == '手动记录' ? '' : record?.subtitle ?? '');
     _amountText = record == null ? '0' : _formatAmountInput(record.amount);
@@ -138,6 +145,10 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
                           _buildCategoryStrip(),
                           const SizedBox(height: 6),
                           _buildAccountStrip(),
+                          if (_type == '转账') ...[
+                            const SizedBox(height: 6),
+                            _buildToAccountStrip(),
+                          ],
                           const SizedBox(height: 6),
                           _buildAmountDisplay(),
                           const SizedBox(height: 6),
@@ -187,6 +198,14 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
               onTap: () => _setType('收入'),
             ),
           ),
+          Expanded(
+            child: _FinanceTypeButton(
+              buttonKey: const ValueKey('finance_category_transfer'),
+              label: '转账',
+              selected: _type == '转账',
+              onTap: () => _setType('转账'),
+            ),
+          ),
         ],
       ),
     );
@@ -227,9 +246,36 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
             key: ValueKey('finance_account_$account'),
             label: account,
             selected: selected,
-            onTap: () => setState(() => _account = account),
+            onTap: () => setState(() {
+              _account = account;
+              if (_toAccount == _account) {
+                _toAccount = _accounts.firstWhere((item) => item != _account);
+              }
+            }),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildToAccountStrip() {
+    final accounts = _accounts.where((account) => account != _account).toList();
+    return SizedBox(
+      height: 34,
+      child: Row(
+        children: [
+          for (var index = 0; index < accounts.length; index++) ...[
+            if (index > 0) const SizedBox(width: 6),
+            Expanded(
+              child: _RangeChip(
+                key: ValueKey('finance_to_account_${accounts[index]}'),
+                label: accounts[index],
+                selected: accounts[index] == _toAccount,
+                onTap: () => setState(() => _toAccount = accounts[index]),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -253,7 +299,9 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${_category.title} · $_type · $_account',
+                  _type == '转账'
+                      ? '$_account → $_toAccount'
+                      : '${_category.title} · $_type · $_account',
                   style: const TextStyle(
                     color: AppColors.muted,
                     fontSize: 12,
@@ -420,17 +468,23 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
         type: _type,
         date: _date,
         account: _account,
+        toAccount: _type == '转账' ? _toAccount : null,
       ),
     );
   }
 
-  List<_FinanceCategorySpec> get _visibleCategories =>
-      _type == '收入' ? _incomeCategories : _expenseCategories;
+  List<_FinanceCategorySpec> get _visibleCategories => switch (_type) {
+        '收入' => _incomeCategories,
+        '转账' => _transferCategories,
+        _ => _expenseCategories,
+      };
 
   _FinanceCategorySpec _categoryForRecord(FinanceRecord? record) {
-    final categories = (record?.type ?? _type) == '收入'
-        ? _incomeCategories
-        : _expenseCategories;
+    final categories = switch (record?.type ?? _type) {
+      '收入' => _incomeCategories,
+      '转账' => _transferCategories,
+      _ => _expenseCategories,
+    };
     if (record == null) {
       return categories.first;
     }
@@ -449,6 +503,9 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
     }
     setState(() {
       _type = type;
+      if (_type == '转账' && _toAccount == _account) {
+        _toAccount = _accounts.firstWhere((account) => account != _account);
+      }
       final currentStillVisible = _visibleCategories
           .any((category) => category.title == _category.title);
       if (!currentStillVisible) {

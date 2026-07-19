@@ -12,6 +12,8 @@ class PlanModulePage extends StatefulWidget {
     required this.onOpenQuickRecord,
     required this.foodCalories,
     required this.workoutGroups,
+    required this.weeklyFoodCalories,
+    required this.weeklyWorkoutGroups,
     required this.todayExpense,
     required this.healthStatusText,
     required this.todos,
@@ -35,6 +37,8 @@ class PlanModulePage extends StatefulWidget {
   final VoidCallback onOpenQuickRecord;
   final int foodCalories;
   final int workoutGroups;
+  final int weeklyFoodCalories;
+  final int weeklyWorkoutGroups;
   final double todayExpense;
   final String healthStatusText;
   final List<TodoItem> todos;
@@ -117,6 +121,8 @@ class _PlanModulePageState extends State<PlanModulePage>
                   events: widget.events,
                   foodCalories: widget.foodCalories,
                   workoutGroups: widget.workoutGroups,
+                  weeklyFoodCalories: widget.weeklyFoodCalories,
+                  weeklyWorkoutGroups: widget.weeklyWorkoutGroups,
                   todayExpense: widget.todayExpense,
                   healthStatusText: widget.healthStatusText,
                   onSelectDate: (date) => setState(() {

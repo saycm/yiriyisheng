@@ -10,11 +10,6 @@ class _SettingsSheet extends StatefulWidget {
 }
 
 class _SettingsSheetState extends State<_SettingsSheet> {
-  bool _widgetDirectRecord = true;
-  bool _summaryOpensDetail = true;
-  bool _lowCalorieHint = false;
-  String _defaultMeal = '三餐';
-
   @override
   Widget build(BuildContext context) {
     final settings = AppSettingsScope.of(context);
@@ -23,47 +18,6 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SettingsSectionTitle(
-            icon: Icons.widgets_rounded,
-            title: '桌面小组件',
-          ),
-          _SettingsSwitchTile(
-            tileKey: const ValueKey('setting_widget_direct_record'),
-            icon: Icons.touch_app_rounded,
-            title: '快捷按钮直接记录',
-            subtitle: '待办、饮食、记账、锻炼',
-            value: _widgetDirectRecord,
-            onChanged: (value) => setState(() => _widgetDirectRecord = value),
-          ),
-          _SettingsSwitchTile(
-            tileKey: const ValueKey('setting_summary_detail'),
-            icon: Icons.open_in_new_rounded,
-            title: '摘要进入详情',
-            subtitle: '标题和摘要仍打开 App',
-            value: _summaryOpensDetail,
-            onChanged: (value) => setState(() => _summaryOpensDetail = value),
-          ),
-          const SizedBox(height: 16),
-          const _SettingsSectionTitle(
-            icon: Icons.restaurant_rounded,
-            title: '饮食记录',
-          ),
-          _SettingsChoiceCard<String>(
-            title: '默认餐次',
-            value: _defaultMeal,
-            options: const ['早餐', '午餐', '晚餐', '夜宵', '三餐'],
-            labelBuilder: (value) => value,
-            onChanged: (value) => setState(() => _defaultMeal = value),
-          ),
-          _SettingsSwitchTile(
-            tileKey: const ValueKey('setting_low_calorie_hint'),
-            icon: Icons.tips_and_updates_rounded,
-            title: '轻食提示',
-            subtitle: '优先显示低脂高蛋白',
-            value: _lowCalorieHint,
-            onChanged: (value) => setState(() => _lowCalorieHint = value),
-          ),
-          const SizedBox(height: 16),
           const _SettingsSectionTitle(
             icon: Icons.palette_rounded,
             title: '显示与提醒',
@@ -146,7 +100,7 @@ class _QaSheet extends StatelessWidget {
       ),
       (
         '怎样开启真实系统健康数据？',
-        '进入状态页底部的外部数据源，按系统提示允许 Health Connect 读取步数、能量、睡眠、心率和呼吸数据，再回到 App 刷新。'
+        '进入状态页底部的外部数据源，按系统提示允许 Health Connect 读取步数、能量、睡眠和心率数据，再回到 App 刷新。'
       ),
       ('桌面小组件的状态摘要如何更新？', 'App 会优先展示今日状态记录和模块联动摘要；有系统健康数据时，再补充外部数据源参考。'),
       (
@@ -306,72 +260,6 @@ class _SettingsSwitchTile extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsChoiceCard<T> extends StatelessWidget {
-  const _SettingsChoiceCard({
-    required this.title,
-    required this.value,
-    required this.options,
-    required this.labelBuilder,
-    required this.onChanged,
-  });
-
-  final String title;
-  final T value;
-  final List<T> options;
-  final String Function(T value) labelBuilder;
-  final ValueChanged<T> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: GlassSurface(
-        borderRadius: 14,
-        color: AppColors.surface.withValues(alpha: 0.78),
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: AppColors.ink,
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: options.map((option) {
-                final selected = option == value;
-                final label = labelBuilder(option);
-                return ChoiceChip(
-                  key: ValueKey('setting_choice_$label'),
-                  label: Text(label),
-                  selected: selected,
-                  selectedColor: AppColors.primarySoft,
-                  backgroundColor: AppColors.background,
-                  showCheckmark: false,
-                  labelStyle: TextStyle(
-                    color: selected ? AppColors.primary : AppColors.muted,
-                    fontWeight: FontWeight.w800,
-                  ),
-                  side: BorderSide(
-                    color: selected ? AppColors.primary : AppColors.line,
-                  ),
-                  onSelected: (_) => onChanged(option),
-                );
-              }).toList(),
-            ),
-          ],
         ),
       ),
     );

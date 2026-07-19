@@ -5,6 +5,9 @@ part of '../auth/auth.dart';
 class _PingShengApi {
   const _PingShengApi();
 
+  static const _responseTimeout = Duration(seconds: 12);
+  static const _maxResponseBodyBytes = 1024 * 1024;
+
   Future<_UpdateInfo> checkUpdate() async {
     final json = await _requestJson(
       'GET',
@@ -95,10 +98,10 @@ class _PingShengApi {
     );
     final bodyBytes = body == null ? null : utf8.encode(jsonEncode(body));
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
-    try {
-      final request = method == 'GET'
-          ? await client.getUrl(uri)
-          : await client.postUrl(uri);
+
+    Future<Map<String, dynamic>> performRequest() async {
+      final request =
+          await (method == 'GET' ? client.getUrl(uri) : client.postUrl(uri));
       request.headers.set(HttpHeaders.acceptHeader, ContentType.json.mimeType);
       if (accessToken != null) {
         request.headers
@@ -109,9 +112,8 @@ class _PingShengApi {
         request.contentLength = bodyBytes.length;
         request.add(bodyBytes);
       }
-      final response =
-          await request.close().timeout(const Duration(seconds: 12));
-      final raw = await utf8.decodeStream(response);
+      final response = await request.close();
+      final raw = await _readResponseBody(response);
       final decoded =
           raw.trim().isEmpty ? <String, dynamic>{} : jsonDecode(raw);
       final json =
@@ -124,6 +126,10 @@ class _PingShengApi {
         );
       }
       return json;
+    }
+
+    try {
+      return await performRequest().timeout(_responseTimeout);
     } on SocketException {
       throw const _ApiException('无法连接服务端。');
     } on TimeoutException {
@@ -131,6 +137,21 @@ class _PingShengApi {
     } finally {
       client.close(force: true);
     }
+  }
+
+  Future<String> _readResponseBody(HttpClientResponse response) async {
+    if (response.contentLength > _maxResponseBodyBytes) {
+      throw const _ApiException('服务端响应过大。');
+    }
+
+    final bytes = <int>[];
+    await for (final chunk in response) {
+      if (chunk.length > _maxResponseBodyBytes - bytes.length) {
+        throw const _ApiException('服务端响应过大。');
+      }
+      bytes.addAll(chunk);
+    }
+    return utf8.decode(bytes);
   }
 }
 

@@ -11,6 +11,8 @@ class _PlanBody extends StatelessWidget {
     required this.events,
     required this.foodCalories,
     required this.workoutGroups,
+    required this.weeklyFoodCalories,
+    required this.weeklyWorkoutGroups,
     required this.todayExpense,
     required this.healthStatusText,
     required this.onSelectDate,
@@ -31,6 +33,8 @@ class _PlanBody extends StatelessWidget {
   final List<LifeEvent> events;
   final int foodCalories;
   final int workoutGroups;
+  final int weeklyFoodCalories;
+  final int weeklyWorkoutGroups;
   final double todayExpense;
   final String healthStatusText;
   final ValueChanged<DateTime> onSelectDate;
@@ -90,8 +94,8 @@ class _PlanBody extends StatelessWidget {
       return _PlanStatsView(
         todos: todos,
         events: events,
-        foodCalories: foodCalories,
-        workoutGroups: workoutGroups,
+        foodCalories: weeklyFoodCalories,
+        workoutGroups: weeklyWorkoutGroups,
       );
     }
     return _TodayExecutionView(

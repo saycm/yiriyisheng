@@ -2,9 +2,20 @@
 
 part of 'finance.dart';
 
-FinanceRecord financeRecordFromAiBill(AiFinanceBillInfo bill) {
+FinanceRecord? financeRecordFromAiBill(AiFinanceBillInfo bill) {
   final type = _financeTypeFromAiBill(bill);
   final title = _financeTitleFromAiBill(bill, type);
+  final account = _financeAccountFromAiBill(bill);
+  final rawToAccount = bill.toAccount?.trim() ?? '';
+  final toAccount = bill.type == AiFinanceBillType.transfer
+      ? _normalizeFinanceAccount(rawToAccount)
+      : null;
+  if (bill.type == AiFinanceBillType.transfer &&
+      ((bill.fromAccount ?? bill.account ?? '').trim().isEmpty ||
+          rawToAccount.isEmpty ||
+          account == toAccount)) {
+    return null;
+  }
   final noteParts = [
     if ((bill.note ?? '').trim().isNotEmpty) bill.note!.trim(),
     if ((bill.account ?? '').trim().isNotEmpty) bill.account!.trim(),
@@ -21,14 +32,15 @@ FinanceRecord financeRecordFromAiBill(AiFinanceBillInfo bill) {
     date: bill.time == null
         ? null
         : DateTime(bill.time!.year, bill.time!.month, bill.time!.day),
-    account: _financeAccountFromAiBill(bill),
+    account: account,
+    toAccount: toAccount,
     tags: bill.tags ?? const [],
   );
 }
 
 String _financeTypeFromAiBill(AiFinanceBillInfo bill) {
   if (bill.type == AiFinanceBillType.transfer) {
-    return '支出';
+    return '转账';
   }
   if (bill.type == AiFinanceBillType.income || (bill.amount ?? 0) > 0) {
     return '收入';
@@ -75,6 +87,11 @@ String _financeAccountFromAiBill(AiFinanceBillInfo bill) {
           ? bill.fromAccount ?? bill.account ?? bill.toAccount ?? ''
           : bill.account ?? bill.toAccount ?? bill.fromAccount ?? '')
       .trim();
+  return _normalizeFinanceAccount(raw);
+}
+
+String _normalizeFinanceAccount(String? value) {
+  final raw = value?.trim() ?? '';
   const accounts = ['银行卡', '微信', '支付宝', '现金', '信用卡'];
   if (accounts.contains(raw)) {
     return raw;

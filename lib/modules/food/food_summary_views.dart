@@ -81,22 +81,18 @@ class _FoodMealSelector extends StatelessWidget {
 class _FoodCalorieProgressCard extends StatelessWidget {
   const _FoodCalorieProgressCard({
     required this.consumed,
-    required this.suggested,
     required this.protein,
     required this.carbs,
     required this.fat,
   });
 
   final int consumed;
-  final int suggested;
   final double protein;
   final double carbs;
   final double fat;
 
   @override
   Widget build(BuildContext context) {
-    final progress = suggested <= 0 ? 0.0 : (consumed / suggested).clamp(0, 1);
-
     return KeyedSubtree(
       key: const ValueKey('food_calorie_progress_card'),
       child: GlassSurface(
@@ -119,7 +115,7 @@ class _FoodCalorieProgressCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '$consumed / $suggested kcal',
+                  '已记录 $consumed kcal',
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontSize: 13,
@@ -129,23 +125,11 @@ class _FoodCalorieProgressCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: LinearProgressIndicator(
-                value: progress.toDouble(),
-                minHeight: 8,
-                backgroundColor: AppColors.background,
-                color: consumed > suggested
-                    ? AppColors.financeRed
-                    : AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
                   child: _FoodMacroPill(
-                    label: '蛋白质',
+                    label: '蛋白质（估算）',
                     value: '${protein.round()}g',
                     color: AppColors.success,
                   ),
@@ -153,7 +137,7 @@ class _FoodCalorieProgressCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _FoodMacroPill(
-                    label: '碳水',
+                    label: '碳水（估算）',
                     value: '${carbs.round()}g',
                     color: const Color(0xFFFFA14A),
                   ),
@@ -161,7 +145,7 @@ class _FoodCalorieProgressCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _FoodMacroPill(
-                    label: '脂肪',
+                    label: '脂肪（估算）',
                     value: '${fat.round()}g',
                     color: const Color(0xFFFF7A83),
                   ),

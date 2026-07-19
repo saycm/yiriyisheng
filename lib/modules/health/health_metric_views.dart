@@ -18,8 +18,8 @@ class _HealthSummarySheet extends StatelessWidget {
   final String? helperText;
   final int foodCalories;
   final int workoutGroups;
-  final String bodyTag;
-  final String moodNote;
+  final String? bodyTag;
+  final String? moodNote;
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +76,9 @@ class _HealthSummarySheet extends StatelessWidget {
           _HealthSummaryTile(
             color: const Color(0xFFFF6F9D),
             title: '身体状态',
-            value: '$bodyTag · $moodNote',
+            value: bodyTag == null || moodNote == null
+                ? '未记录'
+                : '$bodyTag · $moodNote',
           ),
         ],
       ),

@@ -17,24 +17,8 @@ List<FoodLogEntry> _migrateFoodLogs(LifeSummarySnapshot snapshot) {
   if (logs != null) {
     return logs;
   }
-  if (snapshot.foodCalories <= 0) {
-    return const [];
-  }
-  return [
-    FoodLogEntry(
-      food: FoodItem(
-        emoji: '🍱',
-        name: '旧版饮食记录',
-        calorie: snapshot.foodCalories,
-        unit: '1 天',
-        group: '自定义',
-      ),
-      meal: foodMealForTime(DateTime.now()),
-      servings: 1,
-      note: '旧版本只保存今日热量总数，已迁移为当天记录。',
-      recordedAt: DateTime.now(),
-    ),
-  ];
+  // 旧版本只有无法分日的累计值，不能把它伪造成升级当天的饮食记录。
+  return const [];
 }
 
 class _WorkoutHomeState {
@@ -104,14 +88,9 @@ List<WorkoutPlan> _mergeWorkoutPlans(List<WorkoutPlan>? restoredPlans) {
 
 bool _shouldRefreshDefaultWorkoutPlan(
   WorkoutPlan restored,
-  WorkoutPlan defaultPlan,
+  WorkoutPlan _,
 ) {
-  if (restored.actionNames.isEmpty) {
-    return true;
-  }
-  return defaultPlan.actionNames.any(
-    (actionName) => !restored.actionNames.contains(actionName),
-  );
+  return restored.actionNames.isEmpty;
 }
 
 ActiveWorkoutSession? _migrateWorkoutSession(

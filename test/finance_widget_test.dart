@@ -58,7 +58,7 @@ AI 已识别：
     expect(prompt, contains('账户列表：现金、支付宝、微信、银行卡、信用卡'));
   });
 
-  test('ai finance transfer draft maps to expense from source account', () {
+  test('ai finance transfer keeps both accounts without becoming expense', () {
     final record = financeRecordFromAiBill(
       AiFinanceBillInfo(
         amount: 800,
@@ -71,11 +71,37 @@ AI 已识别：
       ),
     );
 
-    expect(record.type, '支出');
+    expect(record, isNotNull);
+    expect(record!.type, '转账');
     expect(record.title, '转账');
     expect(record.account, '银行卡');
+    expect(record.toAccount, '微信');
     expect(record.tags, ['自己']);
-    expect(record.displayAmount, '-¥800.00');
+    expect(record.displayAmount, '¥800.00');
+  });
+
+  test('ai finance rejects incomplete or same-account transfers', () {
+    expect(
+      financeRecordFromAiBill(
+        const AiFinanceBillInfo(
+          amount: 800,
+          type: AiFinanceBillType.transfer,
+          fromAccount: '银行卡',
+        ),
+      ),
+      isNull,
+    );
+    expect(
+      financeRecordFromAiBill(
+        const AiFinanceBillInfo(
+          amount: 800,
+          type: AiFinanceBillType.transfer,
+          fromAccount: '微信',
+          toAccount: '微信零钱',
+        ),
+      ),
+      isNull,
+    );
   });
 
   test('ai finance client defaults to zhipu glm request', () async {
@@ -527,6 +553,64 @@ AI 已识别：
         findsNothing);
   });
 
+  testWidgets('finance transfer moves money between two real accounts',
+      (tester) async {
+    final store = _FinanceSnapshotStore(
+      const LifeSummarySnapshot(
+        foodCalories: 0,
+        workoutGroupsByAction: {},
+        todos: [],
+        financeRecords: [],
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(home: LifeHomePage(appDataStore: store)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('module_link_0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('finance_bottom_nav_1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('记一笔').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('finance_category_transfer')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('finance_account_微信')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('finance_to_account_支付宝')));
+    await tester.tap(find.byKey(const ValueKey('finance_amount_key_1')));
+    await tester.tap(find.byKey(const ValueKey('finance_amount_key_2')));
+    final saveButton = find.byKey(const ValueKey('save_finance_record'));
+    await tester.ensureVisible(saveButton);
+    await tester.pumpAndSettle();
+    await tester.tap(saveButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('微信 → 支付宝'), findsOneWidget);
+    expect(find.text('¥12.00'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('finance_bottom_nav_2')));
+    await tester.pumpAndSettle();
+    final wechat = find.byKey(const ValueKey('finance_asset_account_微信'));
+    final alipay = find.byKey(const ValueKey('finance_asset_account_支付宝'));
+    await dragUntilFound(
+      tester,
+      wechat,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await dragUntilFound(
+      tester,
+      alipay,
+      scrollable: find.byType(Scrollable).last,
+    );
+
+    expect(find.descendant(of: wechat, matching: find.text('-¥12.00')),
+        findsOneWidget);
+    expect(find.descendant(of: alipay, matching: find.text('¥12.00')),
+        findsOneWidget);
+  });
+
   testWidgets('finance assets place negative sign before currency symbol',
       (tester) async {
     await pumpPingShengApp(tester);
@@ -932,6 +1016,51 @@ AI 已识别：
     expect(find.textContaining('已使用 83%'), findsOneWidget);
   });
 
+  testWidgets('finance budgets only include expenses from current month',
+      (tester) async {
+    final now = DateTime.now();
+    final previousMonth = DateTime(now.year, now.month - 1, 10);
+    final store = _FinanceSnapshotStore(
+      LifeSummarySnapshot(
+        foodCalories: 0,
+        workoutGroupsByAction: const {},
+        todos: const [],
+        financeRecords: [
+          FinanceRecord(
+            icon: Icons.restaurant_rounded,
+            title: '三餐',
+            subtitle: '本月',
+            amount: 10,
+            type: '支出',
+            date: now,
+          ),
+          FinanceRecord(
+            icon: Icons.restaurant_rounded,
+            title: '三餐',
+            subtitle: '上月',
+            amount: 90,
+            type: '支出',
+            date: previousMonth,
+          ),
+        ],
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(home: LifeHomePage(appDataStore: store)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('module_link_0')));
+    await tester.pumpAndSettle();
+    await dragUntilFound(
+      tester,
+      find.text('分类预算'),
+      scrollable: find.byType(Scrollable).last,
+    );
+
+    expect(find.text('已用 ¥10.00 / ¥1,000.00'), findsOneWidget);
+    expect(find.text('已用 ¥100.00 / ¥1,000.00'), findsNothing);
+  });
+
   testWidgets('finance overview places property health below assets workbench',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 1200));
@@ -1031,6 +1160,33 @@ class _MemoryLifeSummaryStore implements LifeSummaryStore {
     savedStrategy = aiFinanceParseStrategy;
     savedPrompt = aiFinanceCustomPrompt;
   }
+}
+
+class _FinanceSnapshotStore implements LifeSummaryStore {
+  _FinanceSnapshotStore(this.snapshot);
+
+  final LifeSummarySnapshot snapshot;
+
+  @override
+  Future<LifeSummarySnapshot?> load() async => snapshot;
+
+  @override
+  Future<void> save({
+    required int foodCalories,
+    required List<FoodLogEntry> foodLogs,
+    required Map<String, int> workoutGroupsByAction,
+    required DateTime? workoutProgressDate,
+    required List<TodoItem> todos,
+    required List<FinanceRecord> financeRecords,
+    required List<WorkoutPlan> workoutPlans,
+    required ActiveWorkoutSession? activeWorkoutSession,
+    required List<WorkoutHistoryEntry> workoutHistory,
+    required String aiFinanceEndpoint,
+    required String aiFinanceModel,
+    required String aiFinanceApiKey,
+    required AiFinanceParseStrategy aiFinanceParseStrategy,
+    required String aiFinanceCustomPrompt,
+  }) async {}
 }
 
 Future<void> expectFinanceOverviewDoesNotContain(

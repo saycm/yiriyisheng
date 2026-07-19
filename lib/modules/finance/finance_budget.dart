@@ -320,6 +320,7 @@ class _BudgetAlert {
 }
 
 List<_CategoryBudget> _categoryBudgets(List<FinanceRecord> records) {
+  final now = DateTime.now();
   const limits = {
     '三餐': 1000.0,
     '外卖快餐': 1000.0,
@@ -333,7 +334,13 @@ List<_CategoryBudget> _categoryBudgets(List<FinanceRecord> records) {
     '教育': 600.0,
   };
   final usedByTitle = <String, double>{};
-  for (final record in records.where((record) => record.type == '支出')) {
+  for (final record in records.where((record) {
+    final date = record.date;
+    return record.type == '支出' &&
+        date != null &&
+        date.year == now.year &&
+        date.month == now.month;
+  })) {
     usedByTitle.update(record.title, (value) => value + record.amount,
         ifAbsent: () => record.amount);
   }
@@ -348,10 +355,20 @@ List<_CategoryBudget> _categoryBudgets(List<FinanceRecord> records) {
   return budgets.take(4).toList();
 }
 
-List<FinanceRecord> _fixedCostRecords(List<FinanceRecord> records) {
+List<FinanceRecord> _fixedCostRecords(
+  List<FinanceRecord> records, {
+  DateTime? month,
+}) {
+  final targetMonth = month ?? DateTime.now();
   const keywords = ['分期', '还款', '房租', '会员', '保险', '订阅'];
   return records.where((record) {
     if (record.type != '支出') {
+      return false;
+    }
+    final date = record.date;
+    if (date == null ||
+        date.year != targetMonth.year ||
+        date.month != targetMonth.month) {
       return false;
     }
     final text = '${record.title}${record.subtitle}';

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_core.dart';
 import '../../models/models.dart';
 import '../../shared/shared.dart';
+import 'health_manual_store.dart';
 
 part 'health_manual_views.dart';
 part 'health_metric_views.dart';

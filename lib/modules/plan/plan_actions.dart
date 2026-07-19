@@ -60,6 +60,8 @@ mixin _PlanModuleActions on _PlanModuleState {
             if (count == 0) {
               return;
             }
+            _planTodoCompletionFeedbackEntry?.remove();
+            _planTodoCompletionFeedbackEntry = null;
             widget.onClearCompletedTodos();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

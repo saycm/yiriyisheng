@@ -17,20 +17,30 @@ class _PlanStatsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final actionable =
-        todos.where((todo) => todo.status != TodoStatus.archived).toList();
-    final total = actionable.length;
-    final done = todos.where((todo) => todo.done).length;
-    final activeTodos = todos.where((todo) => todo.isActive).toList();
     final today = DateUtils.dateOnly(DateTime.now());
-    final overdueCount = activeTodos.where((todo) {
+    final weekStart =
+        today.subtract(Duration(days: today.weekday - DateTime.monday));
+    final weekEnd = weekStart.add(const Duration(days: 7));
+    bool isInWeek(DateTime? date) =>
+        date != null && !date.isBefore(weekStart) && date.isBefore(weekEnd);
+    final actionable = todos.where((todo) {
+      if (todo.status == TodoStatus.archived) {
+        return false;
+      }
+      return isInWeek(todo.dueDate) || isInWeek(todo.completedAt);
+    }).toList();
+    final total = actionable.length;
+    final done = actionable.where((todo) => todo.done).length;
+    final activeTodos = actionable.where((todo) => todo.isActive).toList();
+    final allActiveTodos = todos.where((todo) => todo.isActive).toList();
+    final overdueCount = allActiveTodos.where((todo) {
       final dueDate = todo.dueDate;
       return dueDate != null && dueDate.isBefore(today);
     }).length;
     final undatedCount =
-        activeTodos.where((todo) => todo.dueDate == null).length;
+        allActiveTodos.where((todo) => todo.dueDate == null).length;
     final percent = total == 0 ? 0 : (done * 100 / total).round();
-    final postponed = todos
+    final postponed = actionable
         .where(
           (todo) =>
               todo.status == TodoStatus.postponed || todo.postponedCount > 0,
@@ -45,7 +55,7 @@ class _PlanStatsView extends StatelessWidget {
       ..sort((a, b) => b.value.compareTo(a.value));
     final linkedInsight = foodCalories == 0 && workoutGroups == 0
         ? '记录饮食和锻炼后，计划会自动把摄入、训练和待办放在一起复盘。'
-        : '饮食 $foodCalories kcal，锻炼 $workoutGroups 组，今天的计划可以按真实状态微调。';
+        : '饮食 $foodCalories kcal，锻炼 $workoutGroups 组，下周计划可以按本周真实状态微调。';
     final nextWeekAdvice = _buildNextWeekAdvice(
       activeCount: activeTodos.length,
       postponedCount: postponed.length,
@@ -55,8 +65,8 @@ class _PlanStatsView extends StatelessWidget {
       workoutGroups: workoutGroups,
     );
     final moments = <(String, String)>[
-      ('饮食', '今日已记录 $foodCalories kcal'),
-      ('锻炼', '今日已完成 $workoutGroups 组'),
+      ('饮食', '本周已记录 $foodCalories kcal'),
+      ('锻炼', '本周已完成 $workoutGroups 组'),
       ('计划', '$total 项任务已完成 $done 项，完成率 $percent%'),
       ('延后', '${postponed.length} 项任务被延后过'),
     ];
@@ -449,7 +459,7 @@ class _LifeEventFeedCard extends StatelessWidget {
               Icon(Icons.timeline_rounded, color: AppColors.primary, size: 20),
               SizedBox(width: 8),
               Text(
-                '联动记录',
+                '最近联动记录',
                 style: TextStyle(
                   color: AppColors.ink,
                   fontSize: 16,

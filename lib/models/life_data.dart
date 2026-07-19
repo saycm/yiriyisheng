@@ -204,11 +204,15 @@ class TodoItem {
     this.dueDate,
     this.note = '',
     this.repeatRule = TodoRepeatRule.none,
+    int? repeatAnchorDay,
     List<TodoLinkedModule> linkedModules = const [],
     this.postponedCount = 0,
     DateTime? createdAt,
     this.completedAt,
   })  : id = id ?? _newLocalId(),
+        repeatAnchorDay = repeatRule == TodoRepeatRule.monthly
+            ? (repeatAnchorDay ?? dueDate?.day)
+            : null,
         linkedModules = List.of(linkedModules),
         createdAt = createdAt ?? DateTime.now();
 
@@ -221,6 +225,7 @@ class TodoItem {
   DateTime? dueDate;
   String note;
   TodoRepeatRule repeatRule;
+  final int? repeatAnchorDay;
   List<TodoLinkedModule> linkedModules;
   int postponedCount;
   final DateTime createdAt;
@@ -265,6 +270,7 @@ class TodoItem {
       dueDate: clearDueDate ? null : dueDate ?? this.dueDate,
       note: note ?? this.note,
       repeatRule: repeatRule ?? this.repeatRule,
+      repeatAnchorDay: repeatAnchorDay,
       linkedModules: linkedModules ?? this.linkedModules,
       postponedCount: postponedCount ?? this.postponedCount,
       createdAt: createdAt,
@@ -295,6 +301,45 @@ class TodoItem {
     status = TodoStatus.archived;
   }
 
+  TodoItem? createNextOccurrence() {
+    if (!done) {
+      return null;
+    }
+    final baseDate = dueDate ?? completedAt;
+    if (baseDate == null) {
+      return null;
+    }
+    final normalizedDate = DateUtils.dateOnly(baseDate);
+    final nextDate = switch (repeatRule) {
+      TodoRepeatRule.daily => normalizedDate.add(const Duration(days: 1)),
+      TodoRepeatRule.weekly => normalizedDate.add(const Duration(days: 7)),
+      TodoRepeatRule.monthly => _nextTodoMonth(
+          normalizedDate,
+          repeatAnchorDay ?? normalizedDate.day,
+        ),
+      TodoRepeatRule.none || TodoRepeatRule.custom => null,
+    };
+    if (nextDate == null) {
+      return null;
+    }
+
+    return TodoItem(
+      id: _nextTodoOccurrenceId(id, nextDate),
+      title: title,
+      category: category,
+      color: color,
+      priority: priority,
+      status: TodoStatus.notStarted,
+      dueDate: nextDate,
+      note: note,
+      repeatRule: repeatRule,
+      repeatAnchorDay: repeatRule == TodoRepeatRule.monthly
+          ? (repeatAnchorDay ?? normalizedDate.day)
+          : null,
+      linkedModules: linkedModules,
+    );
+  }
+
   Map<String, Object?> toJson() {
     return {
       'id': id,
@@ -305,6 +350,7 @@ class TodoItem {
       'dueDate': dateToJson(dueDate),
       'note': note,
       'repeatRule': repeatRule.name,
+      'repeatAnchorDay': repeatAnchorDay,
       'linkedModules': linkedModules.map((module) => module.name).toList(),
       'postponedCount': postponedCount,
       'createdAt': createdAt.toIso8601String(),
@@ -339,6 +385,7 @@ class TodoItem {
         json['repeatRule'] as String?,
         fallback: TodoRepeatRule.none,
       ),
+      repeatAnchorDay: (json['repeatAnchorDay'] as num?)?.toInt(),
       linkedModules: linkedModulesFromJson(json['linkedModules']),
       postponedCount: (json['postponedCount'] as num?)?.toInt() ?? 0,
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
@@ -346,6 +393,25 @@ class TodoItem {
       completedAt: DateTime.tryParse(json['completedAt'] as String? ?? ''),
     );
   }
+}
+
+bool isUntouchedTodoOccurrence(TodoItem actual, TodoItem expected) {
+  final sameDueDate = actual.dueDate == null || expected.dueDate == null
+      ? actual.dueDate == expected.dueDate
+      : DateUtils.isSameDay(actual.dueDate, expected.dueDate);
+  return actual.id == expected.id &&
+      actual.status == TodoStatus.notStarted &&
+      actual.completedAt == null &&
+      actual.postponedCount == 0 &&
+      actual.title == expected.title &&
+      actual.category == expected.category &&
+      actual.color == expected.color &&
+      actual.priority == expected.priority &&
+      sameDueDate &&
+      actual.note == expected.note &&
+      actual.repeatRule == expected.repeatRule &&
+      actual.repeatAnchorDay == expected.repeatAnchorDay &&
+      listEquals(actual.linkedModules, expected.linkedModules);
 }
 
 enum TodoPriority {
@@ -383,6 +449,24 @@ enum TodoRepeatRule {
   const TodoRepeatRule(this.label);
 
   final String label;
+}
+
+DateTime _nextTodoMonth(DateTime date, int anchorDay) {
+  final firstDayOfFollowingMonth = DateTime(date.year, date.month + 2);
+  final lastDayOfNextMonth =
+      firstDayOfFollowingMonth.subtract(const Duration(days: 1)).day;
+  return DateTime(
+    date.year,
+    date.month + 1,
+    anchorDay.clamp(1, lastDayOfNextMonth),
+  );
+}
+
+String _nextTodoOccurrenceId(String currentId, DateTime date) {
+  final seriesId = currentId.replaceFirst(RegExp(r'__repeat_\d{8}$'), '');
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '${seriesId}__repeat_${date.year}$month$day';
 }
 
 enum TodoLinkedModule {
@@ -434,6 +518,7 @@ class FinanceRecord {
     required this.type,
     this.date,
     this.account = '银行卡',
+    this.toAccount,
     this.tags = const [],
   });
 
@@ -444,11 +529,19 @@ class FinanceRecord {
   final String type;
   final DateTime? date;
   final String account;
+  final String? toAccount;
   final List<String> tags;
 
-  Color get color => type == '收入' ? AppColors.success : AppColors.financeRed;
+  Color get color => switch (type) {
+        '收入' => AppColors.success,
+        '转账' => AppColors.primary,
+        _ => AppColors.financeRed,
+      };
 
   String get displayAmount {
+    if (type == '转账') {
+      return formatMoney(amount);
+    }
     final prefix = type == '收入' ? '+' : '-';
     return '$prefix${formatMoney(amount)}';
   }
@@ -461,6 +554,7 @@ class FinanceRecord {
       'type': type,
       'date': date?.toIso8601String(),
       'account': account,
+      'toAccount': toAccount,
       'tags': tags,
     };
   }
@@ -468,6 +562,7 @@ class FinanceRecord {
   static FinanceRecord fromJson(Map<String, dynamic> json) {
     final title = json['title'] as String? ?? '手动记录';
     final account = json['account'] as String?;
+    final toAccount = json['toAccount'] as String?;
     return FinanceRecord(
       icon: financeIconForTitle(title),
       title: title,
@@ -477,6 +572,9 @@ class FinanceRecord {
       date: DateTime.tryParse(json['date'] as String? ?? ''),
       account:
           account == null || account.trim().isEmpty ? '银行卡' : account.trim(),
+      toAccount: toAccount == null || toAccount.trim().isEmpty
+          ? null
+          : toAccount.trim(),
       tags: financeStringListFromJson(json['tags']),
     );
   }
@@ -519,13 +617,13 @@ int todayWorkoutGroups({
     return DateUtils.isSameDay(entry.finishedAt, targetDay);
   }).fold<int>(0, (total, entry) => total + entry.totalGroups);
   final session = activeSession;
-  final activeGroups = session == null ||
-          !DateUtils.isSameDay(session.startedAt, targetDay)
-      ? 0
-      : session.actionProgress.values.fold<int>(
-          0,
-          (total, groups) => total + groups,
-        );
+  final activeGroups =
+      session == null || !DateUtils.isSameDay(session.startedAt, targetDay)
+          ? 0
+          : session.actionProgress.values.fold<int>(
+              0,
+              (total, groups) => total + groups,
+            );
   final progressGroups = session == null
       ? progressGroupsByAction.values.fold<int>(
           0,

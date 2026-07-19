@@ -8,6 +8,8 @@ import 'package:pingsheng_life/modules/food/food.dart';
 import 'helpers/widget_test_helpers.dart';
 
 void main() {
+  setUp(mockDefaultWidgetSummary);
+
   test('food meal default follows local time boundaries', () {
     expect(foodMealForTime(DateTime(2026, 1, 1, 5, 0)), '早餐');
     expect(foodMealForTime(DateTime(2026, 1, 1, 10, 59)), '早餐');
@@ -99,7 +101,7 @@ void main() {
 
   testWidgets('food search filters items and custom food can be added',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -283,7 +285,7 @@ void main() {
 
   testWidgets('food templates and meal summary update nutrition view',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -340,8 +342,9 @@ void main() {
       up: false,
     );
     expect(find.text('今日热量'), findsOneWidget);
-    expect(find.text('304 / 1800 kcal'), findsOneWidget);
-    expect(find.text('蛋白质'), findsOneWidget);
+    expect(find.text('已记录 304 kcal'), findsOneWidget);
+    expect(find.textContaining('1800'), findsNothing);
+    expect(find.text('蛋白质（估算）'), findsOneWidget);
     await dragUntilFound(
       tester,
       find.byKey(const ValueKey('food_trend_block')),

@@ -134,6 +134,16 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         (total, action) => total + _finishedGroupsFor(action),
       );
 
+  List<WorkoutHistoryEntry> get _currentWeekHistory {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final firstDay = today.subtract(Duration(days: today.weekday - 1));
+    final lastDay = firstDay.add(const Duration(days: 7));
+    return widget.workoutHistory.where((entry) {
+      final finishedAt = entry.finishedAt;
+      return !finishedAt.isBefore(firstDay) && finishedAt.isBefore(lastDay);
+    }).toList(growable: false);
+  }
+
   bool get _activePlanCompleted {
     final session = widget.activeWorkoutSession;
     if (session == null || session.actionProgress.isEmpty) {
@@ -197,15 +207,23 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
   @override
   Widget build(BuildContext context) {
     if (_activeAction != null) {
-      return _WorkoutActionDetailPage(
-        action: _activeAction!,
-        finishedGroups: _finishedGroupsFor(_activeAction!),
-        restSecondsLeft: _restSecondsLeft,
-        feedback: _lastFeedback,
-        onBack: () => setState(() => _activeAction = null),
-        onStartGroup: _finishNextGroup,
-        onFeedbackChanged: (feedback) =>
-            setState(() => _lastFeedback = feedback),
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && mounted) {
+            setState(() => _activeAction = null);
+          }
+        },
+        child: _WorkoutActionDetailPage(
+          action: _activeAction!,
+          finishedGroups: _finishedGroupsFor(_activeAction!),
+          restSecondsLeft: _restSecondsLeft,
+          feedback: _lastFeedback,
+          onBack: () => setState(() => _activeAction = null),
+          onStartGroup: _finishNextGroup,
+          onFeedbackChanged: (feedback) =>
+              setState(() => _lastFeedback = feedback),
+        ),
       );
     }
 
@@ -279,6 +297,11 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         ? '未完成 ${visibleActions.length} / 全部 ${bodyPartActions.length}'
         : '${visibleActions.length} 个动作';
     final activePlan = _activePlan;
+    final currentWeekHistory = _currentWeekHistory;
+    final weekGroups = currentWeekHistory.fold<int>(
+      0,
+      (total, entry) => total + entry.totalGroups,
+    );
     final recommendedPlan = _recommendedPlan;
     final recommendedVariant = recommendedPlan == null
         ? null
@@ -423,8 +446,14 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         ],
         const SizedBox(height: 2),
         _WorkoutTodayStatsCard(
-          finishedGroups: _finishedGroupsTotal,
-          totalGroups: _totalGroups,
+          title: session == null ? '动作库完成度' : '当前训练计划',
+          finishedGroups: session == null
+              ? _finishedGroupsTotal
+              : _currentScopeFinishedGroups,
+          totalGroups:
+              session == null ? _totalGroups : _currentScopeTotalGroups,
+          weekSessions: currentWeekHistory.length,
+          weekGroups: weekGroups,
           feedback: _lastFeedback,
         ),
         if (session == null) ...[
@@ -770,6 +799,15 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     WorkoutPlan plan, {
     _WorkoutPlanIntensity intensity = _WorkoutPlanIntensity.medium,
   }) {
+    if (widget.activeWorkoutSession != null) {
+      setState(() {
+        _selectedTopTab = 0;
+        _activeBodyPart = '全部';
+        _activeAction = null;
+      });
+      _showWorkoutSnack('已有进行中的训练，请先完成当前训练');
+      return;
+    }
     final variant = _workoutPlanVariant(plan, _actions, intensity);
     final planActions = variant.actions;
     if (planActions.isEmpty) return;
@@ -806,8 +844,9 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
           feedback: _lastFeedback,
         ),
       );
+    } else {
+      widget.onUpdateActionGroups(action.name, nextCount);
     }
-    widget.onUpdateActionGroups(action.name, nextCount);
     setState(() => _restSecondsLeft =
         nextCount >= action.groups ? 0 : _defaultRestSeconds);
     if (_restSecondsLeft == 0) {

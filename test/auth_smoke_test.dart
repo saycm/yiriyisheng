@@ -8,7 +8,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pingsheng_life/main.dart';
 
+import 'helpers/widget_test_helpers.dart';
+
 void main() {
+  setUp(mockDefaultWidgetSummary);
+
   testWidgets('stored session enters home when update check is offline',
       (tester) async {
     final previousOverrides = HttpOverrides.current;
@@ -140,6 +144,96 @@ void main() {
       _visibleTexts().join('\n'),
       isNot(contains('192.168.20.11')),
     );
+  });
+
+  testWidgets('force update without download url can retry the check',
+      (tester) async {
+    var updateChecks = 0;
+    const authChannel = MethodChannel('pingsheng_life/auth_session');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      authChannel,
+      (call) async => null,
+    );
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        authChannel,
+        null,
+      );
+    });
+
+    await tester.pumpWidget(
+      PingShengApp(
+        enableAuth: true,
+        updateResponseOverride: () async {
+          updateChecks++;
+          if (updateChecks == 1) {
+            return {
+              'latestVersionCode': 8,
+              'latestVersionName': '1.0.7',
+              'forceUpdate': true,
+              'hasUpdate': true,
+              'downloadUrl': '',
+              'message': '需要更新才能继续使用。',
+              'releaseNotes': <String>[],
+            };
+          }
+          return {
+            'latestVersionCode': 8,
+            'latestVersionName': '1.0.7',
+            'forceUpdate': false,
+            'hasUpdate': false,
+            'downloadUrl': '',
+            'releaseNotes': <String>[],
+          };
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('需要更新后继续使用'), findsOneWidget);
+    expect(find.text('立即更新'), findsNothing);
+    expect(find.text('重试检查'), findsOneWidget);
+
+    await tester.tap(find.text('重试检查'));
+    await tester.pumpAndSettle();
+
+    expect(updateChecks, 2);
+    expect(find.text('需要更新后继续使用'), findsNothing);
+    expect(find.text('创建账号'), findsOneWidget);
+  });
+
+  testWidgets('failed force update retry remains blocked', (tester) async {
+    var updateChecks = 0;
+
+    await tester.pumpWidget(
+      PingShengApp(
+        enableAuth: true,
+        updateResponseOverride: () async {
+          updateChecks++;
+          if (updateChecks == 1) {
+            return {
+              'latestVersionCode': 8,
+              'latestVersionName': '1.0.7',
+              'forceUpdate': true,
+              'hasUpdate': true,
+              'downloadUrl': '',
+              'message': '需要更新才能继续使用。',
+              'releaseNotes': <String>[],
+            };
+          }
+          throw const SocketException('offline');
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('重试检查'));
+    await tester.pumpAndSettle();
+
+    expect(updateChecks, 2);
+    expect(find.text('需要更新后继续使用'), findsOneWidget);
+    expect(find.text('重试检查'), findsOneWidget);
+    expect(find.text('创建账号'), findsNothing);
   });
 
   testWidgets('auth preview smoke', (tester) async {

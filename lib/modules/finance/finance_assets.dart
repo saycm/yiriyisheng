@@ -61,13 +61,23 @@ List<_FinanceAccountSnapshot> _financeAccounts(List<FinanceRecord> records) {
   ];
 
   return specs.map((spec) {
-    final delta = records
-        .where((record) => record.account == spec.name)
-        .fold<double>(0, (total, record) {
-      if (record.type == '收入') {
-        return total + record.amount;
+    final delta = records.fold<double>(0, (total, record) {
+      if (record.type == '转账') {
+        if (record.account == spec.name) {
+          total -= record.amount;
+        }
+        if (record.toAccount == spec.name) {
+          total += record.amount;
+        }
+        return total;
       }
-      return total - record.amount;
+      if (record.account == spec.name) {
+        if (record.type == '收入') {
+          return total + record.amount;
+        }
+        return total - record.amount;
+      }
+      return total;
     });
     return _FinanceAccountSnapshot(
       name: spec.name,

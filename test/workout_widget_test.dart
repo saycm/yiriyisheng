@@ -8,6 +8,8 @@ import 'package:pingsheng_life/main.dart';
 import 'helpers/widget_test_helpers.dart';
 
 void main() {
+  setUp(mockDefaultWidgetSummary);
+
   const quickPlanGroups = {
     '上斜俯卧撑': 3,
     '箱式深蹲': 3,
@@ -92,7 +94,7 @@ void main() {
   });
 
   testWidgets('workout top tabs show plan data and history', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -123,7 +125,7 @@ void main() {
 
   testWidgets('workout plan opens detail and starts scoped workout',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
@@ -162,7 +164,7 @@ void main() {
 
   testWidgets('workout plan detail switches intensity before starting',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
@@ -200,7 +202,7 @@ void main() {
 
   testWidgets('workout home highlights recommendation before action library',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
@@ -228,7 +230,7 @@ void main() {
 
   testWidgets('workout plan opens detail and starts plan training',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
@@ -256,7 +258,7 @@ void main() {
 
   testWidgets('finishing planned workout creates history entry',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
@@ -298,10 +300,83 @@ void main() {
       ),
       findsOneWidget,
     );
+
+    await tester.tap(find.byKey(const ValueKey('module_link_1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('14 组'), findsOneWidget);
+    expect(find.text('28 组'), findsNothing);
+  });
+
+  testWidgets('active workout progress uses only current plan groups',
+      (tester) async {
+    final store = _RestoringLifeSummaryStore(
+      LifeSummarySnapshot(
+        foodCalories: 0,
+        workoutGroupsByAction: const {},
+        todos: const [],
+        financeRecords: const [],
+        workoutPlans: createDefaultWorkoutPlans(),
+        activeWorkoutSession: ActiveWorkoutSession(
+          planId: 'plan-quick-ten',
+          planName: '快练 10 分钟',
+          startedAt: DateTime.now(),
+          actionProgress: const {
+            '上斜俯卧撑': 3,
+            '箱式深蹲': 3,
+            '平板触肩': 3,
+            '低冲击开合步': 3,
+            '胸椎旋转': 0,
+          },
+        ),
+        workoutHistory: const [],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: LifeHomePage(appDataStore: store)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+
+    final statsCard = find.byKey(const ValueKey('workout_today_stats_card'));
+    await dragUntilFound(
+      tester,
+      statsCard,
+      scrollable: find.byKey(const ValueKey('workout_main_list')),
+    );
+
+    expect(
+      find.descendant(of: statsCard, matching: find.text('86%')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: statsCard, matching: find.text('0 次')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('system back returns from workout action detail', (tester) async {
+    await pumpPingShengApp(tester);
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('开始动作'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout_action_detail_list')),
+        findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout_main_list')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('workout_action_detail_list')), findsNothing);
   });
 
   testWidgets('workout data cards open real metric detail', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
@@ -343,7 +418,7 @@ void main() {
   });
 
   testWidgets('workout history detail can restart same plan', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
@@ -393,7 +468,7 @@ void main() {
 
   testWidgets('workout plan detail can remove and add existing action',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
@@ -434,7 +509,7 @@ void main() {
 
   testWidgets('workout training templates open matching plan detail',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
@@ -644,8 +719,59 @@ void main() {
     expect(find.text('1:00'), findsWidgets);
   });
 
+  testWidgets('workout does not replace an active session with another plan',
+      (tester) async {
+    final plans = createDefaultWorkoutPlans();
+    final activePlan = plans.first;
+    final otherPlan = plans[1];
+    final startedSessions = <ActiveWorkoutSession>[];
+    final activeSession = ActiveWorkoutSession(
+      planId: activePlan.id,
+      planName: activePlan.name,
+      startedAt: DateTime.now(),
+      actionProgress: {activePlan.actionNames.first: 1},
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkoutModulePage(
+          moduleNav: const SizedBox.shrink(),
+          onOpenModules: () {},
+          onSwitchModule: (_) {},
+          finishedGroupsByAction: const {},
+          onUpdateActionGroups: (_, __) {},
+          workoutPlans: plans,
+          onUpdateWorkoutPlan: (_) {},
+          activeWorkoutSession: activeSession,
+          workoutHistory: const [],
+          onStartWorkoutSession: startedSessions.add,
+          onUpdateWorkoutSession: (_) {},
+          onFinishWorkoutSession: (_) {},
+          foodCalories: 0,
+          quickAction: null,
+          quickActionToken: 0,
+          onQuickActionHandled: () {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+    final otherPlanCard = find.byKey(ValueKey('workout_plan_${otherPlan.id}'));
+    await tester.ensureVisible(otherPlanCard);
+    await tester.pumpAndSettle();
+    await tester.tap(otherPlanCard);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('开始训练'));
+    await tester.pumpAndSettle();
+
+    expect(startedSessions, isEmpty);
+    expect(find.text('已有进行中的训练，请先完成当前训练'), findsOneWidget);
+    expect(find.text('当前计划'), findsOneWidget);
+  });
+
   testWidgets('workout more menu creates a plan in app state', (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
@@ -854,7 +980,7 @@ void main() {
 
   testWidgets('workout history does not show fake trends without history',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('module_link_3')));
     await tester.pumpAndSettle();
@@ -869,7 +995,7 @@ void main() {
 
   testWidgets('workout body part filters expose expanded exercise library',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -1005,6 +1131,76 @@ void main() {
     );
   });
 
+  testWidgets('workout restore preserves user edits to a default plan',
+      (tester) async {
+    final store = _RestoringLifeSummaryStore(
+      LifeSummarySnapshot(
+        foodCalories: 0,
+        workoutGroupsByAction: const {},
+        todos: const [],
+        financeRecords: const [],
+        workoutPlans: [
+          WorkoutPlan(
+            id: 'plan-chest-back',
+            name: '我的胸背计划',
+            target: '只保留一个动作',
+            bodyParts: const ['胸背'],
+            actionNames: const ['器械推胸'],
+            estimatedMinutes: 12,
+            createdAt: DateTime(2026, 6),
+            updatedAt: DateTime(2026, 7),
+          ),
+        ],
+        workoutHistory: const [],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: LifeHomePage(appDataStore: store)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('我的胸背计划'), findsWidgets);
+    expect(find.text('只保留一个动作'), findsOneWidget);
+    expect(find.text('1 动作'), findsWidgets);
+  });
+
+  testWidgets('starting planned workout stamps widget progress date',
+      (tester) async {
+    final store = _RestoringLifeSummaryStore(
+      LifeSummarySnapshot(
+        foodCalories: 0,
+        workoutGroupsByAction: const {},
+        todos: const [],
+        financeRecords: const [],
+        workoutPlans: createDefaultWorkoutPlans(),
+        workoutHistory: const [],
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(home: LifeHomePage(appDataStore: store)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('workout_top_tab_1')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('workout_plan_plan-chest-back')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('开始训练'));
+    await tester.pumpAndSettle();
+
+    expect(
+      DateUtils.isSameDay(store.lastWorkoutProgressDate, DateTime.now()),
+      isTrue,
+    );
+  });
+
   testWidgets('workout restore ignores stale standalone progress',
       (tester) async {
     final store = _RestoringLifeSummaryStore(
@@ -1033,9 +1229,43 @@ void main() {
     expect(find.text('4/257 组'), findsNothing);
   });
 
+  testWidgets('first standalone set on a new day clears yesterday actions',
+      (tester) async {
+    final store = _RestoringLifeSummaryStore(
+      LifeSummarySnapshot(
+        foodCalories: 0,
+        workoutGroupsByAction: const {
+          '蝴蝶机夹胸': 4,
+          '宽握高位下拉': 3,
+        },
+        workoutProgressDate: DateUtils.dateOnly(DateTime.now())
+            .subtract(const Duration(days: 1)),
+        todos: const [],
+        financeRecords: const [],
+        workoutPlans: createDefaultWorkoutPlans(),
+        workoutHistory: const [],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: LifeHomePage(appDataStore: store)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('module_link_3')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('workout_toggle_action_library')));
+    await tester.pumpAndSettle();
+    await tapWorkoutActionByName(tester, '蝴蝶机夹胸');
+    await tester.tap(find.text('开始动作'));
+    await tester.pumpAndSettle();
+
+    expect(store.lastWorkoutGroupsByAction, {'蝴蝶机夹胸': 1});
+  });
+
   testWidgets('workout finished set updates list summary and data',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -1109,7 +1339,7 @@ void main() {
 
   testWidgets('workout feedback and rest timer stay visible without food link',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -1165,7 +1395,7 @@ void main() {
 
   testWidgets('workout rest timer counts down after finishing a set',
       (tester) async {
-    await tester.pumpWidget(const PingShengApp());
+    await pumpPingShengApp(tester);
 
     await tester.tap(find.byIcon(Icons.view_sidebar_rounded).first);
     await tester.pumpAndSettle();
@@ -1199,6 +1429,8 @@ class _RestoringLifeSummaryStore implements LifeSummaryStore {
 
   final LifeSummarySnapshot snapshot;
   var saveCalls = 0;
+  DateTime? lastWorkoutProgressDate;
+  Map<String, int>? lastWorkoutGroupsByAction;
 
   @override
   Future<LifeSummarySnapshot?> load() async => snapshot;
@@ -1221,5 +1453,7 @@ class _RestoringLifeSummaryStore implements LifeSummaryStore {
     required String aiFinanceCustomPrompt,
   }) async {
     saveCalls++;
+    lastWorkoutProgressDate = workoutProgressDate;
+    lastWorkoutGroupsByAction = Map.of(workoutGroupsByAction);
   }
 }

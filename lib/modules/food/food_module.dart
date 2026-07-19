@@ -247,7 +247,6 @@ class _FoodModulePageState extends State<FoodModulePage> {
   String _activeMeal = foodMealForTime(DateTime.now());
   String _foodQuery = '';
   int _handledQuickActionToken = 0;
-  static const _suggestedCalories = 1800;
   static const _meals = ['早餐', '午餐', '晚餐', '夜宵'];
   static const _mealTemplates = [
     _FoodMealTemplate(
@@ -380,7 +379,6 @@ class _FoodModulePageState extends State<FoodModulePage> {
                         const SizedBox(height: 12),
                         _FoodCalorieProgressCard(
                           consumed: _todayCalories,
-                          suggested: _suggestedCalories,
                           protein: _todayProtein,
                           carbs: _todayCarbs,
                           fat: _todayFat,
@@ -478,9 +476,6 @@ class _FoodModulePageState extends State<FoodModulePage> {
     final mealsRecorded = _todayLogs.map((entry) => entry.meal).toSet();
     if (!mealsRecorded.contains('晚餐') && DateTime.now().hour >= 18) {
       reminders.add('晚餐还没有记录');
-    }
-    if (_todayCalories > _suggestedCalories) {
-      reminders.add('今日摄入已高于建议');
     }
     if (widget.workoutGroups > 0 && !mealsRecorded.contains('夜宵')) {
       reminders.add('训练后可以记录一次夜宵');
@@ -596,7 +591,6 @@ class _FoodModulePageState extends State<FoodModulePage> {
         return _FoodToolsSheet(
           selectedCount: _selectedFoods.length,
           todayCalories: _todayCalories,
-          suggestedCalories: _suggestedCalories,
           protein: _todayProtein,
           carbs: _todayCarbs,
           fat: _todayFat,

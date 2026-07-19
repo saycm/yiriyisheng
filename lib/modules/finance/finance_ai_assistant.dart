@@ -277,13 +277,25 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
   }
 
   void _saveBills(List<AiFinanceBillInfo> bills) {
-    final records = bills.map(financeRecordFromAiBill).toList();
-    widget.onSaveAll(records);
+    final records =
+        bills.map(financeRecordFromAiBill).whereType<FinanceRecord>().toList();
+    if (records.isNotEmpty) {
+      widget.onSaveAll(records);
+    }
     if (!mounted) {
       return;
     }
+    final skipped = bills.length - records.length;
+    if (records.isEmpty) {
+      _appendAssistantMessage(
+        '没有生成记录。转账必须包含不同的转出和转入账户。',
+        isError: true,
+      );
+      return;
+    }
     _appendAssistantMessage(
-      '已生成 ${records.length} 笔财务记录，可在记录页查看。',
+      '已生成 ${records.length} 笔财务记录'
+      '${skipped == 0 ? '' : '，跳过 $skipped 笔账户不完整的转账'}，可在记录页查看。',
     );
   }
 

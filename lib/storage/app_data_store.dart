@@ -28,7 +28,7 @@ class AppDataStore implements LifeSummaryStore {
   const AppDataStore();
 
   static const _databaseName = 'pingsheng_life.db';
-  static const _databaseVersion = 6;
+  static const _databaseVersion = 8;
   // 多个模块会连续触发保存，用队列串行化，避免 SQLite 写入互相覆盖。
   static Future<void> _pendingSave = Future<void>.value();
 
@@ -57,7 +57,9 @@ class AppDataStore implements LifeSummaryStore {
         'food_logs',
         orderBy: 'position ASC, id ASC',
       );
-      final todos = await db.query('todos', orderBy: 'position ASC, id ASC');
+      final todoRows = AppDataStoreRows.todoRowsWithRepeatAnchors(
+        await db.query('todos', orderBy: 'position ASC, id ASC'),
+      );
       final financeRecords = await db.query(
         'finance_records',
         orderBy: 'position ASC, id ASC',
@@ -89,7 +91,7 @@ class AppDataStore implements LifeSummaryStore {
         foodLogs: foodLogRows.map(_foodLogFromRow).toList(),
         workoutGroupsByAction: workoutGroups,
         workoutProgressDate: await _readDateMeta(db, 'workoutProgressDate'),
-        todos: todos.map(_todoFromRow).toList(),
+        todos: todoRows.map(_todoFromRow).toList(),
         financeRecords: financeRecords.map(_financeRecordFromRow).toList(),
         workoutPlans: workoutPlanRows.map(_workoutPlanFromRow).toList(),
         activeWorkoutSession: activeSessionRows.isEmpty
@@ -114,7 +116,7 @@ class AppDataStore implements LifeSummaryStore {
     } catch (error, stackTrace) {
       debugPrint('App data restore failed: $error');
       debugPrintStack(stackTrace: stackTrace);
-      return null;
+      Error.throwWithStackTrace(error, stackTrace);
     }
   }
 
@@ -209,6 +211,7 @@ class AppDataStore implements LifeSummaryStore {
             'dueDate': dateToJson(todo.dueDate),
             'note': todo.note,
             'repeatRule': todo.repeatRule.name,
+            'repeatAnchorDay': todo.repeatAnchorDay,
             'linkedModulesJson': jsonEncode(
               todo.linkedModules.map((module) => module.name).toList(),
             ),

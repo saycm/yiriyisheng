@@ -23,11 +23,11 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
+import androidx.health.connect.client.aggregate.AggregateMetric
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.records.HeartRateRecord
-import androidx.health.connect.client.records.RespiratoryRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.AggregateRequest
@@ -68,9 +68,10 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
                 grantedPermissions: Set<String> ->
                 pendingHealthPermissionResult?.success(
                     mapOf(
-                        "granted" to HEALTH_PERMISSIONS.all { permission ->
-                            grantedPermissions.contains(permission)
-                        },
+                        "granted" to HealthPermissionPolicy.canReadAny(
+                            HEALTH_PERMISSIONS,
+                            grantedPermissions
+                        ),
                         "grantedCount" to grantedPermissions.size
                     )
                 )
@@ -113,6 +114,26 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
                     "requestHealthPermissions" -> requestHealthPermissions(result)
                     "openHealthConnectSettings" -> {
                         openHealthConnectSettings()
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // 主观状态记录独立于 Health Connect，按日期保存 Flutter 生成的 JSON。
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, HEALTH_MANUAL_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "loadHealthManualRecords" -> result.success(
+                        getSharedPreferences(HEALTH_MANUAL_PREFS_NAME, MODE_PRIVATE)
+                            .getString(KEY_HEALTH_MANUAL_RECORDS_JSON, "[]")
+                    )
+                    "saveHealthManualRecords" -> {
+                        val recordsJson = call.argument<String>("recordsJson") ?: "[]"
+                        getSharedPreferences(HEALTH_MANUAL_PREFS_NAME, MODE_PRIVATE)
+                            .edit()
+                            .putString(KEY_HEALTH_MANUAL_RECORDS_JSON, recordsJson)
+                            .apply()
                         result.success(null)
                     }
                     else -> result.notImplemented()
@@ -237,6 +258,10 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         val prefs = getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, MODE_PRIVATE)
         return mapOf(
             "foodCalories" to prefs.getInt(PingShengWidgetProvider.KEY_FOOD_CALORIES, 0),
+            "foodSummaryDate" to prefs.getString(
+                PingShengWidgetProvider.KEY_FOOD_SUMMARY_DATE,
+                null
+            ),
             "foodLogsJson" to prefs.getString(
                 PingShengWidgetProvider.KEY_FOOD_LOGS_JSON,
                 null
@@ -272,11 +297,13 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         val workoutGroups = (args["workoutGroups"] as? Number)?.toInt() ?: 0
         val workoutGroupsJson = args["workoutGroupsJson"] as? String ?: "{}"
         val workoutProgressDate = args["workoutProgressDate"] as? String ?: ""
+        val summaryDate = LocalDate.now().toString()
 
         // Flutter 侧的共享状态写入原生 SharedPreferences，桌面小组件可直接读取。
         getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, MODE_PRIVATE)
             .edit()
             .putInt(PingShengWidgetProvider.KEY_FOOD_CALORIES, foodCalories)
+            .putString(PingShengWidgetProvider.KEY_FOOD_SUMMARY_DATE, summaryDate)
             .putString(PingShengWidgetProvider.KEY_FOOD_LOGS_JSON, foodLogsJson)
             .putInt(PingShengWidgetProvider.KEY_PENDING_TODOS, pendingTodos)
             .putString(PingShengWidgetProvider.KEY_TODOS_JSON, todosJson)
@@ -323,24 +350,34 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
 
         val client = HealthConnectClient.getOrCreate(this)
         val granted = client.permissionController.getGrantedPermissions()
-        if (!granted.containsAll(HEALTH_PERMISSIONS)) {
-            return healthStatusMap("permissionRequired", "请授权 Health Connect 读取步数、能量、睡眠、心率和呼吸数据。")
+        val readablePermissions = HealthPermissionPolicy.readablePermissions(
+            HEALTH_PERMISSIONS,
+            granted
+        )
+        if (readablePermissions.isEmpty()) {
+            return healthStatusMap("permissionRequired", "请授权 Health Connect 读取步数、能量、睡眠或心率数据。")
         }
 
         val today = LocalDate.now()
         // 读取最近 7 天数据，Flutter 侧趋势卡片直接消费这个列表。
         val days = (6 downTo 0).map { offset ->
-            readHealthDay(client, today.minusDays(offset.toLong()))
+            readHealthDay(client, today.minusDays(offset.toLong()), readablePermissions)
         }
         val todayMap = days.lastOrNull()
         saveHealthForWidget(todayMap)
 
         return mapOf(
             "status" to "ok",
-            "message" to "已连接 Health Connect 和本机传感器。",
+            "message" to if (readablePermissions == HEALTH_PERMISSIONS) {
+                "已连接 Health Connect 和本机传感器。"
+            } else {
+                "已连接 Health Connect，正在展示已授权数据。"
+            },
             "lastUpdated" to Instant.now().toString(),
             "days" to days,
-            "sensors" to buildSensorSnapshot()
+            "sensors" to buildSensorSnapshot(
+                hasHealthConnectTodaySteps = todayMap?.get("steps") != null
+            )
         )
     }
 
@@ -357,7 +394,8 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
 
     private suspend fun readHealthDay(
         client: HealthConnectClient,
-        date: LocalDate
+        date: LocalDate,
+        grantedPermissions: Set<String>
     ): Map<String, Any?> {
         // Health Connect 聚合接口按日期范围返回总步数、能量、均值心率等指标。
         val zone = ZoneId.systemDefault()
@@ -367,15 +405,25 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         } else {
             date.plusDays(1).atStartOfDay(zone).toInstant()
         }
+        val metrics = mutableSetOf<AggregateMetric<*>>()
+        if (STEP_PERMISSION in grantedPermissions) {
+            metrics.add(StepsRecord.COUNT_TOTAL)
+        }
+        if (ACTIVE_CALORIES_PERMISSION in grantedPermissions) {
+            metrics.add(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL)
+        }
+        if (BASAL_CALORIES_PERMISSION in grantedPermissions) {
+            metrics.add(BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL)
+        }
+        if (HEART_RATE_PERMISSION in grantedPermissions) {
+            metrics.add(HeartRateRecord.BPM_AVG)
+        }
+        if (SLEEP_PERMISSION in grantedPermissions) {
+            metrics.add(SleepSessionRecord.SLEEP_DURATION_TOTAL)
+        }
         val aggregate = client.aggregate(
             AggregateRequest(
-                metrics = setOf(
-                    StepsRecord.COUNT_TOTAL,
-                    ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL,
-                    BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL,
-                    HeartRateRecord.BPM_AVG,
-                    SleepSessionRecord.SLEEP_DURATION_TOTAL
-                ),
+                metrics = metrics,
                 timeRangeFilter = TimeRangeFilter.between(start, end)
             )
         )
@@ -581,54 +629,59 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         }
     }
 
-    private fun buildSensorSnapshot(): Map<String, Any?> {
+    private fun buildSensorSnapshot(
+        hasHealthConnectTodaySteps: Boolean = false
+    ): Map<String, Any?> {
         val manager = sensorManager ?: getSystemService(Context.SENSOR_SERVICE) as? SensorManager
         return mapOf(
             "stepCounterAvailable" to (manager?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null),
             "heartRateSensorAvailable" to (manager?.getDefaultSensor(Sensor.TYPE_HEART_RATE) != null),
             "accelerometerAvailable" to (manager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null),
-            "stepCounterToday" to todayStepCounter(latestStepCounter?.roundToInt()),
+            "stepCounterToday" to todayStepCounter(
+                latestStepCounter?.roundToInt(),
+                hasHealthConnectTodaySteps
+            ),
             "heartRateBpm" to latestHeartRate,
             "accelerationMagnitude" to latestAcceleration,
             "lastSensorUpdateMillis" to lastSensorUpdateMillis
         )
     }
 
-    private fun todayStepCounter(currentSinceBoot: Int?): Int? {
-        if (currentSinceBoot == null) {
-            return null
-        }
-        val todayKey = LocalDate.now().toString()
+    private fun todayStepCounter(
+        currentSinceBoot: Int?,
+        hasHealthConnectTodaySteps: Boolean
+    ): Int? {
+        val today = LocalDate.now()
+        val todayKey = today.toString()
         val prefs = getSharedPreferences(STEP_COUNTER_BASELINE_PREFS, MODE_PRIVATE)
         val storedDate = prefs.getString(KEY_STEP_COUNTER_BASELINE_DATE, null)
         val storedBaseline = prefs.getInt(KEY_STEP_COUNTER_BASELINE_VALUE, -1)
-        val baseline = if (storedDate == todayKey &&
-            storedBaseline >= 0 &&
-            storedBaseline <= currentSinceBoot
-        ) {
-            storedBaseline
-        } else {
+        val decision = StepCounterPolicy.resolve(
+            currentSinceBoot = currentSinceBoot,
+            storedDate = storedDate,
+            storedBaseline = storedBaseline,
+            today = today,
+            hasHealthConnectTodaySteps = hasHealthConnectTodaySteps
+        )
+        decision.baselineToStore?.let { baseline ->
             prefs.edit()
                 .putString(KEY_STEP_COUNTER_BASELINE_DATE, todayKey)
-                .putInt(KEY_STEP_COUNTER_BASELINE_VALUE, currentSinceBoot)
+                .putInt(KEY_STEP_COUNTER_BASELINE_VALUE, baseline)
                 .apply()
-            currentSinceBoot
         }
-        return (currentSinceBoot - baseline).coerceAtLeast(0)
+        return decision.todaySteps
     }
 
     private fun saveHealthForWidget(today: Map<String, Any?>?) {
         // 小组件空间有限，只同步一行最有代表性的状态摘要。
         val steps = (today?.get("steps") as? Number)?.toInt()
         val activeCalories = (today?.get("activeCaloriesKcal") as? Number)?.toInt()
-        val text = when {
-            steps != null -> "步数 ${formatNumber(steps)}"
-            activeCalories != null -> "能量 ${activeCalories} kcal"
-            else -> "状态无系统记录"
-        }
+        val summaryDate = today?.get("dateIso") as? String ?: LocalDate.now().toString()
+        val text = WidgetSummaryPolicy.healthStorageText(steps, activeCalories)
         getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, MODE_PRIVATE)
             .edit()
             .putString(PingShengWidgetProvider.KEY_HEALTH_TEXT, text)
+            .putString(PingShengWidgetProvider.KEY_HEALTH_SUMMARY_DATE, summaryDate)
             .apply()
         refreshHomeWidgets()
     }
@@ -642,12 +695,12 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, MODE_PRIVATE)
             .edit()
             .putString(PingShengWidgetProvider.KEY_HEALTH_TEXT, text)
+            .putString(
+                PingShengWidgetProvider.KEY_HEALTH_SUMMARY_DATE,
+                LocalDate.now().toString()
+            )
             .apply()
         refreshHomeWidgets()
-    }
-
-    private fun formatNumber(value: Int): String {
-        return "%,d".format(value)
     }
 
     private fun refreshHomeWidgets() {
@@ -667,25 +720,37 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         const val EXTRA_WIDGET_ACTION = "widget_action"
         private const val WIDGET_CHANNEL = "pingsheng_life/widget_summary"
         private const val HEALTH_CHANNEL = "pingsheng_life/system_health"
+        private const val HEALTH_MANUAL_CHANNEL = "pingsheng_life/health_manual"
         private const val AUTH_CHANNEL = "pingsheng_life/auth_session"
         private const val UPDATE_LAUNCHER_CHANNEL = "pingsheng_life/update_launcher"
         private const val APP_PREFERENCES_CHANNEL = "pingsheng_life/app_preferences"
         private const val AUTH_PREFS_NAME = "pingsheng_auth"
         private const val AUTH_SECURE_PREFS_NAME = "pingsheng_auth_secure"
         private const val STEP_COUNTER_BASELINE_PREFS = "pingsheng_step_counter_baseline"
+        private const val HEALTH_MANUAL_PREFS_NAME = "pingsheng_health_manual"
         private const val KEY_AUTH_SESSION_JSON = "auth_session_json"
+        private const val KEY_HEALTH_MANUAL_RECORDS_JSON = "manual_records_json"
         private const val KEY_STEP_COUNTER_BASELINE_DATE = "date"
         private const val KEY_STEP_COUNTER_BASELINE_VALUE = "value"
         private const val SENSOR_PERMISSION_REQUEST = 42
         private const val HEALTH_CONNECT_PROVIDER_PACKAGE = "com.google.android.apps.healthdata"
 
-        private val HEALTH_PERMISSIONS = setOf(
-            HealthPermission.getReadPermission(StepsRecord::class),
-            HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
-            HealthPermission.getReadPermission(BasalMetabolicRateRecord::class),
-            HealthPermission.getReadPermission(HeartRateRecord::class),
-            HealthPermission.getReadPermission(RespiratoryRateRecord::class),
+        private val STEP_PERMISSION = HealthPermission.getReadPermission(StepsRecord::class)
+        private val ACTIVE_CALORIES_PERMISSION =
+            HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class)
+        private val BASAL_CALORIES_PERMISSION =
+            HealthPermission.getReadPermission(BasalMetabolicRateRecord::class)
+        private val HEART_RATE_PERMISSION =
+            HealthPermission.getReadPermission(HeartRateRecord::class)
+        private val SLEEP_PERMISSION =
             HealthPermission.getReadPermission(SleepSessionRecord::class)
+
+        private val HEALTH_PERMISSIONS = setOf(
+            STEP_PERMISSION,
+            ACTIVE_CALORIES_PERMISSION,
+            BASAL_CALORIES_PERMISSION,
+            HEART_RATE_PERMISSION,
+            SLEEP_PERMISSION
         )
     }
 }

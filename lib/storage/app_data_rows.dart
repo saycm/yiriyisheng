@@ -5,6 +5,63 @@ part of 'storage.dart';
 class AppDataStoreRows {
   const AppDataStoreRows._();
 
+  static List<Map<String, Object?>> todoRowsWithRepeatAnchors(
+    List<Map<String, Object?>> rows,
+  ) {
+    final explicitAnchors = <String, int>{};
+    final observedDays = <String, int>{};
+    final generatedDays = <String, int>{};
+    for (final row in rows) {
+      if (row['repeatRule'] != TodoRepeatRule.monthly.name) {
+        continue;
+      }
+      final seriesId = _todoSeriesId(row['todoId'] as String? ?? '');
+      final explicitAnchor = row['repeatAnchorDay'];
+      if (explicitAnchor is num) {
+        explicitAnchors[seriesId] = explicitAnchor.toInt();
+      }
+      final dueDate = dateFromJson(row['dueDate'] as String?);
+      if (dueDate != null) {
+        final previous = observedDays[seriesId] ?? 0;
+        observedDays[seriesId] = math.max(previous, dueDate.day);
+        final id = row['todoId'] as String? ?? '';
+        final createdAt = DateTime.tryParse(row['createdAt'] as String? ?? '');
+        final previousMonth = DateTime(dueDate.year, dueDate.month - 1);
+        final isMonthEnd =
+            dueDate.day == DateTime(dueDate.year, dueDate.month + 1, 0).day;
+        if (RegExp(r'__repeat_\d{8}$').hasMatch(id) &&
+            isMonthEnd &&
+            createdAt != null &&
+            createdAt.year == previousMonth.year &&
+            createdAt.month == previousMonth.month) {
+          final previousGeneratedDay = generatedDays[seriesId] ?? 0;
+          generatedDays[seriesId] =
+              math.max(previousGeneratedDay, createdAt.day);
+        }
+      }
+    }
+
+    return rows.map((row) {
+      if (row['repeatRule'] != TodoRepeatRule.monthly.name ||
+          row['repeatAnchorDay'] is num) {
+        return row;
+      }
+      final seriesId = _todoSeriesId(row['todoId'] as String? ?? '');
+      final observed = observedDays[seriesId] ?? 0;
+      final generated = generatedDays[seriesId] ?? 0;
+      final inferred = math.max(observed, generated);
+      final anchor =
+          explicitAnchors[seriesId] ?? (inferred > 0 ? inferred : null);
+      return anchor == null
+          ? row
+          : <String, Object?>{...row, 'repeatAnchorDay': anchor};
+    }).toList(growable: false);
+  }
+
+  static String _todoSeriesId(String id) {
+    return id.replaceFirst(RegExp(r'__repeat_\d{8}$'), '');
+  }
+
   static Map<String, Object?> foodLogToRow(FoodLogEntry entry, int position) {
     return {
       'position': position,
@@ -39,6 +96,7 @@ class AppDataStoreRows {
       'type': record.type,
       'date': record.date?.toIso8601String(),
       'account': record.account,
+      'toAccount': record.toAccount,
       'tagsJson': jsonEncode(record.tags),
     };
   }
@@ -55,6 +113,9 @@ class AppDataStoreRows {
       account: (row['account'] as String?)?.trim().isEmpty == false
           ? (row['account'] as String).trim()
           : '银行卡',
+      toAccount: (row['toAccount'] as String?)?.trim().isEmpty == false
+          ? (row['toAccount'] as String).trim()
+          : null,
       tags: financeStringListFromJson(
         jsonDecode(row['tagsJson'] as String? ?? '[]'),
       ),
@@ -92,6 +153,7 @@ extension _AppDataStoreRowMapping on AppDataStore {
         row['repeatRule'] as String?,
         fallback: TodoRepeatRule.none,
       ),
+      repeatAnchorDay: (row['repeatAnchorDay'] as num?)?.toInt(),
       linkedModules: linkedModules,
       postponedCount: (row['postponedCount'] as num?)?.toInt() ?? 0,
       createdAt: DateTime.tryParse(row['createdAt'] as String? ?? '') ??

@@ -30,7 +30,7 @@ class _WeekPlanView extends StatelessWidget {
     final today = DateUtils.dateOnly(DateTime.now());
     final normalizedSelectedDate = DateUtils.dateOnly(selectedDate);
     final weekStart = normalizedSelectedDate.subtract(
-      Duration(days: normalizedSelectedDate.weekday % 7),
+      Duration(days: normalizedSelectedDate.weekday - DateTime.monday),
     );
     final days = List.generate(
       7,

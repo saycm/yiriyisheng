@@ -8,6 +8,55 @@ class _ForceUpdatePage extends StatelessWidget {
   final _UpdateInfo? update;
   static const _launcher = MethodChannel('pingsheng_life/update_launcher');
 
+  Future<void> _retryCheck(BuildContext context) async {
+    final gate = context.findAncestorStateOfType<_AuthGateState>();
+    if (gate == null) {
+      return;
+    }
+
+    final blockedUpdate = gate._updateInfo;
+    // ignore: invalid_use_of_protected_member
+    gate.setState(() {
+      gate._message = null;
+      gate._status = _AuthGateStatus.checking;
+    });
+
+    try {
+      final update = gate.widget.updateResponseOverride == null
+          ? await gate._api.checkUpdate()
+          : _UpdateInfo.fromJson(await gate.widget.updateResponseOverride!());
+      if (!gate.mounted) {
+        return;
+      }
+      if (update.forceUpdate) {
+        // ignore: invalid_use_of_protected_member
+        gate.setState(() {
+          gate._updateInfo = update;
+          gate._status = _AuthGateStatus.blocked;
+        });
+        return;
+      }
+      if (update.hasUpdate) {
+        // ignore: invalid_use_of_protected_member
+        gate.setState(() {
+          gate._updateInfo = update;
+          gate._status = _AuthGateStatus.updateAvailable;
+        });
+        return;
+      }
+      await gate._continueAfterOptionalUpdate();
+    } catch (_) {
+      if (!gate.mounted) {
+        return;
+      }
+      // ignore: invalid_use_of_protected_member
+      gate.setState(() {
+        gate._updateInfo = blockedUpdate;
+        gate._status = _AuthGateStatus.blocked;
+      });
+    }
+  }
+
   Future<void> _openDownload(BuildContext context, String url) async {
     try {
       await _launcher.invokeMethod<void>('openDownloadUrl', {'url': url});
@@ -106,6 +155,20 @@ class _ForceUpdatePage extends StatelessWidget {
                           fixedSize: const Size.fromHeight(52),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: () => unawaited(_retryCheck(context)),
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('重试检查'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          fixedSize: const Size.fromHeight(48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
                     ],
