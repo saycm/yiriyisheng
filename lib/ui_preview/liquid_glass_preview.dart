@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_core.dart';
 
+/// 液体玻璃视觉预览页（开发用），展示新的玻璃拟态设计语言。
 class LiquidGlassPreviewPage extends StatelessWidget {
   const LiquidGlassPreviewPage({super.key});
 
@@ -52,6 +53,7 @@ class LiquidGlassPreviewPage extends StatelessWidget {
   }
 }
 
+/// 预览页的动态背景层。
 class _LiquidBackdrop extends StatelessWidget {
   const _LiquidBackdrop();
 
@@ -77,6 +79,7 @@ class _LiquidBackdrop extends StatelessWidget {
   }
 }
 
+/// 背景上的渐变和光斑绘制。
 class _LiquidBackdropPainter extends CustomPainter {
   const _LiquidBackdropPainter();
 
@@ -224,6 +227,7 @@ class _LiquidBackdropPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+/// 预览页使用的玻璃卡片。
 class _GlassSurface extends StatelessWidget {
   const _GlassSurface({
     required this.child,
@@ -304,6 +308,7 @@ class _GlassSurface extends StatelessWidget {
   }
 }
 
+/// 玻璃卡片的高光绘制。
 class _GlassHighlightPainter extends CustomPainter {
   const _GlassHighlightPainter({required this.radius});
 
@@ -356,6 +361,7 @@ class _GlassHighlightPainter extends CustomPainter {
   }
 }
 
+/// 预览页顶部栏。
 class _PreviewTopBar extends StatelessWidget {
   const _PreviewTopBar();
 
@@ -397,6 +403,7 @@ class _PreviewTopBar extends StatelessWidget {
   }
 }
 
+/// 模块联动预览条。
 class _ModuleLinkPreviewStrip extends StatelessWidget {
   const _ModuleLinkPreviewStrip();
 
@@ -424,6 +431,7 @@ class _ModuleLinkPreviewStrip extends StatelessWidget {
   }
 }
 
+/// 今日日期条。
 class _TodayDateStrip extends StatelessWidget {
   const _TodayDateStrip();
 
@@ -456,6 +464,7 @@ class _TodayDateStrip extends StatelessWidget {
   }
 }
 
+/// 紧凑玻璃徽标。
 class _CompactGlassBadge extends StatelessWidget {
   const _CompactGlassBadge({required this.label});
 
@@ -485,6 +494,7 @@ class _CompactGlassBadge extends StatelessWidget {
   }
 }
 
+/// 模块联动条目。
 class _ModuleLinkItem extends StatelessWidget {
   const _ModuleLinkItem({
     required this.icon,
@@ -533,6 +543,7 @@ class _ModuleLinkItem extends StatelessWidget {
   }
 }
 
+/// 今日计划主卡片。
 class _TodayPlanHero extends StatelessWidget {
   const _TodayPlanHero();
 
@@ -616,6 +627,7 @@ class _TodayPlanHero extends StatelessWidget {
   }
 }
 
+/// 主卡片中的大数字。
 class _HeroNumber extends StatelessWidget {
   const _HeroNumber({required this.label, required this.value});
 
@@ -662,6 +674,7 @@ class _HeroNumber extends StatelessWidget {
   }
 }
 
+/// 指标网格。
 class _MetricGrid extends StatelessWidget {
   const _MetricGrid();
 
@@ -693,6 +706,7 @@ class _MetricGrid extends StatelessWidget {
   }
 }
 
+/// 单个指标卡片。
 class _MetricCard extends StatelessWidget {
   const _MetricCard({required this.metric});
 
@@ -764,6 +778,7 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
+/// 本周任务看板。
 class _WeekTaskBoard extends StatelessWidget {
   const _WeekTaskBoard();
 
@@ -837,6 +852,7 @@ class _WeekTaskBoard extends StatelessWidget {
   }
 }
 
+/// 待处理任务面板。
 class _PendingTasksPanel extends StatelessWidget {
   const _PendingTasksPanel();
 
@@ -879,6 +895,7 @@ class _PendingTasksPanel extends StatelessWidget {
   }
 }
 
+/// 日期胶囊。
 class _DayPill extends StatelessWidget {
   const _DayPill({required this.day});
 
@@ -928,6 +945,7 @@ class _DayPill extends StatelessWidget {
   }
 }
 
+/// 任务行。
 class _TaskLine extends StatelessWidget {
   const _TaskLine({
     required this.color,
@@ -1000,6 +1018,7 @@ class _TaskLine extends StatelessWidget {
   }
 }
 
+/// 财务面板。
 class _FinancePanel extends StatelessWidget {
   const _FinancePanel();
 
@@ -1050,6 +1069,7 @@ class _FinancePanel extends StatelessWidget {
   }
 }
 
+/// 预览页底部导航。
 class _PreviewBottomNav extends StatelessWidget {
   const _PreviewBottomNav();
 
@@ -1082,6 +1102,7 @@ class _PreviewBottomNav extends StatelessWidget {
   }
 }
 
+/// 底部导航项。
 class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.icon,
@@ -1130,6 +1151,7 @@ class _NavItem extends StatelessWidget {
   }
 }
 
+/// 图标胶囊。
 class _IconCapsule extends StatelessWidget {
   const _IconCapsule({
     required this.icon,
@@ -1159,6 +1181,7 @@ class _IconCapsule extends StatelessWidget {
   }
 }
 
+/// 环形进度绘制器。
 class _ProgressRingPainter extends CustomPainter {
   const _ProgressRingPainter({required this.progress});
 
@@ -1197,6 +1220,7 @@ class _ProgressRingPainter extends CustomPainter {
   }
 }
 
+/// 迷你折线图绘制器。
 class _SparklinePainter extends CustomPainter {
   const _SparklinePainter();
 
@@ -1245,6 +1269,7 @@ class _SparklinePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+/// 预览用指标数据。
 class _PreviewMetric {
   const _PreviewMetric(this.label, this.value, this.icon, this.color);
 
@@ -1254,6 +1279,7 @@ class _PreviewMetric {
   final Color color;
 }
 
+/// 预览用日期数据。
 class _PreviewDay {
   const _PreviewDay(this.label, this.count, this.selected);
 

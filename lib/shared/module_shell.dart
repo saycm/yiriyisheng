@@ -2,6 +2,7 @@
 
 part of 'shared.dart';
 
+/// 统一卡片阴影：带主色淡色投影，营造轻盈悬浮感。
 BoxShadow airyShadow([Color color = AppColors.primary]) {
   return BoxShadow(
     color: color.withValues(alpha: 0.11),
@@ -10,6 +11,7 @@ BoxShadow airyShadow([Color color = AppColors.primary]) {
   );
 }
 
+/// 统一卡片装饰：圆角、白色描边和可选阴影。
 BoxDecoration airyCardDecoration({
   Color color = AppColors.surface,
   Color? borderColor,
@@ -27,6 +29,7 @@ BoxDecoration airyCardDecoration({
   );
 }
 
+/// 占位模块页：当某个模块尚未实现时展示“建设中”外壳。
 class PlaceholderModulePage extends StatelessWidget {
   const PlaceholderModulePage({
     super.key,

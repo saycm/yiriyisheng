@@ -2,6 +2,7 @@
 
 part of 'workout.dart';
 
+/// 训练数据视图：展示组数、次数、重量等趋势。
 class _WorkoutDataView extends StatelessWidget {
   const _WorkoutDataView({
     required this.history,
@@ -150,6 +151,7 @@ class _WorkoutDataView extends StatelessWidget {
   }
 }
 
+/// 数据页里的单个指标卡片。
 class _WorkoutDataCard extends StatelessWidget {
   const _WorkoutDataCard({
     required this.cardKey,
@@ -215,6 +217,7 @@ class _WorkoutDataCard extends StatelessWidget {
   }
 }
 
+/// 指标详情弹层。
 class _WorkoutMetricDetailSheet extends StatelessWidget {
   const _WorkoutMetricDetailSheet({required this.detail});
 

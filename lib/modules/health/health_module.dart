@@ -2,6 +2,7 @@
 
 part of 'health.dart';
 
+/// 健康指标：名称、数值、单位和趋势数据。
 class HealthMetric {
   const HealthMetric({
     required this.title,
@@ -14,6 +15,7 @@ class HealthMetric {
   final String unit;
 }
 
+/// 健康数据中的一天：日期和各项指标。
 class HealthDay {
   const HealthDay({
     required this.date,
@@ -35,6 +37,7 @@ class HealthDay {
   String get monthDayLabel => '${date.month}月$day日';
 }
 
+/// 健康模块页面：展示状态评分、手动记录、Health Connect 数据和趋势。
 class HealthModulePage extends StatefulWidget {
   const HealthModulePage({
     super.key,
@@ -67,6 +70,7 @@ class HealthModulePage extends StatefulWidget {
   State<HealthModulePage> createState() => _HealthModulePageState();
 }
 
+/// 健康页状态：日期选择、系统健康快照和手动记录。
 class _HealthModulePageState extends State<HealthModulePage> {
   static const _healthStore = SystemHealthStore();
   static const _manualStore = HealthManualStore();
@@ -96,12 +100,14 @@ class _HealthModulePageState extends State<HealthModulePage> {
 
   List<HealthDay> get _days => _buildHealthDays(_systemHealth);
 
+  /// 取当前选中的日期；索引越界时自动回退到最新一天。
   HealthDay get _selectedDay {
     final days = _days;
     final index = math.min(_selectedIndex, days.length - 1);
     return days[index];
   }
 
+  /// 用今天的手动感受、饮食热量和训练组数实时计算状态评分。
   HealthStatusResult get _statusResult {
     return _calculateStatus(
       sleep: _sleepFeeling,
@@ -163,6 +169,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     await _refreshSystemHealthSnapshot();
   }
 
+  /// 从 Health Connect/传感器读取快照并刷新页面，默认选中最新日期。
   Future<HealthSystemSnapshot> _refreshSystemHealthSnapshot() async {
     final snapshot = await _healthStore.load();
     if (!mounted) {
@@ -176,11 +183,13 @@ class _HealthModulePageState extends State<HealthModulePage> {
     return snapshot;
   }
 
+  /// 请求系统健康权限，然后重新读取授权后的数据。
   Future<HealthSystemSnapshot> _requestSystemHealthAccessSnapshot() async {
     await _healthStore.requestPermissions();
     return _refreshSystemHealthSnapshot();
   }
 
+  /// 跳转到系统健康设置，供用户手动补授权。
   Future<void> _openSystemHealthSettings() async {
     await _healthStore.openSettings();
   }
@@ -289,6 +298,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
+  /// 打开指定日期的健康摘要；今天优先使用当前编辑态，历史日期读取已保存记录。
   void _openDaySummarySheet(
     HealthDay day, {
     String? title,
@@ -312,6 +322,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
+  /// 打开外部健康数据源面板，展示权限、刷新和设置入口。
   void _openExternalSourceSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -327,6 +338,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
+  /// 更新睡眠感受；睡眠差时同步身体标签，并立即持久化。
   void _updateSleepFeeling(HealthSleepFeeling value) {
     setState(() {
       _sleepFeeling = value;
@@ -339,6 +351,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     _persistCurrentManualRecord();
   }
 
+  /// 更新精力感受，并同步精力/疲劳等级和身体标签。
   void _updateEnergyFeeling(HealthEnergyFeeling value) {
     setState(() {
       _energyFeeling = value;
@@ -361,6 +374,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     _persistCurrentManualRecord();
   }
 
+  /// 更新压力感受，并同步压力等级和身体标签。
   void _updateStressFeeling(HealthStressFeeling value) {
     setState(() {
       _stressFeeling = value;
@@ -378,6 +392,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     _persistCurrentManualRecord();
   }
 
+  /// 更新身体不适类型，同时生成摘要里的疼痛说明。
   void _updateBodyFeeling(HealthBodyFeeling value) {
     setState(() {
       _bodyFeeling = value;
@@ -386,6 +401,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     _persistCurrentManualRecord();
   }
 
+  /// 更新心情，并同步摘要里的情绪文案。
   void _updateMoodFeeling(HealthMoodFeeling value) {
     setState(() {
       _moodFeeling = value;
@@ -394,6 +410,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     _persistCurrentManualRecord();
   }
 
+  /// 打开手动状态记录表单，保存后覆盖今天的内存数据和持久化记录。
   void _openManualRecordSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -432,6 +449,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
+  /// 读取历史手动记录；若加载期间用户已编辑，则保留新值并写回存储。
   Future<void> _loadManualRecords() async {
     final records = await _manualStore.load();
     if (!mounted) {
@@ -457,6 +475,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     }
   }
 
+  /// 把当前编辑态组装成当天记录，并异步保存到本地存储。
   void _persistCurrentManualRecord() {
     _manualRecordChangedWhileLoading = true;
     final record = _currentManualRecord();
@@ -466,6 +485,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     unawaited(_manualStore.save(updated.values));
   }
 
+  /// 把分散在多个评分字段中的状态组装为可序列化的日记录。
   HealthManualRecordData _currentManualRecord() {
     return HealthManualRecordData(
       date: _today,
@@ -483,6 +503,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
+  /// 用已保存记录覆盖当前编辑态，枚举字符串无法识别时回退到默认值。
   void _applyManualRecord(HealthManualRecordData record) {
     _bodyTag = record.bodyTag;
     _energyLevel = record.energyLevel;
@@ -517,6 +538,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
+  /// 把手动记录恢复为中性默认值，用于今天还没有记录的情况。
   void _resetManualRecord() {
     _bodyTag = '正常';
     _energyLevel = 3;
@@ -531,6 +553,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     _moodFeeling = HealthMoodFeeling.calm;
   }
 
+  /// 取某天的状态分：今天用实时值，历史日期只有存在手动记录时才返回分数。
   int? _statusScoreForDay(DateTime date) {
     if (DateUtils.isSameDay(date, _today)) {
       return _statusResult.score;
@@ -542,6 +565,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     return _calculateStatusForRecord(record, date).score;
   }
 
+  /// 用历史记录中的主观感受，加上当天的饮食和训练数据，重新计算历史状态分。
   HealthStatusResult _calculateStatusForRecord(
     HealthManualRecordData record,
     DateTime date,
@@ -577,6 +601,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
+  /// 汇总指定日期的饮食热量；今天直接使用父级传入的实时值。
   int _foodCaloriesForDay(DateTime date) {
     if (DateUtils.isSameDay(date, _today)) {
       return widget.foodCalories;
@@ -586,6 +611,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
         .fold(0, (total, entry) => total + entry.calories);
   }
 
+  /// 汇总指定日期的训练组数；今天直接使用父级传入的实时值。
   int _workoutGroupsForDay(DateTime date) {
     if (DateUtils.isSameDay(date, _today)) {
       return widget.workoutGroups;
@@ -595,6 +621,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
         .fold(0, (total, entry) => total + entry.totalGroups);
   }
 
+  /// 统一构造健康评分输入，避免页面各处重复拼装参数。
   HealthStatusResult _calculateStatus({
     required HealthSleepFeeling sleep,
     required HealthEnergyFeeling energy,
@@ -617,6 +644,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
+  /// 把存储中的枚举名称安全转回枚举值，未知值使用 fallback。
   T _enumValue<T extends Enum>(List<T> values, String name, T fallback) {
     for (final value in values) {
       if (value.name == name) {
@@ -626,6 +654,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     return fallback;
   }
 
+  /// 把身体不适枚举转换成摘要中展示的说明文字。
   String _painNoteForBody(HealthBodyFeeling value) {
     switch (value) {
       case HealthBodyFeeling.normal:
@@ -641,6 +670,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     }
   }
 
+  /// 把系统健康数据转换成页面日期条需要的七天模型；无数据时仍保留真实日期。
   List<HealthDay> _buildHealthDays(HealthSystemSnapshot snapshot) {
     // 健康页只接受系统健康/传感器返回值；缺权限时保留真实日期但不填假指标。
     final samples =
@@ -648,6 +678,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     return samples.map((sample) => _buildHealthDay(sample, snapshot)).toList();
   }
 
+  /// 生成最近七天的空健康样本，避免无权限时展示虚构指标。
   List<HealthSystemDaySample> _recentEmptyHealthSamples() {
     final today = _today;
     return List.generate(
@@ -658,6 +689,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
+  /// 把单日系统健康样本转换成页面展示模型，心率缺失时可回退到实时传感器值。
   HealthDay _buildHealthDay(
     HealthSystemDaySample sample,
     HealthSystemSnapshot snapshot,
@@ -707,6 +739,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
+  /// 构造单个指标；没有系统记录时显示占位符而不是 0。
   HealthMetric _metric({
     required String title,
     required String? value,
@@ -719,6 +752,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     );
   }
 
+  /// 计算完成目标的百分比文案。
   String _percentLabel(num? value, num goal) {
     if (value == null || goal <= 0) {
       return '无数据';
@@ -726,6 +760,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     return '${((value / goal) * 100).round()}%';
   }
 
+  /// 今天显示“今天”，其他日期显示中文星期。
   String _weekdayLabel(DateTime date) {
     final today = _today;
     if (date.year == today.year &&
@@ -736,6 +771,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     return const ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][date.weekday - 1];
   }
 
+  /// 给整数添加千位分隔符，提升步数等大数值的可读性。
   String _formatWhole(num value) {
     final text = value.round().toString();
     final buffer = StringBuffer();
@@ -749,6 +785,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     return buffer.toString();
   }
 
+  /// 可空整数的格式化入口，空值继续返回空值。
   String? _formatOptionalWhole(int? value) {
     if (value == null) {
       return null;
@@ -756,6 +793,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     return _formatWhole(value);
   }
 
+  /// 可空睡眠分钟数的格式化入口。
   String? _formatOptionalSleep(int? minutes) {
     if (minutes == null) {
       return null;
@@ -763,6 +801,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
     return _formatSleep(minutes);
   }
 
+  /// 把分钟数转换成“小时 + 分钟”的展示格式。
   String _formatSleep(int minutes) {
     final hours = minutes ~/ 60;
     final rest = minutes % 60;
@@ -770,6 +809,7 @@ class _HealthModulePageState extends State<HealthModulePage> {
   }
 }
 
+/// 健康页顶部的日期横向选择条。
 class _HealthDateStrip extends StatelessWidget {
   const _HealthDateStrip({
     required this.days,
@@ -870,6 +910,7 @@ class _HealthDateStrip extends StatelessWidget {
   }
 }
 
+/// 日期条中的单天胶囊。
 class _HealthDayPill extends StatelessWidget {
   const _HealthDayPill({
     required this.day,

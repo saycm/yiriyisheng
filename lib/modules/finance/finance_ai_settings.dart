@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// AI 记账设置页：配置接口地址、模型、密钥、解析策略和提示词。
 class _FinanceAiSettingsPage extends StatefulWidget {
   const _FinanceAiSettingsPage({
     required this.endpoint,
@@ -29,6 +30,7 @@ class _FinanceAiSettingsPage extends StatefulWidget {
   State<_FinanceAiSettingsPage> createState() => _FinanceAiSettingsPageState();
 }
 
+/// AI 设置页状态：各配置项的编辑和保存。
 class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
   bool _enabled = true;
   late String _endpoint;
@@ -161,6 +163,7 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
     );
   }
 
+  /// 打开服务商管理页，允许修改 API 地址、模型和密钥。
   void _openProviderManage() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -174,6 +177,7 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
     );
   }
 
+  /// 打开解析策略页，控制多笔拆分、转账识别、账户和标签提取等能力。
   void _openParseStrategy() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -185,6 +189,7 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
     );
   }
 
+  /// 打开自定义提示词编辑器。
   void _openPromptEditor() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -196,6 +201,7 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
     );
   }
 
+  /// 统一规范化并保存 AI 配置；空地址和空模型回退到默认值，空 Key 表示未配置。
   void _updateConfig({
     required String endpoint,
     required String model,
@@ -225,6 +231,7 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
     );
   }
 
+  /// 只更新解析策略，其他配置保持不变。
   void _updateParseStrategy(AiFinanceParseStrategy strategy) {
     _updateConfig(
       endpoint: _endpoint,
@@ -234,6 +241,7 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
     );
   }
 
+  /// 只更新自定义提示词，其他配置保持不变。
   void _updateCustomPrompt(String prompt) {
     _updateConfig(
       endpoint: _endpoint,
@@ -243,10 +251,12 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
     );
   }
 
+  /// 根据是否填写 API Key 生成服务商状态文案。
   static String _providerSubtitle(String apiKey) {
     return apiKey.trim().isEmpty ? '智谱GLM未配置' : '智谱GLM已配置';
   }
 
+  /// 汇总当前开启的解析能力，作为策略页副标题。
   static String _strategySubtitle(AiFinanceParseStrategy strategy) {
     final enabled = <String>[
       if (strategy.splitMultipleBills) '多笔',
@@ -260,11 +270,13 @@ class _FinanceAiSettingsPageState extends State<_FinanceAiSettingsPage> {
     return '${enabled.join('、')} · ${strategy.noteLength.label}';
   }
 
+  /// 根据是否使用自定义提示词生成摘要文案。
   static String _promptSubtitle(String prompt) {
     return prompt.trim().isEmpty ? '使用默认平生记账提示词' : '已启用自定义提示词';
   }
 }
 
+/// 服务商管理页：选择预置的 AI 服务商。
 class _FinanceAiProviderManagePage extends StatelessWidget {
   const _FinanceAiProviderManagePage({
     required this.endpoint,
@@ -328,6 +340,7 @@ class _FinanceAiProviderManagePage extends StatelessWidget {
   }
 }
 
+/// 解析策略页：开关各项识别能力和备注长度。
 class _FinanceAiParseStrategyPage extends StatefulWidget {
   const _FinanceAiParseStrategyPage({
     required this.strategy,
@@ -342,6 +355,7 @@ class _FinanceAiParseStrategyPage extends StatefulWidget {
       _FinanceAiParseStrategyPageState();
 }
 
+/// 解析策略页状态。
 class _FinanceAiParseStrategyPageState
     extends State<_FinanceAiParseStrategyPage> {
   late AiFinanceParseStrategy _strategy;
@@ -484,12 +498,14 @@ class _FinanceAiParseStrategyPageState
     setState(() => _strategy = strategy);
   }
 
+  /// 把编辑后的解析策略回传给设置页并关闭当前页面。
   void _save() {
     widget.onChanged(_strategy);
     Navigator.of(context).pop();
   }
 }
 
+/// 自定义提示词编辑页。
 class _FinanceAiPromptEditPage extends StatefulWidget {
   const _FinanceAiPromptEditPage({
     required this.prompt,
@@ -504,6 +520,7 @@ class _FinanceAiPromptEditPage extends StatefulWidget {
       _FinanceAiPromptEditPageState();
 }
 
+/// 提示词编辑页状态。
 class _FinanceAiPromptEditPageState extends State<_FinanceAiPromptEditPage> {
   late final TextEditingController _controller;
   late String _savedPrompt;
@@ -669,6 +686,7 @@ class _FinanceAiPromptEditPageState extends State<_FinanceAiPromptEditPage> {
 
   void _save() {
     final displayedPrompt = _controller.text;
+    // 与内置模板完全相同时存空字符串，后续升级默认模板可自动生效。
     final storedPrompt =
         displayedPrompt == AiFinancePromptBuilder.defaultTemplate
             ? ''
@@ -680,10 +698,12 @@ class _FinanceAiPromptEditPageState extends State<_FinanceAiPromptEditPage> {
     );
   }
 
+  /// 恢复内置提示词，但仍需点击保存才会写回配置。
   void _resetToDefault() {
     setState(() => _controller.text = AiFinancePromptBuilder.defaultTemplate);
   }
 
+  /// 用当前提示词和示例账单生成一次预览，帮助用户理解最终发给模型的指令。
   void _showPreview() {
     final preview = const AiFinancePromptBuilder().build(
       text: '昨天中午吃饭50，晚上奶茶12',
@@ -717,6 +737,7 @@ class _FinanceAiPromptEditPageState extends State<_FinanceAiPromptEditPage> {
   }
 }
 
+/// 提示词可用变量说明卡片。
 class _FinanceAiPromptVariablesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -795,6 +816,7 @@ class _FinanceAiPromptVariablesCard extends StatelessWidget {
   }
 }
 
+/// 服务商编辑页：填写接口地址、模型和密钥。
 class _FinanceAiProviderEditPage extends StatefulWidget {
   const _FinanceAiProviderEditPage({
     required this.endpoint,
@@ -819,6 +841,7 @@ class _FinanceAiProviderEditPage extends StatefulWidget {
       _FinanceAiProviderEditPageState();
 }
 
+/// 服务商编辑页状态。
 class _FinanceAiProviderEditPageState
     extends State<_FinanceAiProviderEditPage> {
   late final TextEditingController _endpointController;
@@ -932,6 +955,7 @@ class _FinanceAiProviderEditPageState
   }
 
   void _save() {
+    // 先回传配置，再连续关闭编辑页和服务商管理页。
     widget.onConfigChanged(
       endpoint: _endpointController.text,
       model: _modelController.text,
@@ -945,6 +969,7 @@ class _FinanceAiProviderEditPageState
   }
 }
 
+/// AI 设置子页面通用头部。
 class _FinanceAiPageHeader extends StatelessWidget {
   const _FinanceAiPageHeader({
     required this.title,
@@ -988,6 +1013,7 @@ class _FinanceAiPageHeader extends StatelessWidget {
   }
 }
 
+/// AI 设置项列表行。
 class _FinanceAiSettingsTile extends StatelessWidget {
   const _FinanceAiSettingsTile({
     required this.icon,
@@ -1056,6 +1082,7 @@ class _FinanceAiSettingsTile extends StatelessWidget {
   }
 }
 
+/// 解析策略开关行。
 class _FinanceAiStrategySwitch extends StatelessWidget {
   const _FinanceAiStrategySwitch({
     required this.keyValue,
@@ -1118,6 +1145,7 @@ class _FinanceAiStrategySwitch extends StatelessWidget {
   }
 }
 
+/// 备注长度选项。
 class _FinanceAiNoteLengthOption extends StatelessWidget {
   const _FinanceAiNoteLengthOption({
     required this.keyValue,
@@ -1170,6 +1198,7 @@ class _FinanceAiNoteLengthOption extends StatelessWidget {
   }
 }
 
+/// AI 能力说明卡片。
 class _FinanceAiCapabilityTile extends StatelessWidget {
   const _FinanceAiCapabilityTile({
     required this.icon,

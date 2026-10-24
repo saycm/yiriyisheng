@@ -2,6 +2,7 @@
 
 part of 'auth.dart';
 
+/// 登录/注册表单面板：昵称、账号、密码输入和提交按钮。
 class _AuthFormPanel extends StatelessWidget {
   const _AuthFormPanel({
     required this.mode,
@@ -230,6 +231,7 @@ class _AuthFormPanel extends StatelessWidget {
   }
 }
 
+/// 登录页头部：根据登录/注册模式展示不同标题和插画。
 class _AuthHeader extends StatelessWidget {
   const _AuthHeader({required this.isRegister});
 
@@ -336,6 +338,7 @@ class _AuthHeader extends StatelessWidget {
   }
 }
 
+/// 品牌标识组合（Logo + 名称）。
 class _AuthBrandLockup extends StatelessWidget {
   const _AuthBrandLockup({required this.today});
 
@@ -389,6 +392,7 @@ class _AuthBrandLockup extends StatelessWidget {
   }
 }
 
+/// 登录页右上角的日期印章装饰。
 class _AuthDateStamp extends StatelessWidget {
   const _AuthDateStamp({required this.today});
 
@@ -436,6 +440,7 @@ class _AuthDateStamp extends StatelessWidget {
   }
 }
 
+/// 品牌 Logo 徽章。
 class _AuthLogoBadge extends StatelessWidget {
   const _AuthLogoBadge();
 
@@ -505,6 +510,7 @@ class _AuthLogoBadge extends StatelessWidget {
   }
 }
 
+/// Logo 上的斜线装饰绘制。
 class _AuthLogoSlashPainter extends CustomPainter {
   const _AuthLogoSlashPainter();
 
@@ -537,6 +543,7 @@ class _AuthLogoSlashPainter extends CustomPainter {
   bool shouldRepaint(covariant _AuthLogoSlashPainter oldDelegate) => false;
 }
 
+/// 头部背景的装饰纹理绘制。
 class _AuthHeaderMotifPainter extends CustomPainter {
   const _AuthHeaderMotifPainter();
 
@@ -588,6 +595,7 @@ class _AuthHeaderMotifPainter extends CustomPainter {
   bool shouldRepaint(covariant _AuthHeaderMotifPainter oldDelegate) => false;
 }
 
+/// 纸质回形针装饰。
 class _AuthPaperClip extends StatelessWidget {
   const _AuthPaperClip();
 
@@ -601,6 +609,7 @@ class _AuthPaperClip extends StatelessWidget {
   }
 }
 
+/// 回形针的绘制逻辑。
 class _AuthPaperClipPainter extends CustomPainter {
   const _AuthPaperClipPainter();
 
@@ -658,6 +667,7 @@ class _AuthPaperClipPainter extends CustomPainter {
   bool shouldRepaint(covariant _AuthPaperClipPainter oldDelegate) => false;
 }
 
+/// 登录/注册模式切换分段控件。
 class _AuthSegment extends StatelessWidget {
   const _AuthSegment({
     required this.leftLabel,
@@ -705,6 +715,7 @@ class _AuthSegment extends StatelessWidget {
   }
 }
 
+/// 分段控件中的单个按钮。
 class _AuthSegmentButton extends StatelessWidget {
   const _AuthSegmentButton({
     required this.label,
@@ -749,6 +760,7 @@ class _AuthSegmentButton extends StatelessWidget {
   }
 }
 
+/// 邮箱/手机号渠道选择卡片。
 class _AuthChannelCard extends StatelessWidget {
   const _AuthChannelCard({
     required this.icon,
@@ -813,6 +825,7 @@ class _AuthChannelCard extends StatelessWidget {
   }
 }
 
+/// 表单错误提示条。
 class _AuthErrorBanner extends StatelessWidget {
   const _AuthErrorBanner({required this.message});
 
@@ -852,6 +865,7 @@ class _AuthErrorBanner extends StatelessWidget {
   }
 }
 
+/// 登录表单输入框统一样式。
 class _AuthTextField extends StatelessWidget {
   const _AuthTextField({
     required this.controller,

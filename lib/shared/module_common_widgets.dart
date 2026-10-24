@@ -3,6 +3,7 @@
 // ignore_for_file: use_key_in_widget_constructors
 part of 'shared.dart';
 
+/// 信息弹层的统一外框（标题、关闭按钮、内容区）。
 class InfoSheetFrame extends StatelessWidget {
   const InfoSheetFrame({
     required this.title,
@@ -73,6 +74,7 @@ class InfoSheetFrame extends StatelessWidget {
   }
 }
 
+/// 模块内区块标题。
 class ModuleSectionTitle extends StatelessWidget {
   const ModuleSectionTitle({
     required this.icon,
@@ -101,6 +103,7 @@ class ModuleSectionTitle extends StatelessWidget {
   }
 }
 
+/// 计划模块底部导航。
 class PlanBottomNav extends StatelessWidget {
   const PlanBottomNav({
     required this.selectedIndex,
@@ -129,6 +132,7 @@ class PlanBottomNav extends StatelessWidget {
   }
 }
 
+/// 财务模块底部导航。
 class FinanceBottomNav extends StatelessWidget {
   const FinanceBottomNav({
     required this.selectedIndex,
@@ -156,6 +160,7 @@ class FinanceBottomNav extends StatelessWidget {
   }
 }
 
+/// 通用模块快捷导航条。
 class _ModuleQuickNav extends StatelessWidget {
   const _ModuleQuickNav({
     required this.selected,
@@ -206,6 +211,7 @@ class _ModuleQuickNav extends StatelessWidget {
 const double moduleSwitchBarBottomGap = 8;
 const double moduleSwitchBarReservedHeight = 64;
 
+/// 模块底部导航占位槽。
 class ModuleBottomNavSlot extends StatelessWidget {
   const ModuleBottomNavSlot({required this.child});
 
@@ -228,6 +234,7 @@ class ModuleBottomNavSlot extends StatelessWidget {
   }
 }
 
+/// 模块页的液体渐变背景。
 class LiquidModuleBackground extends StatelessWidget {
   const LiquidModuleBackground({required this.child});
 
@@ -245,6 +252,7 @@ class LiquidModuleBackground extends StatelessWidget {
   }
 }
 
+/// 液体背景的绘制层。
 class _ModuleLiquidBackdrop extends StatelessWidget {
   const _ModuleLiquidBackdrop();
 
@@ -272,6 +280,7 @@ class _ModuleLiquidBackdrop extends StatelessWidget {
   }
 }
 
+/// 液体背景的渐变和光斑绘制器。
 class _ModuleLiquidBackdropPainter extends CustomPainter {
   const _ModuleLiquidBackdropPainter();
 
@@ -389,6 +398,7 @@ class _ModuleLiquidBackdropPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+/// 玻璃拟态卡片：半透明背景 + 模糊 + 高光描边。
 class GlassSurface extends StatelessWidget {
   const GlassSurface({
     required this.child,
@@ -463,6 +473,7 @@ class GlassSurface extends StatelessWidget {
   }
 }
 
+/// 玻璃卡片边缘高光绘制器。
 class _LiquidGlassRimPainter extends CustomPainter {
   const _LiquidGlassRimPainter({required this.radius});
 
@@ -505,6 +516,7 @@ class _LiquidGlassRimPainter extends CustomPainter {
   }
 }
 
+/// 模块页通用玻璃头部（返回模块中心、标题、更多按钮）。
 class ModuleGlassHeader extends StatelessWidget {
   const ModuleGlassHeader({
     required this.module,
@@ -560,6 +572,7 @@ class ModuleGlassHeader extends StatelessWidget {
   }
 }
 
+/// 头部圆形图标按钮。
 class _GlassIconButton extends StatelessWidget {
   const _GlassIconButton({
     required this.icon,
@@ -597,6 +610,7 @@ class _GlassIconButton extends StatelessWidget {
   }
 }
 
+/// 头部右侧操作胶囊按钮。
 class HeaderActionPill extends StatelessWidget {
   const HeaderActionPill({
     required this.icon,
@@ -644,6 +658,7 @@ class HeaderActionPill extends StatelessWidget {
   }
 }
 
+/// 模块切换横向链接条。
 class ModuleLinkStrip extends StatelessWidget {
   const ModuleLinkStrip({
     required this.selected,
@@ -679,6 +694,7 @@ class ModuleLinkStrip extends StatelessWidget {
   }
 }
 
+/// 胶囊式底部导航。
 class CapsuleNav extends StatelessWidget {
   const CapsuleNav({
     required this.selectedIndex,
@@ -831,6 +847,7 @@ class CapsuleNav extends StatelessWidget {
   }
 }
 
+/// 空状态卡片（标题 + 说明）。
 class EmptyCard extends StatelessWidget {
   const EmptyCard({
     required this.title,
@@ -874,6 +891,7 @@ class EmptyCard extends StatelessWidget {
   }
 }
 
+/// 圆形图标气泡。
 class IconBubble extends StatelessWidget {
   const IconBubble({
     required this.icon,
@@ -904,6 +922,7 @@ class IconBubble extends StatelessWidget {
   }
 }
 
+/// 弹层顶部拖动条。
 class SheetHandle extends StatelessWidget {
   const SheetHandle();
 
@@ -922,6 +941,7 @@ class SheetHandle extends StatelessWidget {
   }
 }
 
+/// 关联数值展示（图标 + 数值 + 标签）。
 class LinkedValue extends StatelessWidget {
   const LinkedValue({
     required this.label,
@@ -958,6 +978,7 @@ class LinkedValue extends StatelessWidget {
   }
 }
 
+/// 模块联动汇总卡片。
 class ModuleLinkedSummaryCard extends StatelessWidget {
   const ModuleLinkedSummaryCard({
     required this.title,
@@ -1035,6 +1056,7 @@ class ModuleLinkedSummaryCard extends StatelessWidget {
   }
 }
 
+/// 迷你柱状图绘制器。
 class TinyBarsPainter extends CustomPainter {
   TinyBarsPainter({
     required this.values,
@@ -1083,6 +1105,7 @@ class TinyBarsPainter extends CustomPainter {
   }
 }
 
+/// 弹层通用文本输入框。
 class SheetTextField extends StatelessWidget {
   const SheetTextField({
     required this.keyName,

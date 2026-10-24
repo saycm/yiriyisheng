@@ -2,8 +2,10 @@
 
 part of 'workout.dart';
 
+/// 训练计划强度：轻、中、重。
 enum _WorkoutPlanIntensity { light, medium, heavy }
 
+/// 强度枚举的显示文案和颜色。
 extension _WorkoutPlanIntensityX on _WorkoutPlanIntensity {
   String get label {
     switch (this) {
@@ -61,6 +63,7 @@ const _defaultPlanIntensityActions =
   },
 };
 
+/// 训练计划变体：同一计划下的不同强度/动作组合。
 class _WorkoutPlanVariant {
   const _WorkoutPlanVariant({
     required this.plan,
@@ -165,6 +168,7 @@ List<String> _fallbackIntensityActionNames(
   return actionNames.take(targetCount).toList();
 }
 
+/// 计划视图：展示训练计划卡片和模板。
 class _WorkoutPlanView extends StatelessWidget {
   const _WorkoutPlanView({
     required this.plans,
@@ -199,6 +203,7 @@ class _WorkoutPlanView extends StatelessWidget {
   }
 }
 
+/// 训练计划卡片。
 class _WorkoutPlanCard extends StatelessWidget {
   const _WorkoutPlanCard({
     required this.plan,
@@ -310,6 +315,7 @@ class _WorkoutPlanCard extends StatelessWidget {
   }
 }
 
+/// 计划负荷标签（轻/中/重）。
 class _WorkoutPlanLoadTag extends StatelessWidget {
   const _WorkoutPlanLoadTag({required this.label});
 
@@ -335,6 +341,7 @@ class _WorkoutPlanLoadTag extends StatelessWidget {
   }
 }
 
+/// 计划卡片上的迷你元信息。
 class _WorkoutPlanMiniMeta extends StatelessWidget {
   const _WorkoutPlanMiniMeta({required this.label});
 
@@ -360,6 +367,7 @@ class _WorkoutPlanMiniMeta extends StatelessWidget {
   }
 }
 
+/// 正在执行的计划横幅。
 class _WorkoutActivePlanBanner extends StatelessWidget {
   const _WorkoutActivePlanBanner({
     required this.plan,
@@ -423,6 +431,7 @@ class _WorkoutActivePlanBanner extends StatelessWidget {
   }
 }
 
+/// 计划强度选择器。
 class _WorkoutPlanIntensitySelector extends StatelessWidget {
   const _WorkoutPlanIntensitySelector({
     required this.selected,
@@ -487,6 +496,7 @@ class _WorkoutPlanIntensitySelector extends StatelessWidget {
   }
 }
 
+/// 计划详情弹层。
 class _WorkoutPlanDetailSheet extends StatefulWidget {
   const _WorkoutPlanDetailSheet({
     required this.plan,
@@ -505,6 +515,7 @@ class _WorkoutPlanDetailSheet extends StatefulWidget {
       _WorkoutPlanDetailSheetState();
 }
 
+/// 计划详情弹层状态。
 class _WorkoutPlanDetailSheetState extends State<_WorkoutPlanDetailSheet> {
   _WorkoutPlanIntensity _intensity = _WorkoutPlanIntensity.medium;
 
@@ -660,6 +671,7 @@ class _WorkoutPlanDetailSheetState extends State<_WorkoutPlanDetailSheet> {
   }
 }
 
+/// 计划详情里的小信息胶囊。
 class _WorkoutPlanInfoPill extends StatelessWidget {
   const _WorkoutPlanInfoPill({required this.label});
 
@@ -685,6 +697,7 @@ class _WorkoutPlanInfoPill extends StatelessWidget {
   }
 }
 
+/// 计划编辑弹层。
 class _WorkoutPlanEditSheet extends StatefulWidget {
   const _WorkoutPlanEditSheet({
     required this.plan,
@@ -700,6 +713,7 @@ class _WorkoutPlanEditSheet extends StatefulWidget {
   State<_WorkoutPlanEditSheet> createState() => _WorkoutPlanEditSheetState();
 }
 
+/// 计划编辑弹层状态。
 class _WorkoutPlanEditSheetState extends State<_WorkoutPlanEditSheet> {
   late WorkoutPlan _plan = widget.plan;
 
@@ -826,6 +840,7 @@ class _WorkoutPlanEditSheetState extends State<_WorkoutPlanEditSheet> {
   }
 }
 
+/// 计划编辑里的一行设置。
 class _WorkoutPlanEditRow extends StatelessWidget {
   const _WorkoutPlanEditRow({
     required this.action,
@@ -884,6 +899,7 @@ class _WorkoutPlanEditRow extends StatelessWidget {
   }
 }
 
+/// 训练模板横向列表。
 class _WorkoutTemplateRail extends StatelessWidget {
   const _WorkoutTemplateRail({
     required this.plans,

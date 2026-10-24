@@ -2,6 +2,7 @@
 
 part of 'models.dart';
 
+/// 首页聚合快照：一次性承载各模块需要恢复的核心数据。
 class LifeSummarySnapshot {
   const LifeSummarySnapshot({
     required this.foodCalories,
@@ -36,6 +37,7 @@ class LifeSummarySnapshot {
   final String aiFinanceCustomPrompt;
 }
 
+/// 食物库中的一条食物：名称、热量、单位和三大营养素。
 class FoodItem {
   const FoodItem({
     required this.emoji,
@@ -88,6 +90,7 @@ class FoodItem {
   }
 }
 
+/// 一条饮食记录：吃了哪种食物、哪一餐、份数和记录时间。
 class FoodLogEntry {
   const FoodLogEntry({
     required this.food,
@@ -142,8 +145,10 @@ class FoodLogEntry {
   }
 }
 
+/// 三大营养素类型，用于在没有显式营养数据时按分类估算。
 enum _FoodMacro { protein, carbs, fat }
 
+/// 计算食物某类营养素含量；没有显式数据时按食物分类的热量比例估算。
 double _foodMacro(FoodItem food, _FoodMacro macro) {
   final direct = switch (macro) {
     _FoodMacro.protein => food.protein,
@@ -170,8 +175,10 @@ double _foodMacro(FoodItem food, _FoodMacro macro) {
   return food.calorie * ratio;
 }
 
+/// 对外暴露的食物分类归一化函数。
 String normalizeFoodGroup(String group) => _normalizeFoodGroup(group);
 
+/// 把各种食物分类别名归一化成少量标准分类。
 String _normalizeFoodGroup(String group) {
   return switch (group) {
     '常用' || '常见' || '早餐' || '汤粥' || '家常菜' => '常用',
@@ -193,6 +200,7 @@ double? _numToDouble(Object? value) {
   return double.tryParse(value?.toString() ?? '');
 }
 
+/// 待办事项：标题、分类、优先级、状态、日期、重复规则和关联模块。
 class TodoItem {
   TodoItem({
     String? id,
@@ -395,6 +403,7 @@ class TodoItem {
   }
 }
 
+/// 判断一条重复待办是否仍保持“未被人为修改”的状态，用于安全地重建重复实例。
 bool isUntouchedTodoOccurrence(TodoItem actual, TodoItem expected) {
   final sameDueDate = actual.dueDate == null || expected.dueDate == null
       ? actual.dueDate == expected.dueDate
@@ -414,6 +423,7 @@ bool isUntouchedTodoOccurrence(TodoItem actual, TodoItem expected) {
       listEquals(actual.linkedModules, expected.linkedModules);
 }
 
+/// 待办优先级：必须做 / 应该做 / 可推迟。
 enum TodoPriority {
   mustDo('必须做', Icons.priority_high_rounded, AppColors.financeRed),
   shouldDo('应该做', Icons.flag_rounded, AppColors.primary),
@@ -426,6 +436,7 @@ enum TodoPriority {
   final Color color;
 }
 
+/// 待办状态：未开始、进行中、已完成、已延后、已归档。
 enum TodoStatus {
   notStarted('未开始', Icons.radio_button_unchecked_rounded),
   inProgress('进行中', Icons.timelapse_rounded),
@@ -439,6 +450,7 @@ enum TodoStatus {
   final IconData icon;
 }
 
+/// 待办重复规则：不重复、每天、每周、每月、自定义。
 enum TodoRepeatRule {
   none('不重复'),
   daily('每天'),
@@ -451,6 +463,7 @@ enum TodoRepeatRule {
   final String label;
 }
 
+/// 计算下一次每月重复的日期，并把日期限制在目标月份的天数内。
 DateTime _nextTodoMonth(DateTime date, int anchorDay) {
   final firstDayOfFollowingMonth = DateTime(date.year, date.month + 2);
   final lastDayOfNextMonth =
@@ -462,6 +475,7 @@ DateTime _nextTodoMonth(DateTime date, int anchorDay) {
   );
 }
 
+/// 为重复待办生成带日期后缀的新 ID，保持同一系列可被识别。
 String _nextTodoOccurrenceId(String currentId, DateTime date) {
   final seriesId = currentId.replaceFirst(RegExp(r'__repeat_\d{8}$'), '');
   final month = date.month.toString().padLeft(2, '0');
@@ -469,6 +483,7 @@ String _nextTodoOccurrenceId(String currentId, DateTime date) {
   return '${seriesId}__repeat_${date.year}$month$day';
 }
 
+/// 待办可关联的模块，以及对应的跳转动作和按钮文案。
 enum TodoLinkedModule {
   finance('财务', Icons.account_balance_wallet_rounded, AppColors.success),
   food('饮食', Icons.restaurant_rounded, Color(0xFFB88955)),
@@ -509,6 +524,7 @@ enum TodoLinkedModule {
   }
 }
 
+/// 财务记录：一笔收入、支出或转账。
 class FinanceRecord {
   const FinanceRecord({
     required this.icon,
@@ -580,6 +596,7 @@ class FinanceRecord {
   }
 }
 
+/// 统计某一天某一类型（收入/支出）的总额。
 double todayFinanceTotal(
   List<FinanceRecord> records,
   String type,
@@ -594,11 +611,13 @@ double todayFinanceTotal(
   }).fold(0, (total, record) => total + record.amount);
 }
 
+/// 统计某一天饮食记录的总热量。
 int todayFoodCalories(List<FoodLogEntry> logs, DateTime today) {
   return todayFoodLogs(logs, today)
       .fold(0, (total, entry) => total + entry.calories);
 }
 
+/// 过滤出某一天的饮食记录。
 List<FoodLogEntry> todayFoodLogs(List<FoodLogEntry> logs, DateTime today) {
   final targetDay = DateUtils.dateOnly(today);
   return logs
@@ -606,6 +625,7 @@ List<FoodLogEntry> todayFoodLogs(List<FoodLogEntry> logs, DateTime today) {
       .toList(growable: false);
 }
 
+/// 统计某一天的训练组数：已完成历史 + 进行中会话 + 本地进度。
 int todayWorkoutGroups({
   required List<WorkoutHistoryEntry> history,
   required ActiveWorkoutSession? activeSession,
@@ -633,10 +653,12 @@ int todayWorkoutGroups({
   return completedGroups + activeGroups + progressGroups;
 }
 
+/// 判断两个时间是否是同一个本地日期。
 bool isSameLocalDay(DateTime? value, DateTime day) {
   return value != null && DateUtils.isSameDay(value, DateUtils.dateOnly(day));
 }
 
+/// 根据待办分类返回对应主题色。
 Color todoColorForCategory(String category) {
   return switch (category) {
     '健康' => const Color(0xFFFF6F9D),
@@ -648,6 +670,7 @@ Color todoColorForCategory(String category) {
   };
 }
 
+/// 按枚举 name 反序列化，找不到时返回 fallback。
 T enumByName<T extends Enum>(
   List<T> values,
   String? name, {
@@ -661,6 +684,7 @@ T enumByName<T extends Enum>(
   return fallback;
 }
 
+/// 把 JSON 中的模块名数组转换成去重后的关联模块列表。
 List<TodoLinkedModule> linkedModulesFromJson(Object? value) {
   if (value is! List<dynamic>) {
     return [];
@@ -678,6 +702,7 @@ List<TodoLinkedModule> linkedModulesFromJson(Object? value) {
       .toList();
 }
 
+/// 把 JSON 数组转换成去空白后的字符串列表。
 List<String> financeStringListFromJson(Object? value) {
   if (value is! List<dynamic>) {
     return [];
@@ -689,6 +714,7 @@ List<String> financeStringListFromJson(Object? value) {
       .toList();
 }
 
+/// 把日期序列化成 yyyy-MM-dd，无日期返回 null。
 String? dateToJson(DateTime? value) {
   if (value == null) {
     return null;
@@ -699,6 +725,7 @@ String? dateToJson(DateTime? value) {
       '${date.day.toString().padLeft(2, '0')}';
 }
 
+/// 返回 date 之后的下一个工作日（跳过周六周日）。
 DateTime nextWorkdayAfter(DateTime date) {
   var target = DateUtils.dateOnly(date).add(const Duration(days: 1));
   while (target.weekday == DateTime.saturday ||
@@ -708,6 +735,7 @@ DateTime nextWorkdayAfter(DateTime date) {
   return target;
 }
 
+/// 解析 yyyy-MM-dd 日期，非法或空值返回 null。
 DateTime? dateFromJson(String? value) {
   if (value == null || value.trim().isEmpty) {
     return null;
@@ -716,12 +744,14 @@ DateTime? dateFromJson(String? value) {
   return parsed == null ? null : DateUtils.dateOnly(parsed);
 }
 
+/// 生成本地待办 ID：时间戳 + 随机盐，保证离线也能唯一。
 String _newLocalId() {
   final micros = DateTime.now().microsecondsSinceEpoch;
   final salt = math.Random().nextInt(1 << 20).toRadixString(16);
   return 'todo_${micros}_$salt';
 }
 
+/// 根据财务记录标题选择图标。
 IconData financeIconForTitle(String title) {
   return switch (title) {
     '三餐' => Icons.restaurant_rounded,
@@ -747,6 +777,7 @@ IconData financeIconForTitle(String title) {
   };
 }
 
+/// 把金额格式化成带千分位和 ¥ 前缀的字符串。
 String formatMoney(double value) {
   final fixed = value.abs().toStringAsFixed(2);
   final parts = fixed.split('.');
@@ -763,6 +794,7 @@ String formatMoney(double value) {
   return '$sign¥${buffer.toString()}.${parts.last}';
 }
 
+/// 生成待办完成后引导用户去关联模块记录的提示文案。
 String linkedTodoPrompt(TodoItem todo, TodoLinkedModule module) {
   return switch (module) {
     TodoLinkedModule.finance => '${todo.title} 已完成，可以补一条财务记录。',

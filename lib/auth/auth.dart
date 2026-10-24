@@ -15,12 +15,16 @@ part '../api/pingsheng_api.dart';
 part 'auth_update_pages.dart';
 part 'auth_visuals.dart';
 
+/// 启动门禁状态：检查中、被强制更新拦截、有可选更新、未登录、已登录。
 enum _AuthGateStatus { checking, blocked, updateAvailable, signedOut, signedIn }
 
+/// 登录/注册模式。
 enum _AuthMode { login, register }
 
+/// 账号渠道：邮箱或手机号。
 enum _AuthChannel { email, phone }
 
+/// 启动门禁：检查更新、恢复登录态，再决定进入登录页还是首页。
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key, this.updateResponseOverride});
 
@@ -30,6 +34,7 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
+/// 门禁状态机：维护更新信息、登录会话和当前页面。
 class _AuthGateState extends State<AuthGate> {
   final _api = const _PingShengApi();
   final _store = const _AuthSessionStore();
@@ -46,6 +51,7 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _bootstrap() async {
+    // 先检查更新；强制更新会直接拦截，可选更新则显示可跳过的提示页。
     try {
       final update = widget.updateResponseOverride == null
           ? await _api.checkUpdate()
@@ -73,6 +79,7 @@ class _AuthGateState extends State<AuthGate> {
       }
     }
 
+    // 更新检查通过后恢复本地登录态。
     final stored = await _store.load();
     if (stored != null) {
       final active = await _resolveStoredSession(stored);
@@ -94,6 +101,7 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<_AuthSession?> _resolveStoredSession(_AuthSession stored) async {
+    // 用 access token 换取用户信息；token 失效时尝试 refresh。
     try {
       // access token 仍有效时直接换取用户信息，避免频繁刷新 token。
       final user = await _api.me(stored.accessToken);
@@ -120,12 +128,14 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   bool _isAuthInvalid(_ApiException error) {
+    // 这些错误码表示登录态已失效，需要刷新或重新登录。
     return error.code == 'invalid_token' ||
         error.code == 'missing_token' ||
         error.code == 'invalid_refresh_token';
   }
 
   Future<void> _handleSignedIn(_AuthSession session) async {
+    // 登录成功后保存会话并进入首页。
     await _store.save(session);
     if (!mounted) {
       return;
@@ -136,6 +146,7 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _handleSignOut() async {
+    // 退出登录：清空本地会话并回到登录页。
     await _store.clear();
     if (!mounted) {
       return;
@@ -147,6 +158,7 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _continueAfterOptionalUpdate() async {
+    // 用户跳过可选更新后，继续恢复登录态。
     final stored = await _store.load();
     if (stored != null) {
       final active = await _resolveStoredSession(stored);
@@ -166,6 +178,7 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
+    // 根据门禁状态选择加载页、更新页、登录页或首页。
     return switch (_status) {
       _AuthGateStatus.checking =>
         _AuthStatusPage(message: _message ?? '正在连接服务端'),
@@ -184,6 +197,7 @@ class _AuthGateState extends State<AuthGate> {
   }
 }
 
+/// 登录页预览入口，用于开发时直接查看登录界面。
 class AuthPreviewPage extends StatelessWidget {
   const AuthPreviewPage({super.key});
 
@@ -196,6 +210,7 @@ class AuthPreviewPage extends StatelessWidget {
   }
 }
 
+/// 登录/注册页面。
 class _AuthPage extends StatefulWidget {
   const _AuthPage({
     required this.api,
@@ -211,6 +226,7 @@ class _AuthPage extends StatefulWidget {
   State<_AuthPage> createState() => _AuthPageState();
 }
 
+/// 登录/注册表单状态：输入校验、提交和错误提示。
 class _AuthPageState extends State<_AuthPage> {
   final _nameController = TextEditingController();
   final _accountController = TextEditingController();
@@ -249,6 +265,7 @@ class _AuthPageState extends State<_AuthPage> {
   }
 
   String _toHalfWidthAscii(String value) {
+    // 把全角字符转换成半角，避免用户输入法造成的格式问题。
     final buffer = StringBuffer();
     for (final unit in value.codeUnits) {
       if (unit == 0x3000) {
@@ -263,6 +280,7 @@ class _AuthPageState extends State<_AuthPage> {
   }
 
   String _normalizePhoneInput(String value) {
+    // 去掉手机号里的空格、括号和 +86/0086 前缀。
     var phone = value
         .replaceAll(authHiddenOrWhitespacePattern, '')
         .replaceAll(RegExp(r'[-()（）]'), '');
@@ -279,6 +297,7 @@ class _AuthPageState extends State<_AuthPage> {
   }
 
   String? _validateAuthInput(String account, String password) {
+    // 提交前做基础校验，返回第一条错误文案。
     if (account.isEmpty) {
       return _channel == _AuthChannel.email ? '请填写邮箱地址。' : '请填写手机号码。';
     }
@@ -295,6 +314,7 @@ class _AuthPageState extends State<_AuthPage> {
   }
 
   bool _looksLikeEmail(String account) {
+    // 简单的邮箱格式检查：有且仅有一个 @，域名里有点且不在首尾。
     final atIndex = account.indexOf('@');
     if (atIndex <= 0 || atIndex != account.lastIndexOf('@')) {
       return false;
@@ -305,6 +325,7 @@ class _AuthPageState extends State<_AuthPage> {
   }
 
   bool _looksLikePhone(String account) {
+    // 中国大陆手机号：11 位、以 1 开头、全为数字。
     return account.length == 11 &&
         account.startsWith('1') &&
         account.codeUnits.every(_isAsciiDigit);
@@ -315,6 +336,7 @@ class _AuthPageState extends State<_AuthPage> {
   }
 
   String _authErrorMessage(_ApiException error) {
+    // 把服务端错误码/英文提示翻译成中文提示。
     return switch (error.code) {
       'invalid_email' => '邮箱格式不对，请检查 @ 和后缀，比如 say1024@qq.com。',
       'invalid_phone' => '手机号格式不对，请输入 11 位手机号。',
@@ -333,6 +355,7 @@ class _AuthPageState extends State<_AuthPage> {
   }
 
   void _clearAuthInputs({bool includeName = true}) {
+    // 切换模式或渠道时清空输入，避免残留上一次的账号。
     if (includeName) {
       _nameController.clear();
     }
@@ -341,6 +364,7 @@ class _AuthPageState extends State<_AuthPage> {
   }
 
   void _handleModeChanged(_AuthMode mode) {
+    // 登录/注册切换：清空错误和输入。
     if (_mode == mode) {
       return;
     }
@@ -352,6 +376,7 @@ class _AuthPageState extends State<_AuthPage> {
   }
 
   void _handleChannelChanged(_AuthChannel channel) {
+    // 邮箱/手机号切换：保留昵称，清空账号和密码。
     if (_channel == channel) {
       return;
     }
@@ -363,6 +388,7 @@ class _AuthPageState extends State<_AuthPage> {
   }
 
   Future<void> _submit() async {
+    // 规范化输入 -> 校验 -> 调用对应注册/登录接口 -> 交给门禁保存会话。
     final account = _normalizeAuthAccount(_accountController.text);
     final password = _passwordController.text;
     if (account != _accountController.text) {
@@ -418,6 +444,7 @@ class _AuthPageState extends State<_AuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 页面由品牌头部、表单面板和底部说明组成。
     final isRegister = _mode == _AuthMode.register;
     final formPanel = _AuthFormPanel(
       mode: _mode,
@@ -474,6 +501,7 @@ class _AuthPageState extends State<_AuthPage> {
   }
 }
 
+/// 启动检查时的加载状态页。
 class _AuthStatusPage extends StatelessWidget {
   const _AuthStatusPage({required this.message});
 

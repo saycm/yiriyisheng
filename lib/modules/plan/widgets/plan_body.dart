@@ -2,6 +2,7 @@
 
 part of '../plan.dart';
 
+/// 计划页主体：根据顶部页签切换今日执行、待办箱、周计划和统计四个视图。
 class _PlanBody extends StatelessWidget {
   const _PlanBody({
     required this.selectedTab,
@@ -50,17 +51,20 @@ class _PlanBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = DateUtils.dateOnly(DateTime.now());
+    // 今日视图只展示“未完成且到期日不晚于今天”的待办。
     final actionableTodayTodos = todos.where((todo) {
       final dueDate = todo.dueDate;
       return todo.isActive && dueDate != null && !dueDate.isAfter(today);
     }).toList()
       ..sort(_sortPlanTodos);
+    // 再按分类筛选；分类为“全部”时保留所有今日待办。
     final filteredTodayTodos = activeFilter == '全部'
         ? actionableTodayTodos
         : actionableTodayTodos
             .where((todo) => todo.category == activeFilter)
             .toList();
 
+    // 页签 1：待办箱（收集箱、已完成、已归档）。
     if (selectedTab == 1) {
       return _InboxView(
         inboxTodos: todos.where((todo) => todo.isInbox).toList()
@@ -78,6 +82,7 @@ class _PlanBody extends StatelessWidget {
         onUpdate: onUpdateTodo,
       );
     }
+    // 页签 2：周计划（按天看板）。
     if (selectedTab == 2) {
       return _WeekPlanView(
         selectedDate: selectedDate,
@@ -90,6 +95,7 @@ class _PlanBody extends StatelessWidget {
         onDelete: onDeleteTodo,
       );
     }
+    // 页签 3：计划统计（完成率、饮食/锻炼汇总）。
     if (selectedTab == 3) {
       return _PlanStatsView(
         todos: todos,
@@ -98,6 +104,7 @@ class _PlanBody extends StatelessWidget {
         workoutGroups: weeklyWorkoutGroups,
       );
     }
+    // 默认页签 0：今日执行列表，顶部带今日总览卡片。
     return _TodayExecutionView(
       title: '今日执行',
       emptyTitle: '今天没有待处理事项',
@@ -119,6 +126,7 @@ class _PlanBody extends StatelessWidget {
   }
 }
 
+// 计划列表排序：优先级高的在前，同优先级按到期日升序，无日期排最后。
 int _sortPlanTodos(TodoItem a, TodoItem b) {
   final priority = a.priority.index.compareTo(b.priority.index);
   if (priority != 0) {

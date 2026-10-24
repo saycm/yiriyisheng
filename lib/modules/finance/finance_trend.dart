@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// 趋势卡片：按时间展示收入/支出曲线和区间切换。
 class _TrendCard extends StatelessWidget {
   const _TrendCard({
     required this.showExpense,
@@ -105,6 +106,7 @@ class _TrendCard extends StatelessWidget {
   }
 }
 
+/// 一条趋势数据序列（名称、颜色、数据点）。
 class _TrendSeries {
   const _TrendSeries({
     required this.values,
@@ -161,6 +163,7 @@ _TrendSeries _trendSeries(
   );
 }
 
+/// 趋势区间切换按钮（周/月/年）。
 class _SegmentButton extends StatelessWidget {
   const _SegmentButton({
     required this.label,
@@ -197,6 +200,7 @@ class _SegmentButton extends StatelessWidget {
   }
 }
 
+/// 趋势折线绘制器。
 class _TrendPainter extends CustomPainter {
   _TrendPainter({
     required this.values,

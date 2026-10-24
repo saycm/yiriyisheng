@@ -2,6 +2,7 @@
 
 part of 'workout.dart';
 
+/// 锻炼页顶部栏。
 class _WorkoutHeader extends StatelessWidget {
   const _WorkoutHeader({
     required this.onOpenModules,
@@ -22,6 +23,7 @@ class _WorkoutHeader extends StatelessWidget {
   }
 }
 
+/// 锻炼页顶部页签（计划/动作/数据/历史）。
 class _WorkoutTopTabs extends StatelessWidget {
   const _WorkoutTopTabs({
     required this.selected,
@@ -85,6 +87,7 @@ class _WorkoutTopTabs extends StatelessWidget {
   }
 }
 
+/// 训练摘要卡片（今日组数、时长等）。
 class _WorkoutSummaryCard extends StatelessWidget {
   const _WorkoutSummaryCard({
     required this.finishedActions,
@@ -187,6 +190,7 @@ class _WorkoutSummaryCard extends StatelessWidget {
   }
 }
 
+/// 锻炼页的小徽标。
 class _WorkoutBadge extends StatelessWidget {
   const _WorkoutBadge({
     required this.icon,
@@ -225,6 +229,7 @@ class _WorkoutBadge extends StatelessWidget {
   }
 }
 
+/// 今日训练推荐卡片。
 class _WorkoutTodayRecommendationCard extends StatelessWidget {
   const _WorkoutTodayRecommendationCard({
     required this.variant,
@@ -355,6 +360,7 @@ class _WorkoutTodayRecommendationCard extends StatelessWidget {
   }
 }
 
+/// 今日训练统计卡片。
 class _WorkoutTodayStatsCard extends StatelessWidget {
   const _WorkoutTodayStatsCard({
     required this.title,
@@ -452,6 +458,7 @@ class _WorkoutTodayStatsCard extends StatelessWidget {
   }
 }
 
+/// 今日统计里的小指标。
 class _WorkoutMiniStat extends StatelessWidget {
   const _WorkoutMiniStat({
     required this.label,
@@ -501,6 +508,7 @@ class _WorkoutMiniStat extends StatelessWidget {
   }
 }
 
+/// 身体部位筛选条。
 class _WorkoutBodyPartFilter extends StatelessWidget {
   const _WorkoutBodyPartFilter({
     required this.parts,
@@ -554,6 +562,7 @@ class _WorkoutBodyPartFilter extends StatelessWidget {
   }
 }
 
+/// 某个部位没有动作时的空状态卡片。
 class _WorkoutEmptyPartCard extends StatelessWidget {
   const _WorkoutEmptyPartCard();
 

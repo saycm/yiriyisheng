@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// 账目视图：按月展示收支流水。
 class _FinanceRecordsView extends StatefulWidget {
   const _FinanceRecordsView({
     required this.records,
@@ -18,6 +19,7 @@ class _FinanceRecordsView extends StatefulWidget {
   State<_FinanceRecordsView> createState() => _FinanceRecordsViewState();
 }
 
+/// 账目视图状态：维护月份筛选和记录分组。
 class _FinanceRecordsViewState extends State<_FinanceRecordsView> {
   String _filter = '全部';
 
@@ -89,6 +91,7 @@ class _FinanceRecordsViewState extends State<_FinanceRecordsView> {
   }
 }
 
+/// 月度收支汇总卡片。
 class _FinanceMonthSummary extends StatelessWidget {
   const _FinanceMonthSummary({required this.records});
 
@@ -133,6 +136,7 @@ class _FinanceMonthSummary extends StatelessWidget {
   }
 }
 
+/// 汇总卡里的小统计项。
 class _SmallFinanceStat extends StatelessWidget {
   const _SmallFinanceStat({
     required this.title,
@@ -173,6 +177,7 @@ class _SmallFinanceStat extends StatelessWidget {
   }
 }
 
+/// 单条财务记录行。
 class _FinanceRecordTile extends StatelessWidget {
   const _FinanceRecordTile({
     required this.record,
@@ -265,6 +270,7 @@ class _FinanceRecordTile extends StatelessWidget {
   }
 }
 
+/// 账户标签（银行卡、支付宝、微信等）。
 class _FinanceAccountBadge extends StatelessWidget {
   const _FinanceAccountBadge({required this.account});
 

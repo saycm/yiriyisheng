@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// 预算洞察卡：本月预算使用情况和建议。
 class _FinanceBudgetInsightCard extends StatelessWidget {
   const _FinanceBudgetInsightCard({required this.records});
 
@@ -77,6 +78,7 @@ class _FinanceBudgetInsightCard extends StatelessWidget {
   }
 }
 
+/// 分类预算行：分类名称、已用/预算和进度条。
 class _CategoryBudgetRow extends StatelessWidget {
   const _CategoryBudgetRow({required this.budget});
 
@@ -160,6 +162,7 @@ class _CategoryBudgetRow extends StatelessWidget {
   }
 }
 
+/// 固定支出行：房租、订阅等固定成本。
 class _FixedCostRow extends StatelessWidget {
   const _FixedCostRow({required this.record});
 
@@ -213,6 +216,7 @@ class _FixedCostRow extends StatelessWidget {
   }
 }
 
+/// 预算预警行：超支或接近上限的分类提示。
 class _BudgetAlertRow extends StatelessWidget {
   const _BudgetAlertRow({required this.alert});
 
@@ -269,6 +273,7 @@ class _BudgetAlertRow extends StatelessWidget {
   }
 }
 
+/// 财务页区块标题。
 class _FinanceSectionTitle extends StatelessWidget {
   const _FinanceSectionTitle({
     required this.icon,
@@ -297,6 +302,7 @@ class _FinanceSectionTitle extends StatelessWidget {
   }
 }
 
+/// 分类预算数据：分类、预算金额和已用金额。
 class _CategoryBudget {
   const _CategoryBudget({
     required this.title,
@@ -309,6 +315,7 @@ class _CategoryBudget {
   final double limit;
 }
 
+/// 预算预警数据：标题、说明和严重程度。
 class _BudgetAlert {
   const _BudgetAlert({
     required this.title,

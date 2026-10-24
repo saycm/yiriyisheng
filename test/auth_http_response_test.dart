@@ -1,3 +1,5 @@
+// 中文注释：认证 HTTP 响应测试，验证服务端 JSON 解析和网络错误文案。
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';

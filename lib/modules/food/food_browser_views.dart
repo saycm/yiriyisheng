@@ -2,6 +2,7 @@
 
 part of 'food.dart';
 
+/// 饮食页顶部栏（模块切换、更多入口）。
 class _FoodHeader extends StatelessWidget {
   const _FoodHeader({
     required this.onOpenModules,
@@ -22,6 +23,7 @@ class _FoodHeader extends StatelessWidget {
   }
 }
 
+/// 食物搜索框。
 class _FoodSearchBar extends StatelessWidget {
   const _FoodSearchBar({
     required this.controller,
@@ -88,6 +90,7 @@ class _FoodSearchBar extends StatelessWidget {
   }
 }
 
+/// 食物分类横向选择器。
 class _FoodCategoryScroller extends StatelessWidget {
   const _FoodCategoryScroller({
     required this.activeCategory,
@@ -162,6 +165,7 @@ class _FoodCategoryScroller extends StatelessWidget {
   }
 }
 
+/// “添加自定义食物”入口卡片。
 class _FoodAddCustomCard extends StatelessWidget {
   const _FoodAddCustomCard({required this.onTap});
 
@@ -203,6 +207,7 @@ class _FoodAddCustomCard extends StatelessWidget {
   }
 }
 
+/// 食物搜索/分类为空时的空状态。
 class _FoodEmptyState extends StatelessWidget {
   const _FoodEmptyState({
     required this.category,
@@ -269,6 +274,7 @@ class _FoodEmptyState extends StatelessWidget {
   }
 }
 
+/// 食物卡片：名称、热量、营养素和快捷添加。
 class _FoodCard extends StatelessWidget {
   const _FoodCard({
     required this.food,
@@ -358,6 +364,7 @@ class _FoodCard extends StatelessWidget {
   }
 }
 
+/// 食物份数增减控件。
 class _FoodQuantityControl extends StatelessWidget {
   const _FoodQuantityControl({
     required this.foodName,
@@ -426,6 +433,7 @@ class _FoodQuantityControl extends StatelessWidget {
   }
 }
 
+/// 食物卡片上的圆形快捷按钮。
 class _FoodRoundAction extends StatelessWidget {
   const _FoodRoundAction({
     required this.keyValue,

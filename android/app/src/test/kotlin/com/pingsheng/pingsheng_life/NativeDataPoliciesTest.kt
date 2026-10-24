@@ -1,3 +1,5 @@
+// 中文注释：Android 原生数据策略测试，验证小组件日期、计步基线和权限交集。
+
 package com.pingsheng.pingsheng_life
 
 import java.time.LocalDate
@@ -5,7 +7,9 @@ import org.junit.Assert.assertEquals as junitAssertEquals
 import org.junit.Assert.assertTrue as junitAssertTrue
 import org.junit.Test
 
+/** 覆盖小组件摘要、计步基线和 Health Connect 部分授权三类策略。 */
 class NativeDataPoliciesTest {
+    /** 日期过期时显示待记录，跨天时重建基线，部分授权时只返回已授权项。 */
     @Test
     fun widgetDatesStepBaselinesAndPartialPermissionsUseRealData() {
         val today = LocalDate.of(2026, 7, 10)
@@ -103,10 +107,12 @@ class NativeDataPoliciesTest {
         )
     }
 
+    /** 包装 JUnit 断言，用中文失败说明标记具体场景。 */
     private fun assertTrue(actual: Boolean, name: String) {
         junitAssertTrue(name, actual)
     }
 
+    /** 包装 JUnit 相等断言，统一参数顺序。 */
     private fun assertEquals(expected: Any?, actual: Any?, name: String) {
         junitAssertEquals(name, expected, actual)
     }

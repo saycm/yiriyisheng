@@ -15,7 +15,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import java.util.Calendar
 
+/** 每日提醒广播接收器：设备重启后恢复闹钟，到点后展示本地通知。 */
 class DailyRecordReminderReceiver : BroadcastReceiver() {
+    /** 开机时重新调度提醒，普通闹钟触发时展示通知。 */
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             if (isReminderEnabled(context)) {
@@ -26,6 +28,7 @@ class DailyRecordReminderReceiver : BroadcastReceiver() {
         showNotification(context)
     }
 
+    /** 提醒相关的静态方法和偏好键。 */
     companion object {
         const val PREFS_NAME = "pingsheng_app_preferences"
         const val KEY_THEME_MODE = "theme_mode"
@@ -37,6 +40,7 @@ class DailyRecordReminderReceiver : BroadcastReceiver() {
         private const val REMINDER_HOUR = 20
         private const val REMINDER_MINUTE = 30
 
+        /** 读取主题模式和每日提醒开关，供 Flutter 初始化设置页。 */
         fun loadPreferences(context: Context): Map<String, Any> {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             return mapOf(
@@ -48,6 +52,7 @@ class DailyRecordReminderReceiver : BroadcastReceiver() {
             )
         }
 
+        /** 保存用户选择的主题模式。 */
         fun saveThemeMode(context: Context, themeMode: String) {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit()
@@ -55,6 +60,7 @@ class DailyRecordReminderReceiver : BroadcastReceiver() {
                 .apply()
         }
 
+        /** 保存提醒开关，并在开启时调度、关闭时取消闹钟。 */
         fun setReminderEnabled(context: Context, enabled: Boolean) {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit()
@@ -67,11 +73,13 @@ class DailyRecordReminderReceiver : BroadcastReceiver() {
             }
         }
 
+        /** 查询每日提醒是否已经开启。 */
         fun isReminderEnabled(context: Context): Boolean {
             return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getBoolean(KEY_DAILY_RECORD_REMINDER, false)
         }
 
+        /** 从下一个 20:30 开始，每天重复一次不精确闹钟。 */
         fun schedule(context: Context) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             alarmManager.setInexactRepeating(
@@ -82,11 +90,13 @@ class DailyRecordReminderReceiver : BroadcastReceiver() {
             )
         }
 
+        /** 取消已经注册的每日提醒。 */
         fun cancel(context: Context) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             alarmManager.cancel(reminderPendingIntent(context))
         }
 
+        /** 创建通知渠道并展示点击后跳转到计划页的提醒通知。 */
         private fun showNotification(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
@@ -123,6 +133,7 @@ class DailyRecordReminderReceiver : BroadcastReceiver() {
             notificationManager.notify(NOTIFICATION_ID, notification)
         }
 
+        /** 计算下一次提醒时间；今天已过 20:30 则顺延到明天。 */
         private fun nextReminderMillis(): Long {
             val calendar = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, REMINDER_HOUR)
@@ -136,6 +147,7 @@ class DailyRecordReminderReceiver : BroadcastReceiver() {
             return calendar.timeInMillis
         }
 
+        /** 创建指向提醒广播接收器的 PendingIntent。 */
         private fun reminderPendingIntent(context: Context): PendingIntent {
             val intent = Intent(context, DailyRecordReminderReceiver::class.java)
             return PendingIntent.getBroadcast(

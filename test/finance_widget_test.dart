@@ -1,4 +1,4 @@
-// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+// 中文注释：财务模块界面测试，覆盖记账、预算、资产、趋势和 AI 入口。
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

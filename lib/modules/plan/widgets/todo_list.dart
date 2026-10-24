@@ -2,6 +2,7 @@
 
 part of '../plan.dart';
 
+/// 今日执行视图：把今日待办分成“今日三件事”“稍后处理”“逾期待处理”三段展示。
 class _TodayExecutionView extends StatelessWidget {
   const _TodayExecutionView({
     required this.title,
@@ -31,16 +32,19 @@ class _TodayExecutionView extends StatelessWidget {
   Widget build(BuildContext context) {
     final filtered = activeFilter != '全部';
     final today = DateUtils.dateOnly(DateTime.now());
+    // 逾期：到期日早于今天。
     final overdueTodos = todos.where((todo) {
       final dueDate = todo.dueDate;
       return dueDate != null && dueDate.isBefore(today);
     }).toList()
       ..sort(_sortPlanTodos);
+    // 今天到期：到期日与今天同一天。
     final todayOnlyTodos = todos.where((todo) {
       final dueDate = todo.dueDate;
       return dueDate != null && DateUtils.isSameDay(dueDate, today);
     }).toList()
       ..sort(_sortPlanTodos);
+    // 只把前三条放进“今日三件事”，其余收进“稍后处理”，降低首屏信息量。
     final topThree = todayOnlyTodos.take(3).toList(growable: false);
     final laterTodos = todayOnlyTodos.skip(3).toList(growable: false);
 
@@ -115,6 +119,7 @@ class _TodayExecutionView extends StatelessWidget {
   }
 }
 
+/// 今日执行页中的一个分组（标题 + 说明 + 待办卡片列表）。
 class _TodayTodoSection extends StatelessWidget {
   const _TodayTodoSection({
     super.key,
@@ -141,6 +146,7 @@ class _TodayTodoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // “稍后处理”为空时只保留一行标题，避免占满屏幕。
     if (todos.isEmpty && compactWhenEmpty) {
       return _TodaySectionHeader(
         title: title,
@@ -174,6 +180,7 @@ class _TodayTodoSection extends StatelessWidget {
   }
 }
 
+/// 分组标题卡片：显示分组名、说明文字和该组待办数量。
 class _TodaySectionHeader extends StatelessWidget {
   const _TodaySectionHeader({
     required this.title,
@@ -252,6 +259,7 @@ class _TodaySectionHeader extends StatelessWidget {
   }
 }
 
+/// 分组内的空状态占位条。
 class _TodayEmptySection extends StatelessWidget {
   const _TodayEmptySection({required this.text});
 

@@ -2,9 +2,12 @@
 
 part of '../../plan.dart';
 
+// 当前周计划反馈浮层的引用，保证同一时间只显示一条。
 OverlayEntry? _weekPlanFeedbackEntry;
 
+/// 周计划的反馈扩展：统一处理排期成功提示、撤销和浮层展示。
 extension _WeekPlanFeedbackActions on _WeekPlanView {
+  // 显示带“撤销”按钮的排期结果提示，撤销时逐条恢复原始任务。
   void _showUndoableScheduleSnackBar(
     BuildContext context, {
     required String message,
@@ -21,10 +24,12 @@ extension _WeekPlanFeedbackActions on _WeekPlanView {
     );
   }
 
+  // 显示一条普通提示（无撤销）。
   void _showPlainWeekSnackBar(BuildContext context, String message) {
     _showWeekPlanFeedback(context, message: message);
   }
 
+  // 优先使用自定义浮层反馈；没有 Overlay 时退回 SnackBar。
   void _showWeekPlanFeedback(
     BuildContext context, {
     required String message,
@@ -71,6 +76,7 @@ extension _WeekPlanFeedbackActions on _WeekPlanView {
     overlay.insert(entry);
   }
 
+  // 自定义浮层不可用时的兜底提示。
   void _showFallbackWeekSnackBar(
     BuildContext context,
     String message,
@@ -89,6 +95,7 @@ extension _WeekPlanFeedbackActions on _WeekPlanView {
   }
 }
 
+/// 周计划操作的底部反馈浮层，支持撤销和自动消失。
 class _WeekPlanFeedbackToast extends StatefulWidget {
   const _WeekPlanFeedbackToast({
     required this.message,
@@ -106,6 +113,7 @@ class _WeekPlanFeedbackToast extends StatefulWidget {
   State<_WeekPlanFeedbackToast> createState() => _WeekPlanFeedbackToastState();
 }
 
+/// 周计划反馈浮层的动画与关闭状态。
 class _WeekPlanFeedbackToastState extends State<_WeekPlanFeedbackToast>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
@@ -117,6 +125,7 @@ class _WeekPlanFeedbackToastState extends State<_WeekPlanFeedbackToast>
   @override
   void initState() {
     super.initState();
+    // 入场动画 + 4 秒后自动关闭。
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 240),
@@ -143,6 +152,7 @@ class _WeekPlanFeedbackToastState extends State<_WeekPlanFeedbackToast>
 
   @override
   void dispose() {
+    // 取消定时器并释放动画资源。
     _dismissTimer?.cancel();
     _controller.dispose();
     widget.onDisposed();
@@ -150,6 +160,7 @@ class _WeekPlanFeedbackToastState extends State<_WeekPlanFeedbackToast>
   }
 
   Future<void> _dismiss() async {
+    // 防止重复触发关闭动画。
     if (_closing) {
       return;
     }
@@ -162,6 +173,7 @@ class _WeekPlanFeedbackToastState extends State<_WeekPlanFeedbackToast>
   }
 
   void _handleUndo() {
+    // 执行撤销回调后再收起浮层。
     widget.onUndo?.call();
     _dismiss();
   }

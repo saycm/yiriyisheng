@@ -15,6 +15,7 @@ String _formatHealthSteps(int value) {
   return buffer.toString();
 }
 
+/// 传感器数据卡片（计步、心率、加速度）。
 class _HealthSensorCard extends StatelessWidget {
   const _HealthSensorCard({required this.snapshot});
 
@@ -52,6 +53,7 @@ class _HealthSensorCard extends StatelessWidget {
   }
 }
 
+/// 外部健康数据来源入口（Health Connect / 系统健康）。
 class _HealthExternalSourceEntry extends StatelessWidget {
   const _HealthExternalSourceEntry({
     required this.snapshot,
@@ -130,6 +132,7 @@ class _HealthExternalSourceEntry extends StatelessWidget {
   }
 }
 
+/// 步数汇总数据。
 class _HealthStepSummary {
   const _HealthStepSummary({
     required this.title,
@@ -192,6 +195,7 @@ class _HealthStepSummary {
   }
 }
 
+/// 外部数据源弹层：查看和授权 Health Connect。
 class _HealthExternalSourceSheet extends StatefulWidget {
   const _HealthExternalSourceSheet({
     required this.snapshot,
@@ -212,6 +216,7 @@ class _HealthExternalSourceSheet extends StatefulWidget {
       _HealthExternalSourceSheetState();
 }
 
+/// 外部数据源弹层状态。
 class _HealthExternalSourceSheetState
     extends State<_HealthExternalSourceSheet> {
   late HealthSystemSnapshot _snapshot = widget.snapshot;
@@ -283,6 +288,7 @@ class _HealthExternalSourceSheetState
   }
 }
 
+/// 系统健康状态卡片。
 class _HealthSystemStatusCard extends StatelessWidget {
   const _HealthSystemStatusCard({
     required this.snapshot,
@@ -414,6 +420,7 @@ class _HealthSystemStatusCard extends StatelessWidget {
   }
 }
 
+/// 外部数据源的连接状态。
 class _HealthConnectionState {
   const _HealthConnectionState({
     required this.title,
@@ -515,6 +522,7 @@ class _HealthConnectionState {
   }
 }
 
+/// 健康状态小胶囊（已连接/未授权等）。
 class _HealthStatusPill extends StatelessWidget {
   const _HealthStatusPill({
     required this.label,

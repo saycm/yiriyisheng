@@ -2,6 +2,7 @@
 
 part of 'health.dart';
 
+/// 健康指标汇总弹层。
 class _HealthSummarySheet extends StatelessWidget {
   const _HealthSummarySheet({
     required this.day,
@@ -86,6 +87,7 @@ class _HealthSummarySheet extends StatelessWidget {
   }
 }
 
+/// 汇总弹层里的单个指标块。
 class _HealthSummaryTile extends StatelessWidget {
   const _HealthSummaryTile({
     required this.color,

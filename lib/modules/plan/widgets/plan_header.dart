@@ -2,6 +2,7 @@
 
 part of '../plan.dart';
 
+/// 计划页顶部栏：模块切换入口和“更多”按钮。
 class _PlanHeader extends StatelessWidget {
   const _PlanHeader({
     required this.onOpenModules,
@@ -22,6 +23,7 @@ class _PlanHeader extends StatelessWidget {
   }
 }
 
+/// 计划页日期工具条：展示当前选中日期，点击后弹出日历选择器。
 class _PlanDateToolbar extends StatelessWidget {
   const _PlanDateToolbar({
     required this.selectedDate,
@@ -31,6 +33,7 @@ class _PlanDateToolbar extends StatelessWidget {
   final DateTime selectedDate;
   final ValueChanged<DateTime> onDateChanged;
 
+  // 打开自定义玻璃风格日历；可选择范围为前后 5 年。
   Future<void> _pickDate(BuildContext context) async {
     final now = DateTime.now();
     final picked = await showDialog<DateTime>(
@@ -50,6 +53,7 @@ class _PlanDateToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 按钮文案统一格式化为“xxxx年xx月xx日”。
     final selectedDateText = _formatPlanDate(selectedDate);
 
     return Padding(
@@ -105,6 +109,7 @@ class _PlanDateToolbar extends StatelessWidget {
   }
 }
 
+/// 玻璃质感的日期选择弹窗，内部仍使用 Flutter 原生 CalendarDatePicker。
 class _PlanGlassDatePicker extends StatefulWidget {
   const _PlanGlassDatePicker({
     required this.initialDate,
@@ -120,7 +125,9 @@ class _PlanGlassDatePicker extends StatefulWidget {
   State<_PlanGlassDatePicker> createState() => _PlanGlassDatePickerState();
 }
 
+/// 日期选择弹窗状态：维护临时选中的日期。
 class _PlanGlassDatePickerState extends State<_PlanGlassDatePicker> {
+  // 弹窗内临时选中的日期，点“确定”后才回传给调用方。
   late DateTime _draftDate;
 
   @override
@@ -131,6 +138,7 @@ class _PlanGlassDatePickerState extends State<_PlanGlassDatePicker> {
 
   @override
   Widget build(BuildContext context) {
+    // 通过 Theme 覆盖日历的选中色，使其与 App 主色一致。
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
       backgroundColor: Colors.transparent,

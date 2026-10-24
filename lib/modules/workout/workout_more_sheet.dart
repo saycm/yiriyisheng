@@ -3,6 +3,7 @@
 part of 'workout.dart';
 
 // 锻炼页右上角“三点”菜单，只负责展示入口；实际数据变更交给 WorkoutModulePage。
+/// 锻炼“更多”弹层：休息时间、提醒和训练设置。
 class _WorkoutMoreSheet extends StatefulWidget {
   const _WorkoutMoreSheet({
     required this.hasActiveSession,
@@ -52,6 +53,7 @@ class _WorkoutMoreSheet extends StatefulWidget {
   State<_WorkoutMoreSheet> createState() => _WorkoutMoreSheetState();
 }
 
+/// 锻炼更多设置状态。
 class _WorkoutMoreSheetState extends State<_WorkoutMoreSheet> {
   late bool _showOnlyUnfinished = widget.showOnlyUnfinished;
   late int _restSeconds = widget.defaultRestSeconds;
@@ -183,6 +185,7 @@ class _WorkoutMoreSheetState extends State<_WorkoutMoreSheet> {
   }
 }
 
+/// 训练状态摘要卡片。
 class _WorkoutMoreStatusCard extends StatelessWidget {
   const _WorkoutMoreStatusCard({
     required this.activePlanName,
@@ -279,6 +282,7 @@ class _WorkoutMoreStatusCard extends StatelessWidget {
   }
 }
 
+/// 更多弹层里的设置分组。
 class _WorkoutMoreSection extends StatelessWidget {
   const _WorkoutMoreSection({
     required this.title,
@@ -313,6 +317,7 @@ class _WorkoutMoreSection extends StatelessWidget {
   }
 }
 
+/// 更多弹层里的操作行。
 class _WorkoutMoreActionTile extends StatelessWidget {
   const _WorkoutMoreActionTile({
     required this.keyValue,
@@ -390,6 +395,7 @@ class _WorkoutMoreActionTile extends StatelessWidget {
   }
 }
 
+/// 更多弹层里的开关行。
 class _WorkoutMoreSwitchTile extends StatelessWidget {
   const _WorkoutMoreSwitchTile({
     required this.keyValue,
@@ -438,6 +444,7 @@ class _WorkoutMoreSwitchTile extends StatelessWidget {
   }
 }
 
+/// 组间休息时间选择器。
 class _WorkoutRestTimeSelector extends StatelessWidget {
   const _WorkoutRestTimeSelector({
     required this.selectedSeconds,

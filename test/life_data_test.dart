@@ -1,4 +1,4 @@
-// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+// 中文注释：生活数据模型测试，验证 JSON 序列化、待办重复和每日汇总。
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';

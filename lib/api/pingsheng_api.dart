@@ -2,12 +2,14 @@
 
 part of '../auth/auth.dart';
 
+/// 服务端 HTTP 客户端：封装认证、Token 刷新、用户信息和 App 更新检查。
 class _PingShengApi {
   const _PingShengApi();
 
   static const _responseTimeout = Duration(seconds: 12);
   static const _maxResponseBodyBytes = 1024 * 1024;
 
+  // 检查 App 更新：带上当前平台和版本号，返回最新版本信息。
   Future<_UpdateInfo> checkUpdate() async {
     final json = await _requestJson(
       'GET',
@@ -21,6 +23,7 @@ class _PingShengApi {
     return _UpdateInfo.fromJson(json);
   }
 
+  // 邮箱注册，成功后返回登录会话。
   Future<_AuthSession> registerEmail({
     required String email,
     required String password,
@@ -33,6 +36,7 @@ class _PingShengApi {
     });
   }
 
+  // 手机号注册，成功后返回登录会话。
   Future<_AuthSession> registerPhone({
     required String phone,
     required String password,
@@ -45,6 +49,7 @@ class _PingShengApi {
     });
   }
 
+  // 邮箱登录。
   Future<_AuthSession> loginEmail({
     required String email,
     required String password,
@@ -55,6 +60,7 @@ class _PingShengApi {
     });
   }
 
+  // 手机号登录。
   Future<_AuthSession> loginPhone({
     required String phone,
     required String password,
@@ -65,10 +71,12 @@ class _PingShengApi {
     });
   }
 
+  // 用 refresh token 换取新的访问令牌。
   Future<_AuthSession> refresh(String refreshToken) {
     return _auth('/v1/auth/refresh', {'refreshToken': refreshToken});
   }
 
+  // 读取当前登录用户信息。
   Future<_AuthUser> me(String accessToken) async {
     final json = await _requestJson(
       'GET',
@@ -78,11 +86,13 @@ class _PingShengApi {
     return _AuthUser.fromJson(json['user'] as Map<String, dynamic>? ?? {});
   }
 
+  // 认证类接口的公共封装：POST 后把响应解析成会话。
   Future<_AuthSession> _auth(String path, Map<String, Object?> body) async {
     final json = await _requestJson('POST', path, body: body);
     return _AuthSession.fromJson(json);
   }
 
+  // 统一的 JSON 请求方法：拼 URL、带 Token、编码请求体并翻译网络错误。
   Future<Map<String, dynamic>> _requestJson(
     String method,
     String path, {
@@ -139,7 +149,9 @@ class _PingShengApi {
     }
   }
 
+  // 读取响应体，并限制最大字节数防止内存被超大响应占满。
   Future<String> _readResponseBody(HttpClientResponse response) async {
+    // 限制响应体大小，避免服务端异常返回超大内容拖垮内存。
     if (response.contentLength > _maxResponseBodyBytes) {
       throw const _ApiException('服务端响应过大。');
     }
@@ -155,6 +167,7 @@ class _PingShengApi {
   }
 }
 
+/// 服务端接口返回的业务异常，携带可选的错误码。
 class _ApiException implements Exception {
   const _ApiException(this.message, {this.code});
 
@@ -165,6 +178,7 @@ class _ApiException implements Exception {
   String toString() => message;
 }
 
+/// App 更新检查结果：最新版本、是否强制更新和更新说明。
 class _UpdateInfo {
   const _UpdateInfo({
     required this.latestVersionCode,
@@ -200,6 +214,7 @@ class _UpdateInfo {
   }
 }
 
+/// 当前登录用户的基本信息。
 class _AuthUser {
   const _AuthUser({
     required this.id,
@@ -222,6 +237,7 @@ class _AuthUser {
     );
   }
 
+  // 用户信息序列化，供本地会话存储使用。
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -232,6 +248,7 @@ class _AuthUser {
   }
 }
 
+/// 一次登录会话：访问令牌、刷新令牌和用户信息。
 class _AuthSession {
   const _AuthSession({
     required this.accessToken,
@@ -251,6 +268,7 @@ class _AuthSession {
     );
   }
 
+  // 复制会话并替换用户信息（刷新用户资料时使用）。
   _AuthSession copyWith({_AuthUser? user}) {
     return _AuthSession(
       accessToken: accessToken,
@@ -259,6 +277,7 @@ class _AuthSession {
     );
   }
 
+  // 会话序列化，供原生加密存储使用。
   Map<String, dynamic> toJson() {
     return {
       'accessToken': accessToken,
@@ -268,12 +287,14 @@ class _AuthSession {
   }
 }
 
+/// 登录态存储：通过 MethodChannel 交给 Android 原生加密存储。
 class _AuthSessionStore {
   const _AuthSessionStore();
 
   // 真实存储在 Android 原生层，Dart 侧只通过通道读写序列化后的会话。
   static const _channel = MethodChannel('pingsheng_life/auth_session');
 
+  // 从原生加密存储读取登录会话，失败时当作未登录。
   Future<_AuthSession?> load() async {
     try {
       final raw = await _channel.invokeMethod<String>('loadAuthSession');
@@ -290,6 +311,7 @@ class _AuthSessionStore {
     }
   }
 
+  // 把登录会话写入原生加密存储。
   Future<void> save(_AuthSession session) async {
     try {
       await _channel.invokeMethod<void>(
@@ -299,6 +321,7 @@ class _AuthSessionStore {
     }
   }
 
+  // 清除原生存储中的登录会话。
   Future<void> clear() async {
     try {
       await _channel.invokeMethod<void>('clearAuthSession');

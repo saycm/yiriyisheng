@@ -2,6 +2,7 @@
 
 part of '../../plan.dart';
 
+/// 选中日期的任务面板：展示当天待办，并支持把待安排任务批量排到这一天。
 class _WeekSelectedTasksPanel extends StatelessWidget {
   const _WeekSelectedTasksPanel({
     required this.selectedDate,
@@ -150,6 +151,7 @@ class _WeekSelectedTasksPanel extends StatelessWidget {
   }
 }
 
+/// 选中日期没有任务时的空状态提示。
 class _WeekEmptyHint extends StatelessWidget {
   const _WeekEmptyHint({
     required this.title,

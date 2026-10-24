@@ -2,6 +2,7 @@
 
 part of 'workout.dart';
 
+/// 预置训练动作库：覆盖胸背、肩颈、核心、腿臀、有氧和拉伸。
 const defaultWorkoutActions = [
   WorkoutAction(
     name: '蝴蝶机夹胸',
@@ -879,4 +880,5 @@ const defaultWorkoutActions = [
       reps: '30s/侧',
       note: '手臂横过胸前，肩后侧保持轻柔拉伸。'),
 ];
+/// 预设的身体部位筛选选项。
 const defaultWorkoutBodyParts = ['全部', '胸背部', '肩颈', '核心', '腿臀', '有氧', '拉伸'];

@@ -2,6 +2,7 @@
 
 part of 'shared.dart';
 
+/// 关于 App 弹层：品牌、版本和功能简介。
 class _AboutAppSheet extends StatelessWidget {
   const _AboutAppSheet();
 
@@ -87,6 +88,7 @@ class _AboutAppSheet extends StatelessWidget {
   }
 }
 
+/// 关于页顶部品牌区。
 class _AboutHero extends StatelessWidget {
   const _AboutHero();
 
@@ -138,6 +140,7 @@ class _AboutHero extends StatelessWidget {
   }
 }
 
+/// 功能简介卡片。
 class _FeatureIntroCard extends StatelessWidget {
   const _FeatureIntroCard({
     required this.icon,
@@ -203,6 +206,7 @@ class _FeatureIntroCard extends StatelessWidget {
   }
 }
 
+/// 使用指南弹层。
 class _GuideSheet extends StatelessWidget {
   const _GuideSheet();
 
@@ -271,6 +275,7 @@ class _GuideSheet extends StatelessWidget {
   }
 }
 
+/// 信息弹层区块标题。
 class _InfoSectionTitle extends StatelessWidget {
   const _InfoSectionTitle({
     required this.icon,
@@ -299,6 +304,7 @@ class _InfoSectionTitle extends StatelessWidget {
   }
 }
 
+/// 关于页摘要卡片。
 class _AboutSummaryCard extends StatelessWidget {
   const _AboutSummaryCard({
     required this.title,
@@ -340,6 +346,7 @@ class _AboutSummaryCard extends StatelessWidget {
   }
 }
 
+/// 指南页引导卡片。
 class _GuideIntroCard extends StatelessWidget {
   const _GuideIntroCard();
 
@@ -352,6 +359,7 @@ class _GuideIntroCard extends StatelessWidget {
   }
 }
 
+/// 指南中的问答条目。
 class _GuideQuestion extends StatelessWidget {
   const _GuideQuestion({
     required this.question,
@@ -409,6 +417,7 @@ class _GuideQuestion extends StatelessWidget {
   }
 }
 
+/// 意见反馈弹层。
 class _FeedbackSheet extends StatefulWidget {
   const _FeedbackSheet();
 
@@ -416,6 +425,7 @@ class _FeedbackSheet extends StatefulWidget {
   State<_FeedbackSheet> createState() => _FeedbackSheetState();
 }
 
+/// 意见反馈弹层状态。
 class _FeedbackSheetState extends State<_FeedbackSheet> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();

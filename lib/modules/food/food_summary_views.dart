@@ -2,6 +2,7 @@
 
 part of 'food.dart';
 
+/// 餐次选择器（早餐/午餐/晚餐/加餐）。
 class _FoodMealSelector extends StatelessWidget {
   const _FoodMealSelector({
     required this.meals,
@@ -78,6 +79,7 @@ class _FoodMealSelector extends StatelessWidget {
   }
 }
 
+/// 今日热量进度卡片。
 class _FoodCalorieProgressCard extends StatelessWidget {
   const _FoodCalorieProgressCard({
     required this.consumed,
@@ -159,6 +161,7 @@ class _FoodCalorieProgressCard extends StatelessWidget {
   }
 }
 
+/// 三大营养素胶囊（蛋白质/碳水/脂肪）。
 class _FoodMacroPill extends StatelessWidget {
   const _FoodMacroPill({
     required this.label,
@@ -206,6 +209,7 @@ class _FoodMacroPill extends StatelessWidget {
   }
 }
 
+/// 今日饮食页的快捷区块集合。
 class _FoodQuickSections extends StatelessWidget {
   const _FoodQuickSections({
     required this.logs,
@@ -280,6 +284,7 @@ class _FoodQuickSections extends StatelessWidget {
   }
 }
 
+/// 饮食趋势中的单日数据。
 class _FoodTrendDay {
   const _FoodTrendDay({
     required this.label,
@@ -294,6 +299,7 @@ class _FoodTrendDay {
   final bool isToday;
 }
 
+/// 饮食页区块标题。
 class _FoodSectionHeader extends StatelessWidget {
   const _FoodSectionHeader({
     required this.title,
@@ -333,6 +339,7 @@ class _FoodSectionHeader extends StatelessWidget {
   }
 }
 
+/// 饮食信息块（提示、目标等）。
 class _FoodInfoBlock extends StatelessWidget {
   const _FoodInfoBlock({
     required this.icon,
@@ -387,6 +394,7 @@ class _FoodInfoBlock extends StatelessWidget {
   }
 }
 
+/// 常吃食物区块。
 class _FoodFrequentBlock extends StatelessWidget {
   const _FoodFrequentBlock({required this.items});
 
@@ -444,6 +452,7 @@ class _FoodFrequentBlock extends StatelessWidget {
   }
 }
 
+/// 饮食模板区块。
 class _FoodTemplateBlock extends StatelessWidget {
   const _FoodTemplateBlock({
     required this.templates,
@@ -524,6 +533,7 @@ class _FoodTemplateBlock extends StatelessWidget {
   }
 }
 
+/// 饮食提醒区块。
 class _FoodReminderBlock extends StatelessWidget {
   const _FoodReminderBlock({required this.reminders});
 
@@ -588,6 +598,7 @@ class _FoodReminderBlock extends StatelessWidget {
   }
 }
 
+/// 热量趋势区块。
 class _FoodTrendBlock extends StatelessWidget {
   const _FoodTrendBlock({required this.values});
 
@@ -676,6 +687,7 @@ class _FoodTrendBlock extends StatelessWidget {
   }
 }
 
+/// 趋势图里的单日柱状列。
 class _FoodTrendDayColumn extends StatelessWidget {
   const _FoodTrendDayColumn({
     required this.day,

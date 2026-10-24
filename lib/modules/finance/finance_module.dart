@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// 财务模块页面：汇总财务工作台、账目、资产和 AI 记账入口。
 class FinanceModulePage extends StatefulWidget {
   const FinanceModulePage({
     super.key,
@@ -53,6 +54,7 @@ class FinanceModulePage extends StatefulWidget {
   State<FinanceModulePage> createState() => _FinanceModulePageState();
 }
 
+/// 财务页状态：维护时间段筛选和页面切换。
 class _FinanceModulePageState extends State<FinanceModulePage> {
   int _selectedTab = 0;
   bool _showExpense = true;
@@ -195,6 +197,7 @@ class _FinanceModulePageState extends State<FinanceModulePage> {
   }
 }
 
+/// 财务页顶部栏。
 class _FinanceHeader extends StatelessWidget {
   const _FinanceHeader({
     required this.onOpenModules,
@@ -215,6 +218,7 @@ class _FinanceHeader extends StatelessWidget {
   }
 }
 
+/// 财务页顶部的操作按钮组。
 class _FinanceHeaderActions extends StatelessWidget {
   const _FinanceHeaderActions({
     required this.onAiRecord,
@@ -256,6 +260,7 @@ class _FinanceHeaderActions extends StatelessWidget {
   }
 }
 
+/// 时间范围切换芯片（本周/本月/今年）。
 class _RangeChip extends StatelessWidget {
   const _RangeChip({
     super.key,
@@ -298,6 +303,7 @@ double _financeTotal(List<FinanceRecord> records, String type) {
       .fold<double>(0, (total, record) => total + record.amount);
 }
 
+/// 财务表单输入框统一样式。
 class _FinanceTextField extends StatelessWidget {
   const _FinanceTextField({
     required this.keyValue,

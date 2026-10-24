@@ -2,6 +2,7 @@
 
 part of 'workout.dart';
 
+/// 锻炼模块页面：组合计划、动作、数据和历史四个页签。
 class WorkoutModulePage extends StatefulWidget {
   const WorkoutModulePage({
     super.key,
@@ -45,6 +46,7 @@ class WorkoutModulePage extends StatefulWidget {
   State<WorkoutModulePage> createState() => _WorkoutModulePageState();
 }
 
+/// 锻炼页状态：当前页签、选中部位、训练进度和弹层动作。
 class _WorkoutModulePageState extends State<WorkoutModulePage> {
   static const _actions = defaultWorkoutActions;
   static const _bodyParts = defaultWorkoutBodyParts;
@@ -61,23 +63,28 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
   int _restSecondsLeft = 0;
   Timer? _restTimer;
 
+  // 动作库中所有动作的目标组数总和。
   int get _totalGroups =>
       _actions.fold(0, (total, action) => total + action.groups);
 
+  // 动作库所有动作已完成的组数总和。
   int get _finishedGroupsTotal => _actions.fold(
         0,
         (total, action) => total + _finishedGroupsFor(action),
       );
 
+  // 已经完成全部目标组数的动作数量。
   int get _finishedActionCount => _actions
       .where((action) => _finishedGroupsFor(action) >= action.groups)
       .length;
 
+  // 动作库中第一个尚未完成目标组数的动作。
   WorkoutAction get _nextAction => _actions.firstWhere(
         (action) => _finishedGroupsFor(action) < action.groups,
         orElse: () => _actions.last,
       );
 
+  // 根据进行中的会话找到对应的训练计划。
   WorkoutPlan? get _activePlan {
     final session = widget.activeWorkoutSession;
     if (session == null) return null;
@@ -87,6 +94,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     return null;
   }
 
+  // 优先推荐“十分钟快速训练”，找不到时回退到用户创建的第一个计划。
   WorkoutPlan? get _recommendedPlan {
     for (final plan in widget.workoutPlans) {
       if (plan.id == 'plan-quick-ten') {
@@ -96,6 +104,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     return widget.workoutPlans.isEmpty ? null : widget.workoutPlans.first;
   }
 
+  // 有训练会话时，只在当前计划包含的动作里寻找下一项。
   WorkoutAction get _nextActionForCurrentScope {
     final session = widget.activeWorkoutSession;
     if (session == null) {
@@ -113,6 +122,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     );
   }
 
+  // 当前统计范围：没有会话时看全部动作，有会话时只看当前计划。
   List<WorkoutAction> get _currentScopeActions {
     final session = widget.activeWorkoutSession;
     if (session == null) {
@@ -124,16 +134,19 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         .toList();
   }
 
+  // 当前范围内的目标组数，用于更多菜单的进度展示。
   int get _currentScopeTotalGroups => _currentScopeActions.fold(
         0,
         (total, action) => total + action.groups,
       );
 
+  // 当前范围内已完成的组数。
   int get _currentScopeFinishedGroups => _currentScopeActions.fold(
         0,
         (total, action) => total + _finishedGroupsFor(action),
       );
 
+  // 筛选本周一到下周一的训练历史，供数据页做周汇总。
   List<WorkoutHistoryEntry> get _currentWeekHistory {
     final today = DateUtils.dateOnly(DateTime.now());
     final firstDay = today.subtract(Duration(days: today.weekday - 1));
@@ -144,6 +157,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     }).toList(growable: false);
   }
 
+  // 判断当前训练计划中的每个动作是否都达到了目标组数。
   bool get _activePlanCompleted {
     final session = widget.activeWorkoutSession;
     if (session == null || session.actionProgress.isEmpty) {
@@ -159,6 +173,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
         .every((action) => session.groupsFor(action.name) >= action.groups);
   }
 
+  /// 读取动作完成组数：训练会话优先，未开始时回退到首页保存的全局进度。
   int _finishedGroupsFor(WorkoutAction action) {
     // 有进行中训练时优先读会话进度；没有会话时才读首页保存的全局完成组数。
     final session = widget.activeWorkoutSession;
@@ -168,6 +183,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     return widget.finishedGroupsByAction[action.name] ?? 0;
   }
 
+  // 页面展示用的部位名称，把“胸背”补全为“胸背部”。
   String _bodyPartLabel(String bodyPart) => bodyPart == '胸背' ? '胸背部' : bodyPart;
 
   @override
@@ -472,12 +488,14 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     );
   }
 
+  /// 按计划中保存的动作名称，从动作库筛选出完整动作定义。
   List<WorkoutAction> _actionsForPlan(WorkoutPlan plan) {
     return _actions
         .where((action) => plan.actionNames.contains(action.name))
         .toList();
   }
 
+  /// 按动作名称在动作库中查找。
   WorkoutAction? _actionByName(String actionName) {
     for (final action in _actions) {
       if (action.name == actionName) {
@@ -487,6 +505,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     return null;
   }
 
+  /// 打开训练计划详情，可继续编辑或按指定强度开始训练。
   Future<void> _openPlanDetail(WorkoutPlan plan) {
     return showModalBottomSheet<void>(
       context: context,
@@ -509,6 +528,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     );
   }
 
+  /// 打开单条训练指标的说明弹层。
   Future<void> _openMetricDetail(WorkoutMetricDetail detail) {
     return showModalBottomSheet<void>(
       context: context,
@@ -520,6 +540,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     );
   }
 
+  /// 打开计划编辑表单，并始终传入最新的计划快照。
   Future<void> _openPlanEdit(WorkoutPlan plan) {
     return showModalBottomSheet<void>(
       context: context,
@@ -584,14 +605,17 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     });
   }
 
+  /// 切换“只看未完成动作”的列表过滤状态。
   void _setShowOnlyUnfinished(bool value) {
     setState(() => _showOnlyUnfinished = value);
   }
 
+  /// 修改默认组间休息秒数，后续完成一组时使用。
   void _setDefaultRestSeconds(int seconds) {
     setState(() => _defaultRestSeconds = seconds);
   }
 
+  /// 启动每秒递减的休息计时器，归零后自动停止。
   void _startRestTimer() {
     _stopRestTimer();
     if (_restSecondsLeft <= 0) {
@@ -611,6 +635,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     });
   }
 
+  /// 取消并清空休息计时器，避免页面销毁后继续回调。
   void _stopRestTimer() {
     _restTimer?.cancel();
     _restTimer = null;
@@ -686,6 +711,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     }
   }
 
+  /// 同时清空全局动作进度和当前会话进度，并停止休息计时。
   void _resetTodayProgress() {
     final session = widget.activeWorkoutSession;
     // 今日进度同时存在全局动作组数和当前训练会话里，重置时要两处保持一致。
@@ -715,6 +741,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     _showWorkoutSnack('训练历史已复制');
   }
 
+  /// 把训练历史拼成便于粘贴和阅读的纯文本。
   String _workoutHistoryExportText() {
     final buffer = StringBuffer('训练历史\n');
     for (final entry in widget.workoutHistory) {
@@ -736,6 +763,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     return buffer.toString().trimRight();
   }
 
+  /// 输出“年-月-日 时:分”格式的训练时间。
   String _formatWorkoutDateTime(DateTime value) {
     final month = value.month.toString().padLeft(2, '0');
     final day = value.day.toString().padLeft(2, '0');
@@ -744,11 +772,13 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     return '${value.year}-$month-$day $hour:$minute';
   }
 
+  /// 在页面底部显示一条轻提示。
   void _showWorkoutSnack(String message) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// 从父级最新计划列表中按 id 取出计划，避免编辑旧快照。
   WorkoutPlan _latestPlan(WorkoutPlan plan) {
     return widget.workoutPlans.firstWhere(
       (item) => item.id == plan.id,
@@ -756,6 +786,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     );
   }
 
+  /// 打开某条训练历史的详情，并支持按原计划重新训练。
   Future<void> _openHistoryDetail(WorkoutHistoryEntry entry) {
     return showModalBottomSheet<void>(
       context: context,
@@ -773,6 +804,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     );
   }
 
+  /// 找到历史记录对应的计划；计划已删除时用历史动作临时重建。
   void _restartPlanFromHistory(WorkoutHistoryEntry entry) {
     final plan = widget.workoutPlans.firstWhere(
       (plan) => plan.id == entry.planId,
@@ -795,6 +827,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     );
   }
 
+  /// 创建训练会话并进入训练页；已有进行中训练时拒绝重复开始。
   void _startPlanTraining(
     WorkoutPlan plan, {
     _WorkoutPlanIntensity intensity = _WorkoutPlanIntensity.medium,
@@ -826,6 +859,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     });
   }
 
+  /// 完成当前动作的一组，更新会话或全局进度，并启动组间休息。
   void _finishNextGroup() {
     // 单动作页完成一组后，同时更新休息计时、当前动作进度和父级持久化状态。
     final action = _activeAction;
@@ -856,6 +890,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     }
   }
 
+  /// 汇总当前会话每个动作的完成情况，生成历史记录并结束训练。
   void _finishActivePlan() {
     final session = widget.activeWorkoutSession;
     if (session == null) {
@@ -903,6 +938,7 @@ class _WorkoutModulePageState extends State<WorkoutModulePage> {
     _stopRestTimer();
   }
 
+  /// 切换底部导航页签。
   void _handleBottomNav(int index) {
     setState(() => _selectedBottomTab = index);
   }

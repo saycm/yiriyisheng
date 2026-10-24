@@ -2,9 +2,12 @@
 
 part of 'plan.dart';
 
+// 当前屏幕上显示的待办完成反馈浮层；同一时间只保留一个，避免多条重叠。
 OverlayEntry? _planTodoCompletionFeedbackEntry;
 
+/// 计划页的用户操作集合：勾选待办、快速收集、打开更多面板、新增待办。
 mixin _PlanModuleActions on _PlanModuleState {
+  // 勾选/取消勾选待办；标记完成时弹出带“撤销”和关联模块入口的反馈。
   void _toggleTodo(TodoItem todo) {
     final willComplete = !todo.done;
     final title = todo.title;
@@ -21,6 +24,7 @@ mixin _PlanModuleActions on _PlanModuleState {
     );
   }
 
+  // 把待办箱输入框里的文字快速创建成一条“生活”分类的待办。
   void _addInboxTodo(String title) {
     widget.onAddTodo(
       TodoItem(
@@ -38,6 +42,7 @@ mixin _PlanModuleActions on _PlanModuleState {
     );
   }
 
+  // 打开“更多”面板：分类筛选、清理已完成待办。
   void _openMoreSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -60,6 +65,7 @@ mixin _PlanModuleActions on _PlanModuleState {
             if (count == 0) {
               return;
             }
+            // 清理前先移除完成反馈浮层，避免它引用已经删除的待办。
             _planTodoCompletionFeedbackEntry?.remove();
             _planTodoCompletionFeedbackEntry = null;
             widget.onClearCompletedTodos();
@@ -75,6 +81,7 @@ mixin _PlanModuleActions on _PlanModuleState {
     );
   }
 
+  // 打开新增待办表单，保存后通过首页回调写入全局状态。
   void _showAddTodoSheet() {
     _showPlanTodoEditorSheet(
       context: context,
@@ -83,6 +90,7 @@ mixin _PlanModuleActions on _PlanModuleState {
     );
   }
 
+  // 显示待办完成反馈：优先用自定义 Overlay 浮层，拿不到 Overlay 时退回 SnackBar。
   void _showTodoCompletionFeedback({
     required String title,
     required TodoLinkedModule? linkedModule,
@@ -91,6 +99,7 @@ mixin _PlanModuleActions on _PlanModuleState {
     ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
     final message = '已完成：$title';
+    // 没有根 Overlay（例如测试环境）时降级为普通 SnackBar。
     if (overlay == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -107,6 +116,7 @@ mixin _PlanModuleActions on _PlanModuleState {
 
     late OverlayEntry entry;
     var removed = false;
+    // 保证浮层只被移除一次，并同步清空全局引用。
     void removeEntry() {
       if (removed) {
         return;
@@ -141,6 +151,7 @@ mixin _PlanModuleActions on _PlanModuleState {
   }
 }
 
+/// 待办完成后的底部浮层：显示完成文案、撤销按钮和关联模块快捷入口。
 class _TodoCompletionFeedbackToast extends StatefulWidget {
   const _TodoCompletionFeedbackToast({
     required this.message,
@@ -163,6 +174,7 @@ class _TodoCompletionFeedbackToast extends StatefulWidget {
       _TodoCompletionFeedbackToastState();
 }
 
+/// 待办完成浮层的动画与自动关闭状态。
 class _TodoCompletionFeedbackToastState
     extends State<_TodoCompletionFeedbackToast>
     with SingleTickerProviderStateMixin {
@@ -175,6 +187,7 @@ class _TodoCompletionFeedbackToastState
   @override
   void initState() {
     super.initState();
+    // 入场动画：从下方 34% 位置滑入并淡入。
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
@@ -196,11 +209,13 @@ class _TodoCompletionFeedbackToastState
       ),
     );
     _controller.forward();
+    // 4 秒后自动收起，用户仍可在期间点击撤销。
     _dismissTimer = Timer(const Duration(seconds: 4), _dismiss);
   }
 
   @override
   void dispose() {
+    // 销毁时取消定时器并通知父级清理 Overlay 引用。
     _dismissTimer?.cancel();
     _controller.dispose();
     widget.onDisposed();
@@ -208,6 +223,7 @@ class _TodoCompletionFeedbackToastState
   }
 
   Future<void> _dismiss() async {
+    // 防止自动超时和手动点击同时触发关闭。
     if (_closing) {
       return;
     }
@@ -219,11 +235,13 @@ class _TodoCompletionFeedbackToastState
     widget.onClose();
   }
 
+  // 点击“撤销”：先回滚待办状态，再收起浮层。
   void _handleUndo() {
     widget.onUndo();
     _dismiss();
   }
 
+  // 点击关联模块按钮：跳转到对应模块后收起浮层。
   void _handleLinkedAction() {
     widget.onLinkedAction?.call();
     _dismiss();
@@ -319,6 +337,7 @@ class _TodoCompletionFeedbackToastState
   }
 }
 
+// 浮层内文字按钮的统一样式，按关联模块颜色着色。
 ButtonStyle _todoCompletionFeedbackButtonStyle(Color color) {
   return TextButton.styleFrom(
     foregroundColor: color,

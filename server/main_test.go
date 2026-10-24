@@ -13,6 +13,7 @@ import (
 	"testing"
 )
 
+// testApp 封装测试服务器和它使用的临时数据路径。
 type testApp struct {
 	server       *httptest.Server
 	dataFile     string
@@ -20,10 +21,12 @@ type testApp struct {
 	downloadDir  string
 }
 
+// newTestApp 创建不带旧数据的隔离测试服务。
 func newTestApp(t *testing.T) *testApp {
 	return newTestAppWithLegacyDB(t, nil)
 }
 
+// newTestAppWithLegacyDB 创建隔离测试服务，并可预置旧版 JSON 数据。
 func newTestAppWithLegacyDB(t *testing.T, legacyDB *dbFile) *testApp {
 	t.Helper()
 	tempDir := t.TempDir()
@@ -53,6 +56,7 @@ func newTestAppWithLegacyDB(t *testing.T, legacyDB *dbFile) *testApp {
 	return app
 }
 
+// jsonRequest 发送 JSON 请求并解析状态码和响应对象。
 func (app *testApp) jsonRequest(t *testing.T, method string, path string, body any, headers map[string]string) (int, map[string]any) {
 	t.Helper()
 	var reader io.Reader
@@ -91,6 +95,7 @@ func (app *testApp) jsonRequest(t *testing.T, method string, path string, body a
 	return res.StatusCode, payload
 }
 
+// chunkedJSONRequest 用分块传输发送 POST 请求，验证服务端兼容性。
 func (app *testApp) chunkedJSONRequest(t *testing.T, path string, body any) (int, map[string]any) {
 	t.Helper()
 	raw, err := json.Marshal(body)
@@ -121,6 +126,7 @@ func (app *testApp) chunkedJSONRequest(t *testing.T, path string, body any) (int
 	return res.StatusCode, payload
 }
 
+// TestAuthEmailMeAndRefresh 验证邮箱注册、当前用户查询和刷新令牌轮换。
 func TestAuthEmailMeAndRefresh(t *testing.T) {
 	app := newTestApp(t)
 
@@ -161,6 +167,7 @@ func TestAuthEmailMeAndRefresh(t *testing.T) {
 	}
 }
 
+// TestPhoneRegistrationAcceptsChunkedJSON 验证手机号注册支持 chunked JSON 请求体。
 func TestPhoneRegistrationAcceptsChunkedJSON(t *testing.T) {
 	app := newTestApp(t)
 
@@ -178,6 +185,7 @@ func TestPhoneRegistrationAcceptsChunkedJSON(t *testing.T) {
 	}
 }
 
+// TestMigratesLegacyJSONToSQLite 验证旧 JSON 数据首次启动时迁移到 SQLite。
 func TestMigratesLegacyJSONToSQLite(t *testing.T) {
 	email := "legacy@example.com"
 	passwordHash, err := hashPassword("secret123")
@@ -232,6 +240,7 @@ func TestMigratesLegacyJSONToSQLite(t *testing.T) {
 	}
 }
 
+// TestUpdatePolicy 验证更新检查结果和管理员策略更新。
 func TestUpdatePolicy(t *testing.T) {
 	app := newTestApp(t)
 
@@ -265,6 +274,7 @@ func TestUpdatePolicy(t *testing.T) {
 	}
 }
 
+// TestDownloadAPK 验证 APK 下载、HEAD 请求和路径穿越防护。
 func TestDownloadAPK(t *testing.T) {
 	app := newTestApp(t)
 	if err := os.MkdirAll(app.downloadDir, 0o755); err != nil {

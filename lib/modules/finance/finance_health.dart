@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// 财务健康总分：总分、等级、主要原因和各项指标。
 class FinanceHealthScore {
   const FinanceHealthScore({
     required this.total,
@@ -15,11 +16,13 @@ class FinanceHealthScore {
   final String primaryReason;
   final List<FinanceHealthMetric> metrics;
 
+  /// 按标题取出单项指标，供卡片和详情页查找指定维度。
   FinanceHealthMetric metric(String title) {
     return metrics.firstWhere((metric) => metric.title == title);
   }
 }
 
+/// 单项财务健康指标：得分、满分、说明和建议。
 class FinanceHealthMetric {
   const FinanceHealthMetric({
     required this.title,
@@ -35,17 +38,23 @@ class FinanceHealthMetric {
   final String detail;
   final String advice;
 
+  /// 当前得分占满分的比例，用于绘制进度条。
   double get progress => maxScore == 0 ? 0 : score / maxScore;
+
+  /// 得分低于满分的 60% 时标记为需要关注。
   bool get isWarning => score / maxScore < 0.6;
 }
 
+/// 财务健康计算器：根据当月收支、应急金、预算、固定成本和消费结构打分。
 class FinanceHealthCalculator {
   const FinanceHealthCalculator();
 
+  /// 以记录所在月份为统计口径，计算现金流、应急金、预算、固定支出和消费结构五项得分。
   FinanceHealthScore calculate(
     List<FinanceRecord> records, {
     DateTime? asOf,
   }) {
+    // 以最近一笔记录的日期作为“当月”锚点，没有记录时用今天。
     final anchor = asOf ?? _latestRecordDate(records) ?? DateTime.now();
     final monthlyRecords = records
         .where((record) => _isRecordInMonth(record, anchor))
@@ -76,7 +85,9 @@ class FinanceHealthCalculator {
     );
   }
 
+  /// 扫描全部记录，找到最近一笔有效日期；日期缺失的记录会被忽略。
   DateTime? _latestRecordDate(List<FinanceRecord> records) {
+    // 找出最近一笔记录日期，作为计算基准月。
     DateTime? latest;
     for (final record in records) {
       final date = record.date;
@@ -90,12 +101,14 @@ class FinanceHealthCalculator {
     return latest;
   }
 
+  /// 判断记录是否属于锚点月份；没有日期的记录默认计入当前统计。
   bool _isRecordInMonth(FinanceRecord record, DateTime anchor) {
     final date = record.date;
     return date == null ||
         (date.year == anchor.year && date.month == anchor.month);
   }
 
+  /// 现金流指标（25 分）：按月结余率评分，收入越高且支出控制越好，得分越高。
   FinanceHealthMetric _cashflowMetric({
     required double income,
     required double expense,
@@ -129,6 +142,7 @@ class FinanceHealthCalculator {
     );
   }
 
+  /// 应急能力指标（25 分）：用非信用卡流动资产除以近三个月平均月支出，衡量可支撑月数。
   FinanceHealthMetric _emergencyMetric({
     required List<FinanceRecord> records,
     required DateTime anchor,
@@ -159,6 +173,7 @@ class FinanceHealthCalculator {
     );
   }
 
+  /// 判断记录是否位于锚点日期前 90 天内，用于估算近期月均支出。
   bool _isRecentRecord(FinanceRecord record, DateTime anchor) {
     final date = record.date;
     if (date == null) {
@@ -169,6 +184,7 @@ class FinanceHealthCalculator {
     return !date.isBefore(start) && !date.isAfter(anchor);
   }
 
+  /// 预算纪律指标（20 分）：按分类汇总支出，超过预算线越多扣分越多。
   FinanceHealthMetric _budgetMetric({required List<FinanceRecord> records}) {
     final usedByTitle = <String, double>{};
     for (final record in records.where((record) => record.type == '支出')) {
@@ -204,6 +220,7 @@ class FinanceHealthCalculator {
     );
   }
 
+  /// 各消费分类的默认月度预算上限；未配置的分类按 500 元处理。
   double _budgetLimitForTitle(String title) {
     const limits = {
       '三餐': 1000.0,
@@ -220,6 +237,7 @@ class FinanceHealthCalculator {
     return limits[title] ?? 500.0;
   }
 
+  /// 固定支出压力指标（15 分）：计算房租、分期等固定支出占收入的比例。
   FinanceHealthMetric _fixedCostMetric({
     required List<FinanceRecord> records,
     required double income,
@@ -252,6 +270,7 @@ class FinanceHealthCalculator {
     );
   }
 
+  /// 消费结构指标（15 分）：统计咖啡、娱乐、购物等可选消费占总支出的比例。
   FinanceHealthMetric _spendingStructureMetric({
     required List<FinanceRecord> records,
   }) {
@@ -276,6 +295,7 @@ class FinanceHealthCalculator {
     );
   }
 
+  /// 把财务健康总分映射成优秀、稳定、注意、偏紧或高风险等级。
   String _healthLevel(int total) {
     if (total >= 90) {
       return '优秀';
@@ -292,6 +312,7 @@ class FinanceHealthCalculator {
     return '高风险';
   }
 
+  /// 选择最能解释当前财务状态的一句话，优先提示支出超过收入的情况。
   String _primaryReason({
     required FinanceHealthMetric cashflow,
     required double income,
@@ -308,6 +329,7 @@ class FinanceHealthCalculator {
   }
 }
 
+/// 财务健康摘要卡片：总分和主要指标。
 class _FinanceHealthCard extends StatelessWidget {
   const _FinanceHealthCard({required this.records});
 
@@ -416,6 +438,7 @@ class _FinanceHealthCard extends StatelessWidget {
     );
   }
 
+  /// 打开健康值详情底部弹窗，展示五项指标的拆解说明。
   void _openHealthDetail(BuildContext context, FinanceHealthScore score) {
     showModalBottomSheet<void>(
       context: context,
@@ -431,6 +454,7 @@ class _FinanceHealthCard extends StatelessWidget {
   }
 }
 
+/// 健康卡里的小指标（图标 + 分数）。
 class _FinanceHealthMiniMetric extends StatelessWidget {
   const _FinanceHealthMiniMetric({
     required this.metric,
@@ -486,6 +510,7 @@ class _FinanceHealthMiniMetric extends StatelessWidget {
   }
 }
 
+/// 财务健康详情页：展示每项指标的得分和建议。
 class _FinanceHealthDetail extends StatelessWidget {
   const _FinanceHealthDetail({required this.score});
 
@@ -553,6 +578,7 @@ class _FinanceHealthDetail extends StatelessWidget {
   }
 }
 
+/// 详情页中的单项指标行。
 class _FinanceHealthDetailMetric extends StatelessWidget {
   const _FinanceHealthDetailMetric({required this.metric});
 
@@ -628,6 +654,7 @@ class _FinanceHealthDetailMetric extends StatelessWidget {
   }
 }
 
+// 根据健康分数选择绿色、黄色或红色提示。
 Color _healthColor(num score) {
   if (score >= 75) {
     return AppColors.success;

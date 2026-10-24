@@ -2,7 +2,9 @@
 
 part of 'life_home.dart';
 
+/// 首页数据恢复与保存：SQLite 主存储 + 桌面小组件摘要同步。
 extension _LifeHomePersistence on _LifeHomePageState {
+  // 启动时恢复数据；SQLite 为空时从旧版小组件摘要迁移。
   Future<void> _restoreAppData() async {
     try {
       final stored = await _appDataStore.load();
@@ -38,6 +40,7 @@ extension _LifeHomePersistence on _LifeHomePageState {
     }
   }
 
+  // 把快照分发到各模块的内存状态。
   void _applyLifeSummarySnapshot(LifeSummarySnapshot snapshot) {
     _foodState.applySnapshot(snapshot);
     _workoutState.applySnapshot(snapshot);
@@ -45,6 +48,7 @@ extension _LifeHomePersistence on _LifeHomePageState {
     _financeState.applySnapshot(snapshot);
   }
 
+  // 同步摘要到桌面小组件，并触发一次 SQLite 保存。
   void _syncLinkedSummaryToWidget() {
     if (!_appDataRestoreComplete || _appDataLoadFailed) {
       return;
@@ -67,6 +71,7 @@ extension _LifeHomePersistence on _LifeHomePageState {
     );
   }
 
+  // 把当前所有模块状态写入 SQLite。
   Future<void> _saveAppData() async {
     if (!_appDataRestoreComplete || _appDataLoadFailed) {
       return;
@@ -96,6 +101,7 @@ extension _LifeHomePersistence on _LifeHomePageState {
     }
   }
 
+  // 保存失败时置位标记，由页面顶部横幅提示。
   void _showAppDataSaveFailure() {
     if (!mounted || _appDataSaveFailed) {
       return;

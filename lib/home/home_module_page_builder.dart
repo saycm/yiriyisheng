@@ -2,6 +2,7 @@
 
 part of 'life_home.dart';
 
+/// 根据当前模块枚举构建对应页面，并统一注入跨模块统计和回调。
 Widget _buildLifeHomeModulePage({
   required LifeModule module,
   required ValueChanged<LifeModule> onSwitchModule,

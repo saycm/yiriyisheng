@@ -2,6 +2,7 @@
 
 part of '../../plan.dart';
 
+/// 周计划日看板：展示周一到周日的任务分布，点击某天切换选中日期。
 class _WeekDayBoard extends StatelessWidget {
   const _WeekDayBoard({
     required this.days,
@@ -58,6 +59,7 @@ class _WeekDayBoard extends StatelessWidget {
   }
 }
 
+/// 日看板中的单天卡片：显示日期、星期和当天任务数量/摘要。
 class _WeekDayCard extends StatelessWidget {
   const _WeekDayCard({
     required this.date,

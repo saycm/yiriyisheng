@@ -52,22 +52,26 @@ var (
 	dbMu sync.Mutex
 )
 
+// apiError 表示可安全返回给客户端的业务错误（状态码、错误码和中文提示）。
 type apiError struct {
 	Status  int
 	Code    string
 	Message string
 }
 
+// Error 让 apiError 实现 error 接口，便于在路由层统一转换响应。
 func (e apiError) Error() string {
 	return e.Message
 }
 
+// dbFile 是服务端内存中的完整数据快照，读写时整体加载或落库。
 type dbFile struct {
 	Users         []user         `json:"users"`
 	RefreshTokens []refreshToken `json:"refreshTokens"`
 	UpdatePolicy  updatePolicy   `json:"updatePolicy"`
 }
 
+// user 是数据库中的账号记录，包含密码哈希和邮箱/手机号之一。
 type user struct {
 	ID           string  `json:"id"`
 	Email        *string `json:"email"`
@@ -78,6 +82,7 @@ type user struct {
 	UpdatedAt    string  `json:"updatedAt"`
 }
 
+// publicUser 是返回给客户端的用户信息，故意不包含密码哈希。
 type publicUser struct {
 	ID          string  `json:"id"`
 	Email       *string `json:"email"`
@@ -87,6 +92,7 @@ type publicUser struct {
 	UpdatedAt   string  `json:"updatedAt"`
 }
 
+// refreshToken 保存长期刷新令牌的哈希和过期时间。
 type refreshToken struct {
 	ID        string `json:"id"`
 	UserID    string `json:"userId"`
@@ -95,6 +101,7 @@ type refreshToken struct {
 	ExpiresAt string `json:"expiresAt"`
 }
 
+// updatePolicy 描述 Android 最新版本、最低支持版本和下载信息。
 type updatePolicy struct {
 	Platform                string   `json:"platform"`
 	LatestVersionCode       int      `json:"latestVersionCode"`
@@ -106,6 +113,7 @@ type updatePolicy struct {
 	UpdatedAt               string   `json:"updatedAt"`
 }
 
+// tokenPair 是一次登录成功后返回的访问令牌和刷新令牌组合。
 type tokenPair struct {
 	AccessToken           string `json:"accessToken"`
 	TokenType             string `json:"tokenType"`
@@ -114,6 +122,7 @@ type tokenPair struct {
 	RefreshTokenExpiresAt string `json:"refreshTokenExpiresAt"`
 }
 
+// accessPayload 是 HMAC 访问令牌中的签名载荷。
 type accessPayload struct {
 	Subject string `json:"sub"`
 	Type    string `json:"type"`
@@ -121,6 +130,7 @@ type accessPayload struct {
 	Expires int64  `json:"exp"`
 }
 
+// main 读取环境变量并启动 HTTP 服务。
 func main() {
 	if tokenSecret() == defaultTokenSecret {
 		log.Println("Warning: TOKEN_SECRET is using the development default.")
@@ -136,6 +146,7 @@ func main() {
 	}
 }
 
+// routes 注册统一入口和 CORS 中间件。
 func routes() http.Handler {
 	mux := http.NewServeMux()
 	// 所有 API 先进入统一入口，便于集中处理 CORS、错误格式和 404。
@@ -143,6 +154,7 @@ func routes() http.Handler {
 	return corsMiddleware(mux)
 }
 
+// corsMiddleware 为跨域请求补充响应头，并直接处理 OPTIONS 预检。
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		addCORSHeaders(w)
@@ -154,6 +166,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// handleAPI 统一捕获路由错误，输出稳定的 JSON 错误结构。
 func handleAPI(w http.ResponseWriter, r *http.Request) {
 	if err := routeAPI(w, r); err != nil {
 		var apiErr apiError
@@ -178,6 +191,7 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// routeAPI 根据 HTTP 方法和路径分发所有公开 API。
 func routeAPI(w http.ResponseWriter, r *http.Request) error {
 	path := r.URL.Path
 	switch {
@@ -215,6 +229,7 @@ func routeAPI(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// register 处理邮箱或手机号注册，并在同一事务中签发登录令牌。
 func register(w http.ResponseWriter, r *http.Request, kind string) error {
 	body, err := readJSONBody(r)
 	if err != nil {
@@ -253,6 +268,7 @@ func register(w http.ResponseWriter, r *http.Request, kind string) error {
 	return nil
 }
 
+// login 校验账号密码并签发新的访问令牌和刷新令牌。
 func login(w http.ResponseWriter, r *http.Request, kind string) error {
 	body, err := readJSONBody(r)
 	if err != nil {
@@ -285,6 +301,7 @@ func login(w http.ResponseWriter, r *http.Request, kind string) error {
 	return nil
 }
 
+// refresh 用未过期的刷新令牌换取新的令牌对，并轮换旧刷新令牌。
 func refresh(w http.ResponseWriter, r *http.Request) error {
 	body, err := readJSONBody(r)
 	if err != nil {
@@ -335,6 +352,7 @@ func refresh(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// logout 撤销请求中携带的刷新令牌，使其不能再次续期。
 func logout(w http.ResponseWriter, r *http.Request) error {
 	body, err := readJSONBody(r)
 	if err != nil {
@@ -363,6 +381,7 @@ func logout(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// me 校验 Bearer 访问令牌并返回当前用户资料。
 func me(w http.ResponseWriter, r *http.Request) error {
 	token := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 	if token == "" || token == r.Header.Get("Authorization") {
@@ -389,6 +408,7 @@ func me(w http.ResponseWriter, r *http.Request) error {
 	return apiError{Status: http.StatusUnauthorized, Code: "invalid_token", Message: "Bearer token is invalid."}
 }
 
+// checkUpdate 比较客户端版本与更新策略，返回是否更新及是否强制更新。
 func checkUpdate(w http.ResponseWriter, r *http.Request) error {
 	input := map[string]any{}
 	// 支持 GET 查询和 POST JSON 两种形式，方便 App 与脚本共用同一接口。
@@ -436,6 +456,7 @@ func checkUpdate(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// updatePolicyHandler 供管理员用 X-Admin-Token 更新发布策略。
 func updatePolicyHandler(w http.ResponseWriter, r *http.Request) error {
 	if r.Header.Get("X-Admin-Token") != adminToken() {
 		return apiError{Status: http.StatusUnauthorized, Code: "admin_unauthorized", Message: "Admin token is missing or invalid."}
@@ -460,6 +481,7 @@ func updatePolicyHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// serveDownload 安全地返回 downloads 目录内的 APK 文件。
 func serveDownload(w http.ResponseWriter, r *http.Request) error {
 	name, err := url.PathUnescape(strings.TrimPrefix(r.URL.Path, "/downloads/"))
 	if err != nil {
@@ -491,6 +513,7 @@ func serveDownload(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// readJSONBody 以 1MB 上限读取并解析 JSON 对象，空请求体视为空对象。
 func readJSONBody(r *http.Request) (map[string]any, error) {
 	if r.Body == nil {
 		return map[string]any{}, nil
@@ -513,6 +536,7 @@ func readJSONBody(r *http.Request) (map[string]any, error) {
 	return body, nil
 }
 
+// sendJSON 输出带 UTF-8 和 Content-Length 的 JSON 响应。
 func sendJSON(w http.ResponseWriter, status int, payload any) {
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -525,12 +549,14 @@ func sendJSON(w http.ResponseWriter, status int, payload any) {
 	_, _ = w.Write(append(raw, '\n'))
 }
 
+// addCORSHeaders 声明允许的来源、方法和请求头。
 func addCORSHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Admin-Token")
 }
 
+// readDB 从 SQLite 读取完整数据快照。
 func readDB() (dbFile, error) {
 	// 对外仍返回 dbFile 结构，内部已经从旧 JSON 文件迁移到 SQLite。
 	db, err := openDataDB()
@@ -541,6 +567,7 @@ func readDB() (dbFile, error) {
 	return readSQLiteDB(db)
 }
 
+// writeDB 在事务中整库替换数据，并记录旧 JSON 已完成迁移。
 func writeDB(db dbFile) error {
 	sqlDB, err := openDataDB()
 	if err != nil {
@@ -563,6 +590,7 @@ func writeDB(db dbFile) error {
 	return tx.Commit()
 }
 
+// openDataDB 打开 SQLite 主库并确保目录、表结构存在。
 func openDataDB() (*sql.DB, error) {
 	path := databaseFile()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -581,6 +609,7 @@ func openDataDB() (*sql.DB, error) {
 	return db, nil
 }
 
+// initSQLite 创建缺失的表和索引，并执行旧数据迁移与默认策略初始化。
 func initSQLite(db *sql.DB) error {
 	// 表结构在启动时幂等创建，部署新版本不需要额外迁移命令。
 	statements := []string{
@@ -632,6 +661,7 @@ func initSQLite(db *sql.DB) error {
 	return ensureUpdatePolicy(db)
 }
 
+// migrateLegacyJSON 在首次启动时把 data/db.json 导入 SQLite，只执行一次。
 func migrateLegacyJSON(db *sql.DB) error {
 	// 旧版本用 data/db.json；首次打开空 SQLite 时迁移一次，随后写 meta 标记。
 	value, ok, err := metaValue(db, "legacy_json_migrated")
@@ -673,6 +703,7 @@ func migrateLegacyJSON(db *sql.DB) error {
 	return tx.Commit()
 }
 
+// readLegacyDBFile 读取旧 JSON 数据文件；文件不存在时返回 found=false。
 func readLegacyDBFile(path string) (dbFile, bool, error) {
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 		return dbFile{}, false, nil
@@ -690,6 +721,7 @@ func readLegacyDBFile(path string) (dbFile, bool, error) {
 	return normalizeDBFile(db), true, nil
 }
 
+// readSQLiteDB 从三张业务表组装出完整 dbFile，并统一规范化默认值。
 func readSQLiteDB(db *sql.DB) (dbFile, error) {
 	// 读取时重新组装成历史 dbFile 结构，让认证和更新逻辑不用关心底层存储。
 	result := dbFile{
@@ -755,6 +787,7 @@ func readSQLiteDB(db *sql.DB) (dbFile, error) {
 	return normalizeDBFile(result), nil
 }
 
+// readUpdatePolicy 读取唯一一条版本发布策略，缺失时返回默认策略。
 func readUpdatePolicy(db *sql.DB) (updatePolicy, error) {
 	var policy updatePolicy
 	var notesJSON string
@@ -780,6 +813,7 @@ func readUpdatePolicy(db *sql.DB) (updatePolicy, error) {
 	return policy, nil
 }
 
+// replaceDBInTx 在一个事务中清空并重写用户、刷新令牌和更新策略。
 func replaceDBInTx(tx *sql.Tx, db dbFile) error {
 	db = normalizeDBFile(db)
 	// 写入策略是整库替换，数据规模很小，代码更直接，也避免局部同步遗漏。
@@ -839,6 +873,7 @@ func replaceDBInTx(tx *sql.Tx, db dbFile) error {
 	return err
 }
 
+// ensureUpdatePolicy 在策略表为空时插入默认版本信息。
 func ensureUpdatePolicy(db *sql.DB) error {
 	var count int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM update_policy WHERE id = 1`).Scan(&count); err != nil {
@@ -874,6 +909,7 @@ func ensureUpdatePolicy(db *sql.DB) error {
 	return tx.Commit()
 }
 
+// sqliteHasData 判断数据库里是否已有用户或更新策略。
 func sqliteHasData(db *sql.DB) (bool, error) {
 	var count int
 	if err := db.QueryRow(`SELECT (SELECT COUNT(*) FROM users) + (SELECT COUNT(*) FROM update_policy)`).Scan(&count); err != nil {
@@ -882,6 +918,7 @@ func sqliteHasData(db *sql.DB) (bool, error) {
 	return count > 0, nil
 }
 
+// metaValue 读取迁移标记等应用元数据。
 func metaValue(db *sql.DB, key string) (string, bool, error) {
 	var value string
 	err := db.QueryRow(`SELECT value FROM app_meta WHERE key = ?`, key).Scan(&value)
@@ -894,16 +931,19 @@ func metaValue(db *sql.DB, key string) (string, bool, error) {
 	return value, true, nil
 }
 
+// setMeta 插入或更新一条应用元数据。
 func setMeta(db *sql.DB, key string, value string) error {
 	_, err := db.Exec(`INSERT INTO app_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key, value)
 	return err
 }
 
+// setMetaTx 在指定事务内插入或更新应用元数据。
 func setMetaTx(tx *sql.Tx, key string, value string) error {
 	_, err := tx.Exec(`INSERT INTO app_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key, value)
 	return err
 }
 
+// normalizeDBFile 补齐空列表，并用默认策略规范化版本字段。
 func normalizeDBFile(db dbFile) dbFile {
 	fallback := defaultDB()
 	if db.Users == nil {
@@ -916,6 +956,7 @@ func normalizeDBFile(db dbFile) dbFile {
 	return db
 }
 
+// nullableString 把可空字符串转换成 SQL 可写入的 nil 或字符串值。
 func nullableString(value *string) any {
 	if value == nil {
 		return nil
@@ -923,6 +964,7 @@ func nullableString(value *string) any {
 	return *value
 }
 
+// defaultDB 返回空账号库和内置的 Android 更新策略。
 func defaultDB() dbFile {
 	return dbFile{
 		Users:         []user{},
@@ -940,6 +982,7 @@ func defaultDB() dbFile {
 	}
 }
 
+// sanitizeUpdatePolicy 对部分更新字段做清洗、截断和默认值回退。
 func sanitizeUpdatePolicy(input map[string]any, fallback updatePolicy, keepUpdatedAt bool) updatePolicy {
 	// 管理接口允许部分字段更新；缺省值沿用现有策略或默认策略。
 	latest := parseVersionCode(input["latestVersionCode"])
@@ -979,6 +1022,7 @@ func sanitizeUpdatePolicy(input map[string]any, fallback updatePolicy, keepUpdat
 	}
 }
 
+// policyToMap 把更新策略转换成可供解析函数复用的 map。
 func policyToMap(policy updatePolicy) map[string]any {
 	notes := make([]any, 0, len(policy.ReleaseNotes))
 	for _, note := range policy.ReleaseNotes {
@@ -996,6 +1040,7 @@ func policyToMap(policy updatePolicy) map[string]any {
 	}
 }
 
+// normalizeIdentifier 根据账号类型提取并规范化邮箱或手机号。
 func normalizeIdentifier(body map[string]any, kind string) (string, error) {
 	// 注册和登录共用账号规范化逻辑，避免“同一邮箱不同写法”产生重复账号。
 	if kind == "email" {
@@ -1004,6 +1049,7 @@ func normalizeIdentifier(body map[string]any, kind string) (string, error) {
 	return normalizePhone(stringValue(body["phone"]))
 }
 
+// normalizeEmail 统一全角字符、空白和邮箱分隔符后再校验格式。
 func normalizeEmail(value string) (string, error) {
 	email := strings.ToLower(toHalfWidthASCII(strings.TrimSpace(value)))
 	email = strings.NewReplacer("。", ".", "．", ".", "｡", ".").Replace(email)
@@ -1014,6 +1060,7 @@ func normalizeEmail(value string) (string, error) {
 	return email, nil
 }
 
+// normalizePhone 去掉手机号中的空格、横线和括号并校验中国大陆号码。
 func normalizePhone(value string) (string, error) {
 	phone := toHalfWidthASCII(strings.TrimSpace(value))
 	phone = phoneRemovable.ReplaceAllString(phone, "")
@@ -1035,6 +1082,7 @@ func normalizePhone(value string) (string, error) {
 	return phone, nil
 }
 
+// toHalfWidthASCII 把中文输入法产生的全角 ASCII 字符转换成半角。
 func toHalfWidthASCII(value string) string {
 	// 用户可能从中文输入法粘贴全角数字/字母，这里统一成半角再校验。
 	var builder strings.Builder
@@ -1051,6 +1099,7 @@ func toHalfWidthASCII(value string) string {
 	return builder.String()
 }
 
+// validatePassword 校验最小密码长度。
 func validatePassword(password string) (string, error) {
 	if len(password) < 6 {
 		return "", apiError{Status: http.StatusBadRequest, Code: "weak_password", Message: "密码至少需要 6 位。"}
@@ -1058,6 +1107,7 @@ func validatePassword(password string) (string, error) {
 	return password, nil
 }
 
+// hashPassword 使用随机盐和 PBKDF2-SHA256 生成可存储的密码哈希。
 func hashPassword(password string) (string, error) {
 	// 密码使用 PBKDF2 加盐哈希；数据库里永远不保存明文密码。
 	saltBytes := make([]byte, 16)
@@ -1072,6 +1122,7 @@ func hashPassword(password string) (string, error) {
 	return "pbkdf2_sha256:" + salt + ":" + hex.EncodeToString(digest), nil
 }
 
+// verifyPassword 重新计算哈希并使用常量时间比较校验密码。
 func verifyPassword(password string, stored string) bool {
 	parts := strings.Split(stored, ":")
 	if len(parts) != 3 || parts[0] != "pbkdf2_sha256" {
@@ -1085,6 +1136,7 @@ func verifyPassword(password string, stored string) bool {
 	return hmac.Equal([]byte(hex.EncodeToString(digest)), []byte(parts[2]))
 }
 
+// makeUser 创建带 UUID、密码哈希和时间戳的新用户。
 func makeUser(kind string, identifier string, password string, displayName string) user {
 	now := nowISO()
 	passwordHash, err := hashPassword(password)
@@ -1110,6 +1162,7 @@ func makeUser(kind string, identifier string, password string, displayName strin
 	return item
 }
 
+// findUserIndex 按账号类型查找用户下标，找不到返回 -1。
 func findUserIndex(users []user, kind string, identifier string) int {
 	for i, item := range users {
 		if kind == "email" && item.Email != nil && *item.Email == identifier {
@@ -1122,6 +1175,7 @@ func findUserIndex(users []user, kind string, identifier string) int {
 	return -1
 }
 
+// publicUserFrom 去除密码哈希等敏感字段，生成客户端可见用户信息。
 func publicUserFrom(item user) publicUser {
 	return publicUser{
 		ID:          item.ID,
@@ -1133,6 +1187,7 @@ func publicUserFrom(item user) publicUser {
 	}
 }
 
+// authResponse 组装登录/注册接口返回的用户和令牌字段。
 func authResponse(item user, tokens tokenPair) map[string]any {
 	return map[string]any{
 		"user":                  publicUserFrom(item),
@@ -1144,6 +1199,7 @@ func authResponse(item user, tokens tokenPair) map[string]any {
 	}
 }
 
+// cleanExpiredRefreshTokens 原地删除已经过期的刷新令牌。
 func cleanExpiredRefreshTokens(db *dbFile) {
 	// 每次签发/刷新前顺手清理过期刷新令牌，保持 token 表轻量。
 	now := time.Now().UTC()
@@ -1157,6 +1213,7 @@ func cleanExpiredRefreshTokens(db *dbFile) {
 	db.RefreshTokens = kept
 }
 
+// issueTokenPair 生成刷新令牌和签名访问令牌，并把刷新令牌哈希写入内存数据。
 func issueTokenPair(db *dbFile, item user) (tokenPair, error) {
 	// Access token 短期有效，Refresh token 长期保存哈希，用于无感续期。
 	cleanExpiredRefreshTokens(db)
@@ -1185,11 +1242,13 @@ func issueTokenPair(db *dbFile, item user) (tokenPair, error) {
 	}, nil
 }
 
+// hashRefreshToken 计算刷新令牌的 SHA-256 摘要，数据库只保存摘要。
 func hashRefreshToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
 }
 
+// signAccessToken 生成“Base64 载荷 + HMAC 签名”的轻量访问令牌。
 func signAccessToken(item user) (string, error) {
 	// 这里实现的是轻量 HMAC token：payload + 签名，足够当前私有服务使用。
 	issuedAt := time.Now().Unix()
@@ -1207,6 +1266,7 @@ func signAccessToken(item user) (string, error) {
 	return encoded + "." + signValue(encoded), nil
 }
 
+// verifyAccessToken 校验签名、载荷格式、令牌类型和过期时间。
 func verifyAccessToken(token string) (accessPayload, error) {
 	// 验证顺序：格式 -> 签名 -> JSON -> 过期时间，任何一步失败都视为无效 token。
 	parts := strings.Split(token, ".")
@@ -1227,12 +1287,14 @@ func verifyAccessToken(token string) (accessPayload, error) {
 	return payload, nil
 }
 
+// signValue 使用服务端密钥对字符串计算 HMAC-SHA256 签名。
 func signValue(value string) string {
 	mac := hmac.New(sha256.New, []byte(tokenSecret()))
 	_, _ = mac.Write([]byte(value))
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
+// randomURLToken 生成指定字节数的安全随机 URL 令牌。
 func randomURLToken(size int) (string, error) {
 	raw := make([]byte, size)
 	if _, err := rand.Read(raw); err != nil {
@@ -1241,6 +1303,7 @@ func randomURLToken(size int) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 
+// newUUID 生成符合 UUID v4 格式的随机标识。
 func newUUID() string {
 	raw := make([]byte, 16)
 	if _, err := rand.Read(raw); err != nil {
@@ -1251,41 +1314,50 @@ func newUUID() string {
 	return fmt.Sprintf("%x-%x-%x-%x-%x", raw[0:4], raw[4:6], raw[6:8], raw[8:10], raw[10:16])
 }
 
+// nowISO 返回 UTC、秒级精度的 RFC3339 时间字符串。
 func nowISO() string {
 	return time.Now().UTC().Truncate(time.Second).Format(time.RFC3339)
 }
 
+// dataFile 返回旧 JSON 数据文件路径，仅用于迁移。
 func dataFile() string {
 	// 旧 JSON 数据文件路径只用于一次性迁移。
 	return envString("DATA_FILE", defaultDataFile)
 }
 
+// databaseFile 返回 SQLite 主库路径。
 func databaseFile() string {
 	// SQLite 主库路径，可通过环境变量在服务器部署时切换。
 	return envString("DATABASE_FILE", defaultDatabaseFile)
 }
 
+// downloadDir 返回 APK 下载目录，并防止其他模块直接硬编码路径。
 func downloadDir() string {
 	// APK 下载目录默认是 server/downloads，发布脚本上传的新包会放这里。
 	return envString("DOWNLOAD_DIR", defaultDownloadDir)
 }
 
+// tokenSecret 返回访问令牌签名密钥。
 func tokenSecret() string {
 	return envString("TOKEN_SECRET", defaultTokenSecret)
 }
 
+// adminToken 返回更新策略管理接口所需的管理员令牌。
 func adminToken() string {
 	return envString("ADMIN_TOKEN", defaultAdminToken)
 }
 
+// accessTokenTTL 返回访问令牌有效秒数。
 func accessTokenTTL() int {
 	return envInt("ACCESS_TOKEN_TTL_SECONDS", defaultAccessTokenTTL)
 }
 
+// refreshTokenTTLDays 返回刷新令牌有效天数。
 func refreshTokenTTLDays() int {
 	return envInt("REFRESH_TOKEN_TTL_DAYS", defaultRefreshTokenTTLDays)
 }
 
+// envString 读取字符串环境变量，空值时使用默认值。
 func envString(key string, fallback string) string {
 	value := strings.TrimSpace(os.Getenv(key))
 	if value == "" {
@@ -1294,6 +1366,7 @@ func envString(key string, fallback string) string {
 	return value
 }
 
+// envInt 读取整数环境变量，缺失或格式错误时使用默认值。
 func envInt(key string, fallback int) int {
 	value, err := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
 	if err != nil {
@@ -1302,6 +1375,7 @@ func envInt(key string, fallback int) int {
 	return value
 }
 
+// parseVersionCode 兼容数字和数字字符串，返回非负版本号。
 func parseVersionCode(value any) *int {
 	switch v := value.(type) {
 	case int:
@@ -1330,6 +1404,7 @@ func parseVersionCode(value any) *int {
 	return nil
 }
 
+// stringValue 把 JSON 中的任意标量安全转换成字符串。
 func stringValue(value any) string {
 	switch v := value.(type) {
 	case nil:
@@ -1350,6 +1425,7 @@ func stringValue(value any) string {
 	}
 }
 
+// defaultIfEmpty 在去除空白后为空时返回备用值。
 func defaultIfEmpty(value string, fallback string) string {
 	if strings.TrimSpace(value) == "" {
 		return fallback

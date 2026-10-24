@@ -2,6 +2,7 @@
 
 part of '../plan.dart';
 
+/// 待办卡片：展示标题、备注、分类/优先级/日期等标签，以及快捷操作。
 class _TodoCard extends StatelessWidget {
   const _TodoCard({
     required this.todo,
@@ -19,6 +20,7 @@ class _TodoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 完成状态用主题色和删除线区分；未完成时保留分类色阴影。
     return AnimatedContainer(
       key: ValueKey('todo_card_${todo.title}'),
       duration: const Duration(milliseconds: 180),
@@ -35,6 +37,7 @@ class _TodoCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 顶部是圆形勾选框和标题区域。
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -110,6 +113,7 @@ class _TodoCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
+            // 标签区：分类、优先级、状态、日期、重复规则。
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -146,6 +150,7 @@ class _TodoCard extends StatelessWidget {
                   ),
               ],
             ),
+            // 关联模块提示：未完成时提醒后续补记录，完成后显示引导文案。
             if (todo.linkedModules.isNotEmpty) ...[
               const SizedBox(height: 10),
               Wrap(
@@ -189,6 +194,7 @@ class _TodoCard extends StatelessWidget {
   }
 }
 
+/// 待办卡片上的小标签（图标 + 文本），用于展示元信息。
 class _TodoMetaChip extends StatelessWidget {
   const _TodoMetaChip({
     required this.label,
@@ -227,6 +233,7 @@ class _TodoMetaChip extends StatelessWidget {
   }
 }
 
+/// 待办卡片的快捷操作行：完成/恢复、推迟、归档、删除。
 class _TodoQuickActions extends StatelessWidget {
   const _TodoQuickActions({
     required this.title,
@@ -287,6 +294,7 @@ class _TodoQuickActions extends StatelessWidget {
   }
 }
 
+/// 删除按钮：点击后先二次确认，避免误删。
 class _TodoDeleteButton extends StatelessWidget {
   const _TodoDeleteButton({
     required this.title,
@@ -348,6 +356,7 @@ class _TodoDeleteButton extends StatelessWidget {
     );
   }
 
+  // 弹出确认框，确认后调用外层的 onDelete。
   Future<void> _confirmDelete(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -401,6 +410,7 @@ class _TodoDeleteButton extends StatelessWidget {
   }
 }
 
+/// 快捷操作行里的小按钮，统一样式并按语义着色。
 class _TodoActionButton extends StatelessWidget {
   const _TodoActionButton({
     required this.label,

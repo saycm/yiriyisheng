@@ -2,6 +2,7 @@
 
 part of 'life_home.dart';
 
+/// 首页根组件：承载五个生活模块，并管理模块切换、快捷动作和数据恢复。
 class LifeHomePage extends StatefulWidget {
   const LifeHomePage({
     super.key,
@@ -18,6 +19,7 @@ class LifeHomePage extends StatefulWidget {
   State<LifeHomePage> createState() => _LifeHomePageState();
 }
 
+/// 首页状态：持有各模块的内存状态，处理生命周期、快捷动作和整体布局。
 class _LifeHomePageState extends State<LifeHomePage>
     with WidgetsBindingObserver {
   static const _defaultAppDataStore = AppDataStore();
@@ -44,6 +46,7 @@ class _LifeHomePageState extends State<LifeHomePage>
   @override
   void initState() {
     super.initState();
+    // 监听 App 前后台切换，跨天后刷新“今天”的显示。
     WidgetsBinding.instance.addObserver(this);
     _visibleDay = DateUtils.dateOnly(_now);
     final initialRoute =
@@ -56,6 +59,7 @@ class _LifeHomePageState extends State<LifeHomePage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 回到前台且日期变化时，刷新可见日期并同步小组件摘要。
     if (state != AppLifecycleState.resumed || !mounted) {
       return;
     }
@@ -70,6 +74,7 @@ class _LifeHomePageState extends State<LifeHomePage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // 首帧后检查初始路由里是否带小组件快捷动作（只处理一次）。
     if (_initialQuickActionChecked) {
       return;
     }
@@ -93,11 +98,13 @@ class _LifeHomePageState extends State<LifeHomePage>
   }
 
   void _setModule(LifeModule module) {
+    // 切换底部模块，只改当前模块枚举，各模块状态仍保留在父级。
     setState(() => _module = module);
   }
 
   Future<void> _handleWidgetQuickAction(
       String route, String? actionName) async {
+    // 桌面小组件点击时：先切模块，再投递一次性快捷动作。
     final action = _widgetQuickActionFromName(actionName);
     if (!mounted) {
       return;
@@ -113,6 +120,7 @@ class _LifeHomePageState extends State<LifeHomePage>
   }
 
   void _markQuickActionHandled() {
+    // 模块消费完快捷动作后清空，避免重复弹窗。
     if (!mounted || _pendingQuickAction == null) {
       return;
     }
@@ -128,6 +136,7 @@ class _LifeHomePageState extends State<LifeHomePage>
   }
 
   int weekFoodCaloriesFromState(DateTime today) {
+    // 本周热量：从本周一到下周一之间的饮食记录累加。
     final start = _startOfWeek(today);
     final end = start.add(const Duration(days: 7));
     return _foodState.logs
@@ -137,6 +146,7 @@ class _LifeHomePageState extends State<LifeHomePage>
   }
 
   Map<String, int> todayWorkoutGroupsByActionFromState(DateTime today) {
+    // 本地进度只在当天有效，跨天后归零。
     return isSameLocalDay(_workoutState.progressDate, today)
         ? _workoutState.groupsByAction
         : const <String, int>{};
@@ -176,12 +186,14 @@ class _LifeHomePageState extends State<LifeHomePage>
   }
 
   DateTime _startOfWeek(DateTime day) {
+    // 以周一为一周起点。
     final date = DateUtils.dateOnly(day);
     return date.subtract(Duration(days: date.weekday - DateTime.monday));
   }
 
   @override
   void dispose() {
+    // 移除生命周期监听并注销小组件回调。
     WidgetsBinding.instance.removeObserver(this);
     _widgetStore.clearQuickActionHandler();
     super.dispose();
@@ -189,6 +201,7 @@ class _LifeHomePageState extends State<LifeHomePage>
 
   @override
   Widget build(BuildContext context) {
+    // 汇总各模块的今日/本周统计后，构建当前模块页面。
     final today = _now;
     final todayFoodCalories = todayFoodCaloriesFromState(today);
     final todayWorkoutGroups = todayWorkoutGroupsFromState(today);
@@ -237,6 +250,7 @@ class _LifeHomePageState extends State<LifeHomePage>
       quickActionToken: _quickActionToken,
       onQuickActionHandled: _markQuickActionHandled,
     );
+    // 数据恢复完成前先遮罩页面，避免用户在旧数据上操作。
     if (_appDataRestoreComplete && !_appDataSaveFailed && !_appDataLoadFailed) {
       return page;
     }
@@ -270,6 +284,7 @@ class _LifeHomePageState extends State<LifeHomePage>
   int get _pendingTodoCount => _planState.pendingTodoCount;
 }
 
+/// 数据读写失败时顶部的红色提示条。
 class _AppDataFailureBanner extends StatelessWidget {
   const _AppDataFailureBanner({required this.message});
 

@@ -2,6 +2,7 @@
 
 part of 'health.dart';
 
+/// 健康页顶部栏。
 class _HealthHeader extends StatelessWidget {
   const _HealthHeader({
     required this.onOpenModules,
@@ -22,6 +23,7 @@ class _HealthHeader extends StatelessWidget {
   }
 }
 
+/// 健康状态评分卡片。
 class _HealthStatusScoreCard extends StatelessWidget {
   const _HealthStatusScoreCard({
     required this.result,
@@ -150,6 +152,7 @@ class _HealthStatusScoreCard extends StatelessWidget {
   }
 }
 
+/// 今日快速记录卡片。
 class _HealthQuickRecordCard extends StatelessWidget {
   const _HealthQuickRecordCard({
     required this.sleep,
@@ -254,6 +257,7 @@ class _HealthQuickRecordCard extends StatelessWidget {
   }
 }
 
+/// 通用选项行（睡眠/精力/压力等）。
 class _HealthChoiceRow<T extends Enum> extends StatelessWidget {
   const _HealthChoiceRow({
     required this.label,
@@ -313,6 +317,7 @@ class _HealthChoiceRow<T extends Enum> extends StatelessWidget {
   }
 }
 
+/// 通用选项胶囊。
 class _HealthChoiceChip<T extends Enum> extends StatelessWidget {
   const _HealthChoiceChip({
     required this.keyPrefix,
@@ -357,6 +362,7 @@ class _HealthChoiceChip<T extends Enum> extends StatelessWidget {
   }
 }
 
+/// 状态影响卡片：列出影响总分的关键因素。
 class _HealthImpactCard extends StatelessWidget {
   const _HealthImpactCard({required this.impacts});
 
@@ -395,6 +401,7 @@ class _HealthImpactCard extends StatelessWidget {
   }
 }
 
+/// 单条状态影响。
 class _HealthImpactRow extends StatelessWidget {
   const _HealthImpactRow({required this.impact});
 
@@ -468,6 +475,7 @@ class _HealthImpactRow extends StatelessWidget {
   }
 }
 
+/// 健康建议卡片。
 class _HealthStatusSuggestionCard extends StatelessWidget {
   const _HealthStatusSuggestionCard({required this.suggestions});
 
@@ -527,6 +535,7 @@ class _HealthStatusSuggestionCard extends StatelessWidget {
   }
 }
 
+/// 健康状态趋势卡片。
 class _HealthStatusTrendCard extends StatelessWidget {
   const _HealthStatusTrendCard({required this.result});
 
@@ -643,6 +652,7 @@ class _HealthStatusTrendCard extends StatelessWidget {
   }
 }
 
+/// 趋势图上的一个数据点。
 class _HealthTrendPoint {
   const _HealthTrendPoint({
     required this.label,
@@ -655,6 +665,7 @@ class _HealthTrendPoint {
   final Color color;
 }
 
+/// 趋势图图例胶囊。
 class _HealthTrendLegendPill extends StatelessWidget {
   const _HealthTrendLegendPill({required this.point});
 
@@ -695,6 +706,7 @@ class _HealthTrendLegendPill extends StatelessWidget {
   }
 }
 
+/// 健康状态趋势折线绘制器。
 class _HealthStatusTrendPainter extends CustomPainter {
   _HealthStatusTrendPainter({required this.points});
 

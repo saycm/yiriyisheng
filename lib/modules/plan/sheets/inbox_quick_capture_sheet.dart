@@ -2,6 +2,7 @@
 
 part of '../plan.dart';
 
+/// 待办箱快速录入弹层：输入一句话即可创建待办。
 class _InboxQuickCaptureSheet extends StatefulWidget {
   const _InboxQuickCaptureSheet({required this.onSave});
 
@@ -12,17 +13,20 @@ class _InboxQuickCaptureSheet extends StatefulWidget {
       _InboxQuickCaptureSheetState();
 }
 
+/// 快速录入弹层的输入状态。
 class _InboxQuickCaptureSheetState extends State<_InboxQuickCaptureSheet> {
   final _controller = TextEditingController();
 
   @override
   void dispose() {
+    // 弹层关闭时释放输入框控制器，避免内存泄漏。
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // 底部留出键盘高度，保证输入时按钮不被遮挡。
     return InfoSheetFrame(
       title: '收件箱快速录入',
       child: Padding(
@@ -72,6 +76,7 @@ class _InboxQuickCaptureSheetState extends State<_InboxQuickCaptureSheet> {
   }
 
   void _save() {
+    // 忽略空白输入，避免创建空标题待办。
     final title = _controller.text.trim();
     if (title.isEmpty) {
       return;

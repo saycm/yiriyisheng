@@ -2,7 +2,9 @@
 
 part of 'life_home.dart';
 
+/// 首页各模块的状态变更方法：饮食、锻炼、待办、财务和事件流。
 extension _LifeHomeMutations on _LifeHomePageState {
+  // 追加饮食记录，汇总热量，并推送一条生活事件。
   void _recordFoodLogs(List<FoodLogEntry> entries) {
     if (entries.isEmpty) {
       return;
@@ -26,6 +28,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 更新某个训练动作的完成组数；跨天时先清空前一天的进度。
   void _updateWorkoutGroups(String actionName, int finishedGroups) {
     // 锻炼模块完成组数保存在父级，切换到状态/饮食/计划后仍能联动展示。
     final today = DateUtils.dateOnly(_now);
@@ -52,6 +55,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 开始一次训练会话。
   void _startWorkoutSession(ActiveWorkoutSession session) {
     _updateState(() {
       _workoutState.activeSession = session;
@@ -68,6 +72,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 更新训练会话中的动作进度。
   void _updateWorkoutSession(ActiveWorkoutSession session) {
     _updateState(() {
       _workoutState.activeSession = session;
@@ -76,6 +81,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 结束训练会话并写入历史记录。
   void _finishWorkoutSession(WorkoutHistoryEntry entry) {
     _updateState(() {
       _workoutState.history.insert(0, entry);
@@ -93,6 +99,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 更新训练计划（动作、目标组数等）。
   void _updateWorkoutPlan(WorkoutPlan plan) {
     final index = _workoutState.plans.indexWhere((item) => item.id == plan.id);
     if (index == -1) {
@@ -105,6 +112,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 勾选/取消待办；完成重复待办时生成下一次实例。
   void _toggleTodo(TodoItem todo) {
     final wasDone = todo.done;
     final generatedOccurrence = wasDone ? todo.createNextOccurrence() : null;
@@ -135,6 +143,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 用新的待办对象替换旧对象。
   void _updateTodo(TodoItem todo) {
     final index = _planState.todos.indexWhere((item) => item.id == todo.id);
     if (index == -1) {
@@ -144,6 +153,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 把待办推迟到下一个工作日。
   void _postponeTodo(TodoItem todo) {
     _updateState(() {
       final targetDate = todo.postponeToNextWorkday();
@@ -159,10 +169,12 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 格式化待办的简短日期，用于事件描述。
   String _shortTodoDate(DateTime date) {
     return '${date.month}月${date.day}日';
   }
 
+  // 归档待办。
   void _archiveTodo(TodoItem todo) {
     _updateState(() {
       todo.archive();
@@ -178,6 +190,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 删除待办及其重复系列。
   void _deleteTodo(TodoItem todo) {
     _updateState(() {
       _planState.todos.removeWhere((item) => item.id == todo.id);
@@ -193,6 +206,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 新增待办，并在有日期时推入事件流。
   void _addTodo(TodoItem todo) {
     _updateState(() {
       _planState.todos.add(todo);
@@ -208,6 +222,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 清理所有已完成待办。
   void _clearCompletedTodos() {
     final count = _planState.todos.where((todo) => todo.done).length;
     _updateState(() {
@@ -226,6 +241,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 待办完成且关联模块时，推送一条联动事件。
   void _pushLinkedTodoEvent(TodoItem todo) {
     for (final module in todo.linkedModules) {
       _pushLifeEvent(
@@ -239,6 +255,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     }
   }
 
+  // 生成待办完成事件的详情文案。
   String _todoCompletionDetail(TodoItem todo) {
     if (todo.linkedModules.isEmpty) {
       return todo.title;
@@ -246,11 +263,13 @@ extension _LifeHomeMutations on _LifeHomePageState {
     return '${todo.title} · ${todo.linkedModules.map((module) => module.label).join('/')}联动';
   }
 
+  // 新增一条财务记录。
   void _addFinanceRecord(FinanceRecord record) {
     _updateState(() => _financeState.records.insert(0, record));
     _syncLinkedSummaryToWidget();
   }
 
+  // 用编辑后的记录替换旧记录。
   void _editFinanceRecord(FinanceRecord oldRecord, FinanceRecord newRecord) {
     final index = _financeState.records.indexOf(oldRecord);
     if (index == -1) {
@@ -260,6 +279,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 更新 AI 记账的接口地址、模型、密钥和解析策略。
   void _updateAiFinanceConfig({
     required String endpoint,
     required String model,
@@ -279,6 +299,7 @@ extension _LifeHomeMutations on _LifeHomePageState {
     _syncLinkedSummaryToWidget();
   }
 
+  // 向首页事件流插入一条事件，最多保留 8 条。
   void _pushLifeEvent(LifeEvent event) {
     // 所有模块产生的关键操作都汇入同一条时间线，计划复盘和模块中心共用。
     _planState.pushEvent(event);

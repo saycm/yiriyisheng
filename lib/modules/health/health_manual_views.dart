@@ -2,6 +2,7 @@
 
 part of 'health.dart';
 
+/// 手动健康记录的展示模型。
 class _HealthManualRecord {
   const _HealthManualRecord({
     required this.bodyTag,
@@ -30,6 +31,7 @@ class _HealthManualRecord {
   final HealthMoodFeeling mood;
 }
 
+/// 手动记录弹层：用滑杆和选项记录当天身体状态。
 class _HealthManualRecordSheet extends StatefulWidget {
   const _HealthManualRecordSheet({
     required this.bodyTag,
@@ -64,6 +66,7 @@ class _HealthManualRecordSheet extends StatefulWidget {
       _HealthManualRecordSheetState();
 }
 
+/// 手动记录弹层状态。
 class _HealthManualRecordSheetState extends State<_HealthManualRecordSheet> {
   late String _bodyTag;
   late double _energyLevel;
@@ -296,6 +299,7 @@ class _HealthManualRecordSheetState extends State<_HealthManualRecordSheet> {
   }
 }
 
+/// 带刻度的自定义滑杆。
 class _HealthSlider extends StatelessWidget {
   const _HealthSlider({
     required this.label,

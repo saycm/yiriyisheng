@@ -2,6 +2,7 @@
 
 part of 'shared.dart';
 
+/// 设置弹层：主题、提醒、关于和反馈入口。
 class _SettingsSheet extends StatefulWidget {
   const _SettingsSheet();
 
@@ -9,6 +10,7 @@ class _SettingsSheet extends StatefulWidget {
   State<_SettingsSheet> createState() => _SettingsSheetState();
 }
 
+/// 设置弹层状态。
 class _SettingsSheetState extends State<_SettingsSheet> {
   @override
   Widget build(BuildContext context) {
@@ -84,6 +86,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   }
 }
 
+/// 常见问题弹层。
 class _QaSheet extends StatelessWidget {
   const _QaSheet();
 
@@ -156,6 +159,7 @@ class _QaSheet extends StatelessWidget {
   }
 }
 
+/// 设置分组标题。
 class _SettingsSectionTitle extends StatelessWidget {
   const _SettingsSectionTitle({
     required this.icon,
@@ -187,6 +191,7 @@ class _SettingsSectionTitle extends StatelessWidget {
   }
 }
 
+/// 设置开关行。
 class _SettingsSwitchTile extends StatelessWidget {
   const _SettingsSwitchTile({
     required this.icon,
@@ -266,6 +271,7 @@ class _SettingsSwitchTile extends StatelessWidget {
   }
 }
 
+/// 设置操作行（点击进入子页面）。
 class _SettingsActionTile extends StatelessWidget {
   const _SettingsActionTile({
     required this.icon,
@@ -333,6 +339,7 @@ class _SettingsActionTile extends StatelessWidget {
   }
 }
 
+/// 设置项图标。
 class _SettingsIcon extends StatelessWidget {
   const _SettingsIcon({required this.icon});
 

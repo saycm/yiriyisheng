@@ -2,7 +2,9 @@
 
 part of 'storage.dart';
 
+/// SQLite 表结构 helper：负责建表、升级、meta 读写和通用 upsert/清理。
 extension _AppDataStoreTables on AppDataStore {
+  // 批量写入键值对形式的 meta 数据。
   Future<void> _saveMeta(
     Transaction txn,
     Map<String, String> values,
@@ -16,6 +18,7 @@ extension _AppDataStoreTables on AppDataStore {
     }
   }
 
+  // 按文本主键更新一行，不存在时插入。
   Future<void> _upsertByTextKey(
     Transaction txn,
     String table,
@@ -34,6 +37,7 @@ extension _AppDataStoreTables on AppDataStore {
     }
   }
 
+  // 按 position 更新一行，不存在时插入，用于保持列表顺序。
   Future<void> _upsertByPosition(
     Transaction txn,
     String table,
@@ -51,6 +55,7 @@ extension _AppDataStoreTables on AppDataStore {
     }
   }
 
+  // 删除不在给定 key 列表中的行；列表为空时清空整表。
   Future<void> _deleteMissingTextKeys(
     Transaction txn,
     String table,
@@ -70,6 +75,7 @@ extension _AppDataStoreTables on AppDataStore {
     );
   }
 
+  // 打开数据库并按版本执行建表/升级。
   Future<Database> _open() async {
     final path = '${await getDatabasesPath()}/'
         '${AppDataStore._databaseName}';

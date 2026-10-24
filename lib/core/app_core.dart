@@ -3,8 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+/// App 的五个核心生活模块，底部导航和模块切换都使用这个枚举。
 enum LifeModule { plan, finance, food, workout, health }
 
+/// 桌面小组件的快捷写入动作，点击小组件按钮后会转到对应模块。
 enum WidgetQuickAction {
   addTodo,
   addFinance,
@@ -13,6 +15,7 @@ enum WidgetQuickAction {
   openHealth,
 }
 
+/// 全局配色表：背景、卡片、主色、文字和一众语义色。
 class AppColors {
   static const background = Color(0xFFF6F8FF);
   static const surface = Color(0xFFFFFFFF);
@@ -32,8 +35,10 @@ class AppColors {
   static const roseSoft = Color(0xFFFFEEF2);
 }
 
+/// 用户主题偏好：跟随系统 / 浅色 / 深色。
 enum AppThemePreference { system, light, dark }
 
+/// 主题偏好的序列化、显示文案和 ThemeMode 转换。
 extension AppThemePreferenceX on AppThemePreference {
   String get storageKey {
     switch (this) {
@@ -80,6 +85,7 @@ extension AppThemePreferenceX on AppThemePreference {
   }
 }
 
+/// 全局设置控制器：保存主题模式和每日记录提醒开关，并同步到 Android 原生层。
 class AppSettingsController extends ChangeNotifier {
   AppSettingsController();
 
@@ -140,6 +146,7 @@ class AppSettingsController extends ChangeNotifier {
   }
 }
 
+/// 通过 InheritedNotifier 把 AppSettingsController 提供给整棵 Widget 树。
 class AppSettingsScope extends InheritedNotifier<AppSettingsController> {
   const AppSettingsScope({
     super.key,

@@ -2,6 +2,7 @@
 
 part of '../../plan.dart';
 
+/// 待安排任务区：展示无日期或过期的任务，并提供排到今天/明天/本周的快捷按钮。
 class _WeekUnscheduledSection extends StatelessWidget {
   const _WeekUnscheduledSection({
     required this.todos,
@@ -62,6 +63,7 @@ class _WeekUnscheduledSection extends StatelessWidget {
   }
 }
 
+/// 待安排列表中的单条任务。
 class _UnscheduledTodoTile extends StatelessWidget {
   const _UnscheduledTodoTile({
     required this.todo,
@@ -130,6 +132,7 @@ class _UnscheduledTodoTile extends StatelessWidget {
   }
 }
 
+/// 排期快捷按钮（今天/明天/本周）。
 class _ScheduleActionChip extends StatelessWidget {
   const _ScheduleActionChip({
     required this.label,
@@ -158,6 +161,7 @@ class _ScheduleActionChip extends StatelessWidget {
   }
 }
 
+/// 任务优先级标签。
 class _PriorityChip extends StatelessWidget {
   const _PriorityChip({required this.priority});
 

@@ -2,6 +2,7 @@
 
 part of '../../models/models.dart';
 
+/// 训练动作：名称、说明、示意图、目标部位、组数、次数和重量。
 class WorkoutAction {
   const WorkoutAction({
     required this.name,
@@ -28,6 +29,7 @@ class WorkoutAction {
   final String note;
 }
 
+/// 训练计划：一组动作 + 目标部位 + 预计时长。
 class WorkoutPlan {
   WorkoutPlan({
     String? id,
@@ -118,6 +120,7 @@ class WorkoutPlan {
   }
 }
 
+/// 正在进行的训练会话：所属计划、开始时间和各动作已完成组数。
 class ActiveWorkoutSession {
   ActiveWorkoutSession({
     String? id,
@@ -181,6 +184,7 @@ class ActiveWorkoutSession {
   }
 }
 
+/// 训练动作的完成结果（组数、重量、感受等）。
 class WorkoutActionResult {
   const WorkoutActionResult({
     required this.actionName,
@@ -231,6 +235,7 @@ class WorkoutActionResult {
   }
 }
 
+/// 一条训练历史记录：完成时间、动作明细、总组数和反馈。
 class WorkoutHistoryEntry {
   WorkoutHistoryEntry({
     String? id,
@@ -303,6 +308,7 @@ class WorkoutHistoryEntry {
   }
 }
 
+/// 训练数据指标的维度（组数、次数、重量等）。
 enum WorkoutMetricKind {
   todayGroups('今日完成组数'),
   todayMinutes('今日训练时长'),
@@ -316,6 +322,7 @@ enum WorkoutMetricKind {
   final String label;
 }
 
+/// 单个指标的详细数据，用于数据页展开说明。
 class WorkoutMetricDetail {
   const WorkoutMetricDetail({
     required this.kind,

@@ -2,12 +2,14 @@
 
 part of 'auth.dart';
 
+/// 强制更新页：不更新就无法进入 App。
 class _ForceUpdatePage extends StatelessWidget {
   const _ForceUpdatePage({required this.update});
 
   final _UpdateInfo? update;
   static const _launcher = MethodChannel('pingsheng_life/update_launcher');
 
+  // 重新检查更新；如果服务端已不再强制更新，则继续启动流程。
   Future<void> _retryCheck(BuildContext context) async {
     final gate = context.findAncestorStateOfType<_AuthGateState>();
     if (gate == null) {
@@ -57,6 +59,7 @@ class _ForceUpdatePage extends StatelessWidget {
     }
   }
 
+  // 调用原生通道打开 APK 下载链接。
   Future<void> _openDownload(BuildContext context, String url) async {
     try {
       await _launcher.invokeMethod<void>('openDownloadUrl', {'url': url});
@@ -183,6 +186,7 @@ class _ForceUpdatePage extends StatelessWidget {
   }
 }
 
+/// 可选更新页：用户可以选择立即更新或跳过。
 class _OptionalUpdatePage extends StatelessWidget {
   const _OptionalUpdatePage({
     required this.update,
@@ -320,6 +324,7 @@ class _OptionalUpdatePage extends StatelessWidget {
   }
 }
 
+/// 更新说明中的一行文本（带圆点）。
 class _UpdateLine extends StatelessWidget {
   const _UpdateLine({required this.label, required this.value});
 

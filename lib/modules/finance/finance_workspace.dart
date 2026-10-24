@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// 净资产卡片：总资产、总负债和净资产。
 class _NetAssetCard extends StatelessWidget {
   const _NetAssetCard({
     required this.accounts,
@@ -192,6 +193,7 @@ class _NetAssetCard extends StatelessWidget {
   }
 }
 
+/// 财务工作台里的指标块。
 class _FinanceWorkspaceMetric extends StatelessWidget {
   const _FinanceWorkspaceMetric({
     required this.label,
@@ -240,6 +242,7 @@ class _FinanceWorkspaceMetric extends StatelessWidget {
   }
 }
 
+/// 财务工作台里的操作入口（记账、资产、预算等）。
 class _FinanceWorkspaceAction extends StatelessWidget {
   const _FinanceWorkspaceAction({
     required this.icon,
@@ -316,6 +319,7 @@ class _FinanceWorkspaceAction extends StatelessWidget {
   }
 }
 
+/// 财务工作台中的账户行。
 class _FinanceWorkspaceAccountRow extends StatelessWidget {
   const _FinanceWorkspaceAccountRow({required this.account});
 

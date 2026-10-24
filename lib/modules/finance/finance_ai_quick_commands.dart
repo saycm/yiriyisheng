@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// AI 记账输入框上方的快捷指令示例。
 class _AiFinanceQuickCommand {
   const _AiFinanceQuickCommand({
     required this.key,
@@ -16,6 +17,7 @@ class _AiFinanceQuickCommand {
   final String prompt;
 }
 
+/// 预置的快捷记账示例，点击后直接填入输入框。
 const _aiFinanceQuickCommands = [
   _AiFinanceQuickCommand(
     key: 'lunch',

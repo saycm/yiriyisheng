@@ -2,7 +2,9 @@
 
 part of 'life_home.dart';
 
+/// 首页弹层与跨模块跳转：模块面板、快速记录面板和关联模块动作。
 extension _LifeHomeOverlays on _LifeHomePageState {
+  // 打开模块总览面板。
   void _openModuleSheet() {
     final today = DateTime.now();
     showModalBottomSheet<void>(
@@ -27,6 +29,7 @@ extension _LifeHomeOverlays on _LifeHomePageState {
     );
   }
 
+  // 打开“快速记录”面板。
   void _openQuickRecordSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -43,6 +46,7 @@ extension _LifeHomeOverlays on _LifeHomePageState {
     );
   }
 
+  // 把快速记录动作转换成目标模块，并投递一次性快捷动作。
   void _dispatchQuickRecordAction(WidgetQuickAction action) {
     final module = switch (action) {
       WidgetQuickAction.addTodo => LifeModule.plan,
@@ -58,6 +62,7 @@ extension _LifeHomeOverlays on _LifeHomePageState {
     });
   }
 
+  // 从待办关联模块跳转到对应模块并触发快捷动作。
   void _openLinkedModuleAction(TodoLinkedModule linkedModule) {
     final target = linkedModule.lifeModule;
     final action = linkedModule.quickAction;

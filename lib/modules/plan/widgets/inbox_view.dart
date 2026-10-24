@@ -2,6 +2,7 @@
 
 part of '../plan.dart';
 
+/// 待办箱视图：按“无日期/无分类/已过期/低优先级”分组，帮助用户快速整理。
 class _InboxView extends StatelessWidget {
   const _InboxView({
     required this.inboxTodos,
@@ -28,6 +29,7 @@ class _InboxView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = DateUtils.dateOnly(DateTime.now());
+    // 先算出四类需要处理的分组，再渲染统计头和分组列表。
     final triageGroups = _inboxTriageGroups(inboxTodos, today);
 
     return ListView(
@@ -90,6 +92,7 @@ class _InboxView extends StatelessWidget {
     required _InboxTriageGroups groups,
     required DateTime today,
   }) {
+    // 按固定顺序生成非空分组，空分组直接跳过。
     final sections = <Widget>[];
     void addSection(String title, String subtitle, List<TodoItem> todos) {
       if (todos.isEmpty) {
@@ -142,6 +145,7 @@ class _InboxView extends StatelessWidget {
     DateTime targetDay,
     String message,
   ) {
+    // 排期会写入目标日期，并把状态重置为“未开始”。
     onUpdate(
       todo.copyWith(
         dueDate: DateUtils.dateOnly(targetDay),
@@ -156,6 +160,7 @@ class _InboxView extends StatelessWidget {
     );
   }
 
+  // 打开快速收集弹层，输入标题后直接创建待办。
   void _openQuickCaptureSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
@@ -173,6 +178,7 @@ class _InboxView extends StatelessWidget {
   }
 }
 
+/// 待办箱顶部统计：总数、无日期、低优先级、已过期数量。
 class _InboxTriageHeader extends StatelessWidget {
   const _InboxTriageHeader({
     required this.total,
@@ -243,6 +249,7 @@ class _InboxTriageHeader extends StatelessWidget {
   }
 }
 
+/// 统计头里的单个数字指标。
 class _InboxTriageMetric extends StatelessWidget {
   const _InboxTriageMetric({required this.label, required this.value});
 
@@ -285,6 +292,7 @@ class _InboxTriageMetric extends StatelessWidget {
   }
 }
 
+/// 待办箱中的一个分组（标题 + 说明 + 待办行）。
 class _InboxTriageSection extends StatelessWidget {
   const _InboxTriageSection({
     required this.title,
@@ -363,6 +371,7 @@ class _InboxTriageSection extends StatelessWidget {
   }
 }
 
+/// 待办箱分组里的单行待办，支持安排到今天/明天/本周、归档和删除。
 class _InboxTriageTodoTile extends StatelessWidget {
   const _InboxTriageTodoTile({
     required this.todo,
@@ -434,6 +443,7 @@ class _InboxTriageTodoTile extends StatelessWidget {
   }
 }
 
+/// 待办箱分组结果：无日期、无分类、已过期、低优先级四类。
 typedef _InboxTriageGroups = ({
   List<TodoItem> noDate,
   List<TodoItem> noCategory,
@@ -469,6 +479,7 @@ _InboxTriageGroups _inboxTriageGroups(List<TodoItem> todos, DateTime today) {
   );
 }
 
+/// 待办箱顶部的“快速收集”入口卡片。
 class _InboxQuickCaptureCard extends StatelessWidget {
   const _InboxQuickCaptureCard({required this.onTap});
 
@@ -518,6 +529,7 @@ class _InboxQuickCaptureCard extends StatelessWidget {
   }
 }
 
+/// 已完成/已归档任务的折叠列表区块。
 class _PlanArchiveSection extends StatelessWidget {
   const _PlanArchiveSection({
     required this.title,
@@ -565,6 +577,7 @@ class _PlanArchiveSection extends StatelessWidget {
   }
 }
 
+/// 已完成任务的小卡片，展示标题和完成状态。
 class _DoneCard extends StatelessWidget {
   const _DoneCard({required this.todo});
 

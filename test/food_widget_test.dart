@@ -1,4 +1,4 @@
-// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+// 中文注释：饮食模块界面测试，覆盖餐次、搜索、自定义食物、模板和趋势。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

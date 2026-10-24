@@ -1,7 +1,10 @@
+// 中文注释：健康手动记录存储，负责通过原生通道读写按日期保存的主观状态。
+
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
+/// 一条手动健康记录：睡眠、精力、压力、身体不适和心情等主观状态。
 class HealthManualRecordData {
   const HealthManualRecordData({
     required this.date,
@@ -87,6 +90,7 @@ class HealthManualRecordData {
   }
 }
 
+/// 手动健康记录的本地存储：保存和读取每日状态记录。
 class HealthManualStore {
   const HealthManualStore();
 

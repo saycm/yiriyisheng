@@ -2,6 +2,7 @@
 
 part of 'models.dart';
 
+/// 系统健康数据的加载状态：加载中、正常、需要授权、不可用、需要升级、错误。
 enum SystemHealthStatus {
   loading,
   ok,
@@ -11,6 +12,7 @@ enum SystemHealthStatus {
   error,
 }
 
+/// 本机传感器的可用性和最新读数（计步、心率、加速度）。
 class HealthSensorSnapshot {
   const HealthSensorSnapshot({
     required this.stepCounterAvailable,
@@ -55,6 +57,7 @@ class HealthSensorSnapshot {
   }
 }
 
+/// 系统健康数据中的单日样本：步数、活动/基础热量、睡眠、心率和呼吸频率。
 class HealthSystemDaySample {
   const HealthSystemDaySample({
     required this.date,
@@ -94,6 +97,7 @@ class HealthSystemDaySample {
   }
 }
 
+/// 一次系统健康数据快照：整体状态、提示文案、每日样本和传感器状态。
 class HealthSystemSnapshot {
   const HealthSystemSnapshot({
     required this.status,
@@ -163,6 +167,7 @@ class HealthSystemSnapshot {
   }
 }
 
+/// 通过 MethodChannel 从 Android 原生层读取 Health Connect 数据和传感器状态。
 class SystemHealthStore {
   const SystemHealthStore();
 
@@ -208,6 +213,7 @@ class SystemHealthStore {
   }
 }
 
+/// 把原生层返回的状态字符串转换成枚举，未知状态按“不可用”处理。
 SystemHealthStatus _healthStatusFromName(String? name) {
   return switch (name) {
     'ok' => SystemHealthStatus.ok,
@@ -219,6 +225,7 @@ SystemHealthStatus _healthStatusFromName(String? name) {
   };
 }
 
+/// 把原生层返回的任意数值安全转换成 int。
 int? _healthInt(Object? value) {
   if (value is int) {
     return value;
@@ -229,6 +236,7 @@ int? _healthInt(Object? value) {
   return null;
 }
 
+/// 把原生层返回的任意数值安全转换成 double。
 double? _healthDouble(Object? value) {
   if (value is double) {
     return value;

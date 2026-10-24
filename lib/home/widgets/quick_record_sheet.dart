@@ -2,6 +2,7 @@
 
 part of '../life_home.dart';
 
+/// “快速记录”底部面板：选择要进入的模块和快捷动作。
 class _QuickRecordSheet extends StatelessWidget {
   const _QuickRecordSheet({required this.onSelect});
 
@@ -59,6 +60,7 @@ class _QuickRecordSheet extends StatelessWidget {
   }
 }
 
+/// 快速记录面板里的一行入口（图标 + 标题 + 说明）。
 class _QuickRecordTile extends StatelessWidget {
   const _QuickRecordTile({
     super.key,

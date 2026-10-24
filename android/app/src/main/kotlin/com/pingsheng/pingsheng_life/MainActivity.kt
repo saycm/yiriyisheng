@@ -49,6 +49,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** Flutter 主 Activity：注册原生 MethodChannel，并把系统能力桥接给 Dart。 */
 class MainActivity : FlutterFragmentActivity(), SensorEventListener {
     private val mainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var widgetChannel: MethodChannel? = null
@@ -62,6 +63,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
     private var latestAcceleration: Float? = null
     private var lastSensorUpdateMillis: Long? = null
 
+    /** 注册权限请求回调，供 Health Connect 和通知权限复用。 */
     override fun onCreate(savedInstanceState: Bundle?) {
         healthPermissionLauncher =
             registerForActivityResult(PermissionController.createRequestPermissionResultContract()) {
@@ -89,6 +91,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         return intent?.getStringExtra(EXTRA_TARGET_ROUTE) ?: super.getInitialRoute()
     }
 
+    /** 注册小组件、健康、登录态、下载和偏好设置等 Flutter 原生通道。 */
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         // widget_summary 通道连接 Flutter 状态和 Android 桌面小组件共享摘要。
@@ -196,16 +199,19 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
 
     }
 
+    /** 页面回到前台时重新注册本机传感器监听。 */
     override fun onResume() {
         super.onResume()
         startSensorListeners()
     }
 
+    /** 页面退到后台时停止监听，降低耗电。 */
     override fun onPause() {
         sensorManager?.unregisterListener(this)
         super.onPause()
     }
 
+    /** Activity 销毁前结束挂起权限请求并取消协程。 */
     override fun onDestroy() {
         pendingHealthPermissionResult?.success(
             mapOf("granted" to false, "grantedCount" to 0)
@@ -219,12 +225,14 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         super.onDestroy()
     }
 
+    /** 已运行的 Activity 收到新 Intent 时转发小组件动作。 */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         dispatchWidgetAction(intent)
     }
 
+    /** 缓存最新计步、心率和加速度读数，供 Flutter 按需读取。 */
     override fun onSensorChanged(event: SensorEvent) {
         when (event.sensor.type) {
             Sensor.TYPE_STEP_COUNTER -> latestStepCounter = event.values.firstOrNull()
@@ -241,6 +249,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 
+    /** 把桌面小组件携带的路由和动作转成 Flutter 方法调用。 */
     private fun dispatchWidgetAction(intent: Intent?) {
         val route = intent?.getStringExtra(EXTRA_TARGET_ROUTE) ?: return
         val action = intent.getStringExtra(EXTRA_WIDGET_ACTION)
@@ -254,6 +263,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         )
     }
 
+    /** 读取 Flutter 页面写入小组件的共享摘要状态。 */
     private fun loadLifeSummary(): Map<String, Any?> {
         val prefs = getSharedPreferences(PingShengWidgetProvider.PREFS_NAME, MODE_PRIVATE)
         return mapOf(
@@ -287,6 +297,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         )
     }
 
+    /** 把 Flutter 的今日摘要写入 SharedPreferences，并刷新桌面小组件。 */
     private fun saveLifeSummary(arguments: Any?) {
         val args = arguments as? Map<*, *> ?: return
         val foodCalories = (args["foodCalories"] as? Number)?.toInt() ?: 0
@@ -316,6 +327,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         refreshHomeWidgets()
     }
 
+    /** 在后台线程读取健康快照，再把结果或错误回传给 Flutter。 */
     private fun loadHealthSnapshot(result: MethodChannel.Result) {
         mainScope.launch {
             try {
@@ -335,6 +347,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         }
     }
 
+    /** 检查 Health Connect 状态与权限，聚合最近七天的健康数据。 */
     private suspend fun readHealthSnapshot(): Map<String, Any?> {
         // 先判断 Health Connect 是否可用，再检查授权，避免无意义地请求数据。
         val sdkStatus = HealthConnectClient.getSdkStatus(
@@ -381,6 +394,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         )
     }
 
+    /** 生成统一的“健康数据不可用”状态，并同步更新小组件文案。 */
     private fun healthStatusMap(status: String, message: String): Map<String, Any?> {
         saveHealthStatusForWidget(message)
         return mapOf(
@@ -392,6 +406,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         )
     }
 
+    /** 按指定日期和已授权权限聚合步数、能量、心率与睡眠。 */
     private suspend fun readHealthDay(
         client: HealthConnectClient,
         date: LocalDate,
@@ -439,6 +454,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         )
     }
 
+    /** 请求 Health Connect 和传感器权限，避免重复发起并发请求。 */
     private fun requestHealthPermissions(result: MethodChannel.Result) {
         if (pendingHealthPermissionResult != null) {
             result.error("permission_pending", "健康权限请求正在进行中", null)
@@ -463,6 +479,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
             }
     }
 
+    /** 按 Android 版本申请活动识别和身体传感器运行时权限。 */
     private fun requestSensorRuntimePermissions() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return
@@ -481,6 +498,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         }
     }
 
+    /** 打开 Health Connect 设置；找不到应用时回退到本应用权限页。 */
     private fun openHealthConnectSettings() {
         val intent = Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS).apply {
             setPackage(HEALTH_CONNECT_PROVIDER_PACKAGE)
@@ -497,6 +515,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         }
     }
 
+    /** 用系统浏览器打开 APK 下载地址。 */
     private fun openDownloadUrl(url: String?, result: MethodChannel.Result) {
         val target = url?.trim().orEmpty()
         if (target.isEmpty()) {
@@ -516,6 +535,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         }
     }
 
+    /** 开启或关闭每日记录提醒，Android 13 以上先申请通知权限。 */
     private fun setDailyRecordReminder(enabled: Boolean, result: MethodChannel.Result) {
         if (!enabled) {
             DailyRecordReminderReceiver.setReminderEnabled(this, false)
@@ -539,6 +559,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         result.success(mapOf("enabled" to true, "permissionGranted" to true))
     }
 
+    /** 根据通知权限结果启用或关闭提醒，并回复 Flutter 调用方。 */
     private fun finishDailyRecordReminderRequest(granted: Boolean) {
         val result = pendingReminderResult ?: return
         pendingReminderResult = null
@@ -551,6 +572,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         }
     }
 
+    /** 读取登录态，优先使用加密存储，并迁移旧的明文缓存。 */
     private fun loadAuthSession(): String? {
         // 新版本优先读取加密存储；旧明文缓存只作为迁移兜底。
         val secureValue = try {
@@ -575,6 +597,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         return legacyValue
     }
 
+    /** 把登录态写入加密存储，并删除旧明文副本。 */
     private fun saveAuthSession(sessionJson: String) {
         secureAuthPrefs()
             .edit()
@@ -586,6 +609,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
             .apply()
     }
 
+    /** 同时清理加密和旧明文登录态。 */
     private fun clearAuthSession() {
         try {
             secureAuthPrefs().edit().remove(KEY_AUTH_SESSION_JSON).apply()
@@ -598,6 +622,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
             .apply()
     }
 
+    /** 创建基于 Android Keystore 主密钥的加密 SharedPreferences。 */
     private fun secureAuthPrefs(): SharedPreferences {
         val masterKey = MasterKey.Builder(this)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -611,6 +636,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         )
     }
 
+    /** 注册可用的计步、心率和加速度传感器。 */
     private fun startSensorListeners() {
         // 本机传感器只补充“实时能力/最近读数”，核心健康历史仍来自 Health Connect。
         val manager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return
@@ -620,6 +646,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         registerSensorIfAllowed(manager, Sensor.TYPE_ACCELEROMETER)
     }
 
+    /** 尝试注册单个传感器，设备不支持或没有权限时静默跳过。 */
     private fun registerSensorIfAllowed(manager: SensorManager, type: Int) {
         val sensor = manager.getDefaultSensor(type) ?: return
         try {
@@ -629,6 +656,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         }
     }
 
+    /** 汇总传感器可用性、今日步数和最近读数，供健康页展示。 */
     private fun buildSensorSnapshot(
         hasHealthConnectTodaySteps: Boolean = false
     ): Map<String, Any?> {
@@ -672,6 +700,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         return decision.todaySteps
     }
 
+    /** 把今日健康摘要写入小组件存储并触发刷新。 */
     private fun saveHealthForWidget(today: Map<String, Any?>?) {
         // 小组件空间有限，只同步一行最有代表性的状态摘要。
         val steps = (today?.get("steps") as? Number)?.toInt()
@@ -686,6 +715,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         refreshHomeWidgets()
     }
 
+    /** 把权限或连接状态转换成简短小组件文案。 */
     private fun saveHealthStatusForWidget(message: String) {
         val text = when {
             message.contains("授权") -> "状态待授权"
@@ -703,6 +733,7 @@ class MainActivity : FlutterFragmentActivity(), SensorEventListener {
         refreshHomeWidgets()
     }
 
+    /** 刷新深色和浅色两种桌面小组件实例。 */
     private fun refreshHomeWidgets() {
         val manager = AppWidgetManager.getInstance(this)
         val darkIds = manager.getAppWidgetIds(

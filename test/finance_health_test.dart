@@ -1,4 +1,4 @@
-// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+// 中文注释：财务健康评分测试，验证五项指标分值、等级和主要建议。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

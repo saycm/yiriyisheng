@@ -2,8 +2,10 @@
 
 part of '../../plan.dart';
 
+// 一次性最多把多少条待安排任务排到选中日期，避免误操作塞满一天。
 const int _maxScheduleToSelectedDay = 6;
 
+/// 周计划视图：以周一为起点生成 7 天，组装指挥中心、日看板、待安排区和选中日任务面板。
 class _WeekPlanView extends StatelessWidget {
   const _WeekPlanView({
     required this.selectedDate,
@@ -27,6 +29,7 @@ class _WeekPlanView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 计算当前选中日期所在周的周一，并生成 7 个日期。
     final today = DateUtils.dateOnly(DateTime.now());
     final normalizedSelectedDate = DateUtils.dateOnly(selectedDate);
     final weekStart = normalizedSelectedDate.subtract(
@@ -39,6 +42,7 @@ class _WeekPlanView extends StatelessWidget {
     final weekTodos = _weekTodos(days);
     final unscheduledTodos = _unscheduledTodos(today, days);
     // 周视图把任务分成“本周已有日期”和“未安排/过期待整理”，后续面板都基于这两组数据。
+    // 选中日期当天的活跃待办，用于底部任务面板。
     final selectedTodos = todos
         .where((todo) => todo.isActive && todo.isDueOn(normalizedSelectedDate))
         .toList()
@@ -128,6 +132,7 @@ class _WeekPlanView extends StatelessWidget {
     );
   }
 
+  // 本周内到期且未完成的任务。
   List<TodoItem> _weekTodos(List<DateTime> days) {
     return todos.where((todo) {
       return todo.isActive && days.any((day) => todo.isDueOn(day));
@@ -135,6 +140,7 @@ class _WeekPlanView extends StatelessWidget {
       ..sort(_sortPlanTodos);
   }
 
+  // 需要重新安排的任务：无日期、已过期、或延期到本周之外的任务。
   List<TodoItem> _unscheduledTodos(DateTime today, List<DateTime> days) {
     // 未安排区不仅包含无日期任务，也包含过期任务和延期到本周外的任务。
     return todos.where((todo) {
@@ -154,12 +160,14 @@ class _WeekPlanView extends StatelessWidget {
       ..sort(_sortPlanTodos);
   }
 
+  // 统计本周已完成的任务数量。
   int _completedInWeek(List<DateTime> days) {
     return todos.where((todo) {
       return todo.done && days.any((day) => todo.isDueOn(day));
     }).length;
   }
 
+  // 根据待安排数量、空周、单日负载生成一句本周节奏提示。
   String _weekInsight({
     required List<TodoItem> weekTodos,
     required List<TodoItem> unscheduledTodos,

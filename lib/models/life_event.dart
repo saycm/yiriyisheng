@@ -2,6 +2,7 @@
 
 part of 'models.dart';
 
+/// 首页事件流中的一条生活动态（标题、详情、图标和颜色）。
 class LifeEvent {
   const LifeEvent({
     required this.title,

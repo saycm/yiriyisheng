@@ -2,16 +2,22 @@
 
 part of 'health.dart';
 
+/// 睡眠感受：好/一般/差。
 enum HealthSleepFeeling { good, normal, poor }
 
+/// 精力感受：充沛/一般/疲惫。
 enum HealthEnergyFeeling { strong, normal, tired }
 
+/// 压力感受：低/中/高。
 enum HealthStressFeeling { low, medium, high }
 
+/// 身体感受：正常/颈痛/肠胃/头痛/其他。
 enum HealthBodyFeeling { normal, neckPain, stomach, headache, other }
 
+/// 心情感受：平静/愉快/焦虑/低落。
 enum HealthMoodFeeling { calm, happy, anxious, low }
 
+/// 提交给健康评分的输入：睡眠、精力、压力、身体和心情。
 class HealthStatusInput {
   const HealthStatusInput({
     required this.sleep,
@@ -32,6 +38,7 @@ class HealthStatusInput {
   final int workoutGroups;
 }
 
+/// 某项状态对总分的影响说明。
 class HealthStatusImpact {
   // 单个维度对总分的贡献，用于页面上的分项进度和解释文案。
   const HealthStatusImpact({
@@ -49,6 +56,7 @@ class HealthStatusImpact {
   final Color color;
 }
 
+/// 健康状态评分结果：总分、等级和建议。
 class HealthStatusResult {
   const HealthStatusResult({
     required this.score,
@@ -65,9 +73,11 @@ class HealthStatusResult {
   final List<String> suggestions;
 }
 
+/// 健康状态计算器：把主观感受转换成 0-100 的状态分。
 class HealthStatusCalculator {
   const HealthStatusCalculator();
 
+  /// 汇总六项输入并生成完整状态结果；主观四项决定主分，饮食和训练只做负载修正。
   HealthStatusResult calculate({required HealthStatusInput input}) {
     // 评分模型保持简单透明：睡眠、精力、压力、身体为主，饮食和锻炼作为负载修正。
     final sleepScore = _sleepScore(input.sleep);
@@ -140,6 +150,7 @@ class HealthStatusCalculator {
     );
   }
 
+  /// 睡眠感受换算为 25 分制：好 25 分、一般 18 分、差 7 分。
   int _sleepScore(HealthSleepFeeling value) {
     switch (value) {
       case HealthSleepFeeling.good:
@@ -151,6 +162,7 @@ class HealthStatusCalculator {
     }
   }
 
+  /// 精力感受换算为 25 分制：充沛 25 分、一般 18 分、疲惫 7 分。
   int _energyScore(HealthEnergyFeeling value) {
     switch (value) {
       case HealthEnergyFeeling.strong:
@@ -162,6 +174,7 @@ class HealthStatusCalculator {
     }
   }
 
+  /// 压力感受换算为 20 分制：低 20 分、中 12 分、高 4 分。
   int _stressScore(HealthStressFeeling value) {
     switch (value) {
       case HealthStressFeeling.low:
@@ -173,6 +186,7 @@ class HealthStatusCalculator {
     }
   }
 
+  /// 身体感受换算为 15 分制：正常 15 分，出现任何不适统一记 6 分。
   int _bodyScore(HealthBodyFeeling value) {
     switch (value) {
       case HealthBodyFeeling.normal:
@@ -185,6 +199,7 @@ class HealthStatusCalculator {
     }
   }
 
+  /// 根据当日热量判断饮食负载，过少或过多都会降低该项得分。
   int _foodLoadScore(int calories) {
     if (calories < 1200) {
       return 0;
@@ -195,6 +210,7 @@ class HealthStatusCalculator {
     return 7;
   }
 
+  /// 根据当日训练组数判断训练负载，超过 10 组开始扣分，超过 14 组归零。
   int _workoutLoadScore(int workoutGroups) {
     if (workoutGroups > 14) {
       return 0;
@@ -205,6 +221,7 @@ class HealthStatusCalculator {
     return 8;
   }
 
+  /// 把 0-100 总分映射成页面展示的状态等级。
   String _level(int score) {
     if (score >= 85) {
       return '状态很好';
@@ -218,6 +235,7 @@ class HealthStatusCalculator {
     return '负载偏高';
   }
 
+  /// 找出最需要解释的主要原因，供状态卡片作为一句话摘要展示。
   String _primaryReason(HealthStatusInput input) {
     if (input.sleep != HealthSleepFeeling.poor &&
         input.energy != HealthEnergyFeeling.tired &&
@@ -241,6 +259,7 @@ class HealthStatusCalculator {
     return reasons.join('、');
   }
 
+  /// 根据总分、压力、情绪、睡眠、饮食和训练量生成可执行建议。
   List<String> _suggestions(HealthStatusInput input, int score) {
     // 建议按最影响当天安排的因素追加，页面只展示短句，避免医疗化判断。
     final suggestions = <String>[];
@@ -269,6 +288,7 @@ class HealthStatusCalculator {
   }
 }
 
+// 把饮食热量转换成状态页展示文案。
 String _foodLabel(int calories) {
   if (calories < 1200) {
     return '摄入偏低';
@@ -279,6 +299,7 @@ String _foodLabel(int calories) {
   return '$calories 千卡';
 }
 
+// 把训练组数转换成状态页展示文案。
 String _workoutLabel(int workoutGroups) {
   if (workoutGroups > 14) {
     return '训练量偏高';
@@ -292,6 +313,7 @@ String _workoutLabel(int workoutGroups) {
   return '$workoutGroups 组';
 }
 
+// 把睡眠枚举转换成中文标签。
 String _sleepLabel(HealthSleepFeeling value) {
   switch (value) {
     case HealthSleepFeeling.good:
@@ -303,6 +325,7 @@ String _sleepLabel(HealthSleepFeeling value) {
   }
 }
 
+// 把精力枚举转换成中文标签。
 String _energyLabel(HealthEnergyFeeling value) {
   switch (value) {
     case HealthEnergyFeeling.strong:
@@ -314,6 +337,7 @@ String _energyLabel(HealthEnergyFeeling value) {
   }
 }
 
+// 把压力枚举转换成中文标签。
 String _stressLabel(HealthStressFeeling value) {
   switch (value) {
     case HealthStressFeeling.low:
@@ -325,6 +349,7 @@ String _stressLabel(HealthStressFeeling value) {
   }
 }
 
+// 把身体感受枚举转换成中文标签。
 String _bodyLabel(HealthBodyFeeling value) {
   switch (value) {
     case HealthBodyFeeling.normal:
@@ -340,6 +365,7 @@ String _bodyLabel(HealthBodyFeeling value) {
   }
 }
 
+// 把心情枚举转换成中文标签。
 String _moodLabel(HealthMoodFeeling value) {
   switch (value) {
     case HealthMoodFeeling.calm:

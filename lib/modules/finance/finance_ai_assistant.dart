@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// AI 记账助手页面：输入自然语言或图片，解析成账单后确认入账。
 class _FinanceAiAssistantPage extends StatefulWidget {
   const _FinanceAiAssistantPage({
     required this.endpoint,
@@ -32,6 +33,7 @@ class _FinanceAiAssistantPage extends StatefulWidget {
       _FinanceAiAssistantPageState();
 }
 
+/// AI 助手状态：维护消息列表、输入内容、解析结果和发送流程。
 class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
   final _client = AiFinanceClient();
   final _imagePicker = ImagePicker();
@@ -114,6 +116,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     );
   }
 
+  /// 打开 AI 记账设置页，配置变更会同步回当前助手状态。
   void _openSettings() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -129,6 +132,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     );
   }
 
+  /// 统一规范化并保存 AI 配置；未改动的可选项沿用当前值。
   void _updateConfig({
     required String endpoint,
     required String model,
@@ -158,6 +162,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     );
   }
 
+  /// 把快捷指令填入输入框，并把光标移到末尾。
   void _applyQuickCommand(_AiFinanceQuickCommand command) {
     _inputController.text = command.prompt;
     _inputController.selection = TextSelection.collapsed(
@@ -165,6 +170,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     );
   }
 
+  /// 发送文本记账请求：先追加用户消息，再调用 AI 解析并保存生成的账单。
   Future<void> _sendMessage() async {
     final text = _inputController.text.trim();
     if (text.isEmpty) {
@@ -207,6 +213,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     }
   }
 
+  /// 选择一张或多张账单图片，压缩后交给视觉模型识别并保存。
   Future<void> _pickBillImage() async {
     if (_loading) {
       return;
@@ -276,6 +283,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     }
   }
 
+  /// 把 AI 返回的账单信息转成财务记录并保存，同时提示成功和跳过数量。
   void _saveBills(List<AiFinanceBillInfo> bills) {
     final records =
         bills.map(financeRecordFromAiBill).whereType<FinanceRecord>().toList();
@@ -299,6 +307,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
     );
   }
 
+  /// 向聊天列表追加一条助手消息，错误消息使用不同样式。
   void _appendAssistantMessage(String text, {bool isError = false}) {
     setState(() {
       _messages.add(
@@ -308,6 +317,7 @@ class _FinanceAiAssistantPageState extends State<_FinanceAiAssistantPage> {
   }
 }
 
+/// AI 助手顶部栏。
 class _FinanceAiAssistantHeader extends StatelessWidget {
   const _FinanceAiAssistantHeader({
     required this.onClose,
@@ -351,6 +361,7 @@ class _FinanceAiAssistantHeader extends StatelessWidget {
   }
 }
 
+/// AI 配置未完成时的提示条。
 class _FinanceAiConfigBanner extends StatelessWidget {
   const _FinanceAiConfigBanner({required this.onOpenSettings});
 
@@ -393,6 +404,7 @@ class _FinanceAiConfigBanner extends StatelessWidget {
   }
 }
 
+/// AI 助手的空对话提示。
 class _FinanceAiEmptyMessages extends StatelessWidget {
   const _FinanceAiEmptyMessages();
 
@@ -439,6 +451,7 @@ class _FinanceAiEmptyMessages extends StatelessWidget {
   }
 }
 
+/// AI 助手输入区（文本框、发送和图片按钮）。
 class _FinanceAiComposer extends StatelessWidget {
   const _FinanceAiComposer({
     required this.controller,
@@ -546,6 +559,7 @@ class _FinanceAiComposer extends StatelessWidget {
   }
 }
 
+/// AI 助手的圆形图标按钮。
 class _FinanceAiIconButton extends StatelessWidget {
   const _FinanceAiIconButton({
     required this.keyValue,
@@ -593,6 +607,7 @@ String _mimeTypeForImageName(String name) {
   return 'image/jpeg';
 }
 
+/// AI 助手快捷指令栏。
 class _FinanceAiQuickCommandBar extends StatelessWidget {
   const _FinanceAiQuickCommandBar({required this.onSelected});
 
@@ -641,6 +656,7 @@ class _FinanceAiQuickCommandBar extends StatelessWidget {
   }
 }
 
+/// AI 对话中的一条消息。
 class _FinanceAiAssistantMessage {
   const _FinanceAiAssistantMessage({
     required this.text,
@@ -668,6 +684,7 @@ class _FinanceAiAssistantMessage {
   final bool isError;
 }
 
+/// 对话消息气泡。
 class _FinanceAiMessageBubble extends StatelessWidget {
   const _FinanceAiMessageBubble({required this.message});
 

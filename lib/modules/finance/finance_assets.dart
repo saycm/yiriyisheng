@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// 单个账户的资产快照：名称、类型、余额和占比。
 class _FinanceAccountSnapshot {
   const _FinanceAccountSnapshot({
     required this.name,
@@ -94,6 +95,7 @@ String _signedMoney(double value) {
   return formatMoney(value);
 }
 
+/// 资产视图：总资产、资产分布和账户列表。
 class _FinanceAssetsView extends StatelessWidget {
   const _FinanceAssetsView({required this.records});
 
@@ -132,6 +134,7 @@ class _FinanceAssetsView extends StatelessWidget {
   }
 }
 
+/// 总资产卡片：净资产和本月变化。
 class _AssetTotalCard extends StatelessWidget {
   const _AssetTotalCard({required this.accounts});
 
@@ -180,6 +183,7 @@ class _AssetTotalCard extends StatelessWidget {
   }
 }
 
+/// 资产占比卡片：用环图展示各账户/资产类型的比例。
 class _AssetRatioCard extends StatelessWidget {
   const _AssetRatioCard({required this.accounts});
 
@@ -253,6 +257,7 @@ class _AssetRatioCard extends StatelessWidget {
   }
 }
 
+/// 图例圆点。
 class _LegendDot extends StatelessWidget {
   const _LegendDot({
     required this.color,
@@ -296,6 +301,7 @@ class _LegendDot extends StatelessWidget {
   }
 }
 
+/// 单个资产账户行。
 class _AssetAccountTile extends StatelessWidget {
   const _AssetAccountTile({
     required this.icon,

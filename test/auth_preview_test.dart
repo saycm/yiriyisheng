@@ -1,4 +1,4 @@
-// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+// 中文注释：登录页视觉预览测试，验证预览入口和关键登录界面元素。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

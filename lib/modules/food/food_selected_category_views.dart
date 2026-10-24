@@ -2,6 +2,7 @@
 
 part of 'food.dart';
 
+/// 已选食物/当前分类的底部操作条。
 class _FoodSelectedBar extends StatelessWidget {
   const _FoodSelectedBar({
     required this.count,
@@ -84,6 +85,7 @@ class _FoodSelectedBar extends StatelessWidget {
   }
 }
 
+/// 饮食工具弹层：常吃、模板、记录今日饮食等入口。
 class _FoodToolsSheet extends StatelessWidget {
   const _FoodToolsSheet({
     required this.selectedCount,
@@ -199,6 +201,7 @@ class _FoodToolsSheet extends StatelessWidget {
   }
 }
 
+/// 工具弹层中的一个分组。
 class _FoodToolSection extends StatelessWidget {
   const _FoodToolSection({
     required this.icon,
@@ -223,6 +226,7 @@ class _FoodToolSection extends StatelessWidget {
   }
 }
 
+/// 工具弹层中的单个工具入口。
 class _FoodToolTile extends StatelessWidget {
   const _FoodToolTile({
     required this.keyValue,
@@ -309,6 +313,7 @@ class _FoodToolTile extends StatelessWidget {
   }
 }
 
+/// 工具说明卡片。
 class _FoodToolInfoCard extends StatelessWidget {
   const _FoodToolInfoCard({
     required this.icon,
@@ -378,6 +383,7 @@ class _FoodToolInfoCard extends StatelessWidget {
   }
 }
 
+/// 工具入口上的小徽标（数量或状态）。
 class _FoodToolBadge extends StatelessWidget {
   const _FoodToolBadge({required this.label});
 
@@ -405,6 +411,7 @@ class _FoodToolBadge extends StatelessWidget {
   }
 }
 
+/// 今日饮食记录弹层。
 class _FoodTodayLogsSheet extends StatelessWidget {
   const _FoodTodayLogsSheet({required this.logs});
 
@@ -442,6 +449,7 @@ class _FoodTodayLogsSheet extends StatelessWidget {
   }
 }
 
+/// 今日饮食记录中的单条记录。
 class _FoodTodayLogTile extends StatelessWidget {
   const _FoodTodayLogTile({required this.entry});
 

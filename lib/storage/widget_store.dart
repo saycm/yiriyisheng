@@ -2,11 +2,13 @@
 
 part of 'storage.dart';
 
+/// 桌面小组件数据通道：读取小组件摘要、写入摘要，并接收快捷动作回调。
 class LifeWidgetStore {
   const LifeWidgetStore();
 
   static const _channel = MethodChannel('pingsheng_life/widget_summary');
 
+  // 注册小组件快捷动作回调，收到原生事件后转到对应模块。
   void setQuickActionHandler(
     Future<void> Function(String route, String? action) onAction,
   ) {
@@ -25,10 +27,12 @@ class LifeWidgetStore {
     });
   }
 
+  // 取消快捷动作回调。
   void clearQuickActionHandler() {
     _channel.setMethodCallHandler(null);
   }
 
+  // 从 Android 小组件读取摘要快照；通道不可用时返回空快照。
   Future<LifeSummarySnapshot> load() async {
     try {
       final result = await _channel.invokeMapMethod<String, Object?>(
@@ -78,6 +82,7 @@ class LifeWidgetStore {
     }
   }
 
+  // 把首页摘要同步给 Android 小组件。
   Future<void> save({
     required int foodCalories,
     required List<FoodLogEntry> foodLogs,
@@ -104,6 +109,7 @@ class LifeWidgetStore {
     }
   }
 
+  // 解析小组件传来的待办 JSON。
   List<TodoItem> _decodeTodos(String rawTodos) {
     final decodedTodos = jsonDecode(rawTodos);
     if (decodedTodos is! List<dynamic>) {
@@ -115,6 +121,7 @@ class LifeWidgetStore {
         .toList();
   }
 
+  // 解析小组件传来的财务记录 JSON。
   List<FinanceRecord> _decodeFinanceRecords(String rawRecords) {
     final decodedRecords = jsonDecode(rawRecords);
     if (decodedRecords is! List<dynamic>) {
@@ -126,6 +133,7 @@ class LifeWidgetStore {
         .toList();
   }
 
+  // 解析小组件传来的饮食记录 JSON。
   List<FoodLogEntry> _decodeFoodLogs(String rawLogs) {
     final decodedLogs = jsonDecode(rawLogs);
     if (decodedLogs is! List<dynamic>) {

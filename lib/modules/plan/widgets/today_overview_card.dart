@@ -2,6 +2,7 @@
 
 part of '../plan.dart';
 
+/// 今日总览卡片：汇总待办、支出、热量、训练组数和健康状态。
 class _TodayOverviewCard extends StatelessWidget {
   const _TodayOverviewCard({
     required this.pendingTodos,
@@ -19,6 +20,7 @@ class _TodayOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 四个指标按固定顺序排成 2x2 网格，数据都来自首页传入的当日统计。
     final metrics = [
       (
         label: '待办',
@@ -56,6 +58,7 @@ class _TodayOverviewCard extends StatelessWidget {
         )
         .toList();
 
+    // 用 LayoutBuilder 计算半宽，保证两列在不同屏宽下都对齐。
     return KeyedSubtree(
       key: const ValueKey('today_overview_card'),
       child: GlassSurface(
@@ -101,6 +104,7 @@ class _TodayOverviewCard extends StatelessWidget {
   }
 }
 
+/// 今日总览里的单个指标块（图标 + 数值 + 名称）。
 class _TodayOverviewMetric extends StatelessWidget {
   const _TodayOverviewMetric({
     required this.label,
@@ -155,6 +159,7 @@ class _TodayOverviewMetric extends StatelessWidget {
   }
 }
 
+/// 今日总览底部的健康状态条，展示健康模块的当前摘要文字。
 class _TodayOverviewHealthPanel extends StatelessWidget {
   const _TodayOverviewHealthPanel({required this.statusText});
 

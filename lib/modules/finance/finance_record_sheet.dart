@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// 记账弹层：选择类型、分类、账户、金额和日期，保存一笔财务记录。
 class _FinanceRecordSheet extends StatefulWidget {
   const _FinanceRecordSheet({
     required this.record,
@@ -15,6 +16,7 @@ class _FinanceRecordSheet extends StatefulWidget {
   State<_FinanceRecordSheet> createState() => _FinanceRecordSheetState();
 }
 
+/// 记账分类的展示配置：名称、图标和颜色。
 class _FinanceCategorySpec {
   const _FinanceCategorySpec(this.icon, this.title);
 
@@ -22,6 +24,7 @@ class _FinanceCategorySpec {
   final String title;
 }
 
+/// 记账表单状态：维护输入、键盘金额和保存逻辑。
 class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
   late final TextEditingController _subtitleController;
   late String _type;
@@ -636,6 +639,7 @@ class _FinanceRecordSheetState extends State<_FinanceRecordSheet> {
   String _formatDateKey(DateTime date) => '${date.month}/${date.day}';
 }
 
+/// 记账类型按钮（支出/收入/转账）。
 class _FinanceTypeButton extends StatelessWidget {
   const _FinanceTypeButton({
     required this.buttonKey,
@@ -676,6 +680,7 @@ class _FinanceTypeButton extends StatelessWidget {
   }
 }
 
+/// 记账分类按钮。
 class _FinanceCategoryButton extends StatelessWidget {
   const _FinanceCategoryButton({
     required this.buttonKey,
@@ -732,6 +737,7 @@ class _FinanceCategoryButton extends StatelessWidget {
   }
 }
 
+/// 自定义数字键盘按键。
 class _FinanceAmountKey extends StatelessWidget {
   const _FinanceAmountKey({
     this.label,

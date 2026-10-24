@@ -3,6 +3,7 @@
 // ignore_for_file: use_key_in_widget_constructors
 part of 'workout.dart';
 
+/// 训练动作卡片（列表页展示动作和完成进度）。
 class _WorkoutActionCard extends StatelessWidget {
   const _WorkoutActionCard({
     required this.action,
@@ -118,6 +119,7 @@ class _WorkoutActionCard extends StatelessWidget {
   }
 }
 
+/// 动作卡片的插画区域。
 class _WorkoutActionArt extends StatelessWidget {
   const _WorkoutActionArt({
     required this.action,
@@ -149,6 +151,7 @@ class _WorkoutActionArt extends StatelessWidget {
   }
 }
 
+/// 动作标签（目标部位、难度等）。
 class _WorkoutActionTag extends StatelessWidget {
   const _WorkoutActionTag({required this.label});
 
@@ -174,6 +177,7 @@ class _WorkoutActionTag extends StatelessWidget {
   }
 }
 
+/// 动作详情页：展示动作说明、组数、重量和完成按钮。
 class _WorkoutActionDetailPage extends StatelessWidget {
   const _WorkoutActionDetailPage({
     required this.action,
@@ -415,6 +419,7 @@ class _WorkoutActionDetailPage extends StatelessWidget {
   }
 }
 
+/// 动作详情里的进度框。
 class _WorkoutProgressBox extends StatelessWidget {
   const _WorkoutProgressBox({
     required this.label,
@@ -458,6 +463,7 @@ class _WorkoutProgressBox extends StatelessWidget {
   }
 }
 
+/// 动作元信息卡片（组数、次数、休息等）。
 class _WorkoutActionMetaCard extends StatelessWidget {
   const _WorkoutActionMetaCard({required this.action});
 
@@ -521,6 +527,7 @@ class _WorkoutActionMetaCard extends StatelessWidget {
 }
 
 // 动作字段卡只展示静态信息，单独控制行高和垂直居中，避免复用进度卡后文字显得歪。
+/// 动作详情里的字段输入框。
 class _WorkoutActionFieldBox extends StatelessWidget {
   const _WorkoutActionFieldBox({
     required this.label,
@@ -584,6 +591,7 @@ class _WorkoutActionFieldBox extends StatelessWidget {
   }
 }
 
+/// 训练反馈卡片（感受、备注）。
 class _WorkoutFeedbackCard extends StatelessWidget {
   const _WorkoutFeedbackCard({
     required this.selected,
@@ -645,6 +653,7 @@ class _WorkoutFeedbackCard extends StatelessWidget {
   }
 }
 
+/// 单组训练卡片：组数、重量和完成勾选。
 class _WorkoutSetCard extends StatelessWidget {
   const _WorkoutSetCard({
     required this.index,
@@ -719,6 +728,7 @@ class _WorkoutSetCard extends StatelessWidget {
   }
 }
 
+/// 锻炼模块底部导航。
 class WorkoutBottomNav extends StatelessWidget {
   const WorkoutBottomNav({
     required this.selectedIndex,

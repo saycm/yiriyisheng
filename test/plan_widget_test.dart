@@ -1,4 +1,4 @@
-// 中文注释：自动化测试文件，负责验证对应模块行为和回归场景。
+// 中文注释：计划模块界面测试，覆盖收集箱、今日执行、周计划和复盘。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

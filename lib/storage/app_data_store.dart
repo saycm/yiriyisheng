@@ -2,6 +2,7 @@
 
 part of 'storage.dart';
 
+/// 首页数据存储接口：读取/保存一份完整的生活数据快照。
 abstract class LifeSummaryStore {
   // 首页只依赖这个抽象读写完整快照，测试时可以替换成内存实现。
   Future<LifeSummarySnapshot?> load();
@@ -24,6 +25,7 @@ abstract class LifeSummaryStore {
   });
 }
 
+/// SQLite 实现：主数据写入 pingsheng_life.db，包含待办、财务、饮食、锻炼和 AI 配置。
 class AppDataStore implements LifeSummaryStore {
   const AppDataStore();
 

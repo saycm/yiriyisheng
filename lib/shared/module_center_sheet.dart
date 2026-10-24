@@ -3,6 +3,7 @@
 // ignore_for_file: use_key_in_widget_constructors
 part of 'shared.dart';
 
+/// 模块中心面板：展示五个模块入口、今日摘要和最近事件。
 class ModuleSheet extends StatelessWidget {
   const ModuleSheet({
     required this.selected,
@@ -172,6 +173,7 @@ class ModuleSheet extends StatelessWidget {
   }
 }
 
+/// 模块中心顶部的今日摘要条。
 class _ModuleTodaySummaryBar extends StatelessWidget {
   const _ModuleTodaySummaryBar({
     required this.pendingTodos,
@@ -226,6 +228,7 @@ class _ModuleTodaySummaryBar extends StatelessWidget {
   }
 }
 
+/// 摘要条里的单个数据胶囊。
 class _ModuleSummaryChip extends StatelessWidget {
   const _ModuleSummaryChip({required this.text});
 
@@ -252,6 +255,7 @@ class _ModuleSummaryChip extends StatelessWidget {
   }
 }
 
+/// 模块入口网格。
 class _ModuleCenterGrid extends StatelessWidget {
   const _ModuleCenterGrid({
     required this.selected,
@@ -365,6 +369,7 @@ class _ModuleCenterGrid extends StatelessWidget {
   }
 }
 
+/// 模块入口方块。
 class _ModuleCenterTile extends StatelessWidget {
   const _ModuleCenterTile({
     required this.tileKey,
@@ -453,6 +458,7 @@ class _ModuleCenterTile extends StatelessWidget {
   }
 }
 
+/// 最近事件卡片。
 class _ModuleRecentEventsCard extends StatelessWidget {
   const _ModuleRecentEventsCard({required this.events});
 
@@ -504,6 +510,7 @@ class _ModuleRecentEventsCard extends StatelessWidget {
   }
 }
 
+/// 最近事件中的单行。
 class _ModuleRecentEventRow extends StatelessWidget {
   const _ModuleRecentEventRow({
     required this.event,
@@ -576,6 +583,7 @@ String _formatModuleMoney(double amount) {
   return amount.toStringAsFixed(2);
 }
 
+/// App 品牌图标标记。
 class AppIconMark extends StatelessWidget {
   const AppIconMark({this.size = 42});
 
@@ -599,6 +607,7 @@ class AppIconMark extends StatelessWidget {
   }
 }
 
+/// 模块列表中的一行入口。
 class _ModuleListItem extends StatelessWidget {
   const _ModuleListItem({
     required this.icon,

@@ -9,7 +9,9 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 
+/** 健康权限说明页：在系统授权弹窗前解释数据用途和本地存储范围。 */
 class PermissionsRationaleActivity : Activity() {
+    /** 构建滚动说明页，列出读取的健康指标和隐私承诺。 */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -29,6 +31,7 @@ class PermissionsRationaleActivity : Activity() {
         setContentView(root)
     }
 
+    /** 创建页面主标题样式。 */
     private fun titleView(text: String): TextView {
         return TextView(this).apply {
             this.text = text
@@ -40,6 +43,7 @@ class PermissionsRationaleActivity : Activity() {
         }
     }
 
+    /** 创建正文段落样式。 */
     private fun bodyView(text: String): TextView {
         return TextView(this).apply {
             this.text = text

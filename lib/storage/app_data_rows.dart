@@ -2,9 +2,11 @@
 
 part of 'storage.dart';
 
+/// SQLite row 与业务模型之间的转换工具。
 class AppDataStoreRows {
   const AppDataStoreRows._();
 
+  // 读取 todos 表时补齐每月重复待办的锚点日，兼容历史数据。
   static List<Map<String, Object?>> todoRowsWithRepeatAnchors(
     List<Map<String, Object?>> rows,
   ) {
@@ -62,6 +64,7 @@ class AppDataStoreRows {
     return id.replaceFirst(RegExp(r'__repeat_\d{8}$'), '');
   }
 
+  // 饮食记录 -> SQLite row。
   static Map<String, Object?> foodLogToRow(FoodLogEntry entry, int position) {
     return {
       'position': position,
@@ -73,6 +76,7 @@ class AppDataStoreRows {
     };
   }
 
+  // SQLite row -> 饮食记录。
   static FoodLogEntry foodLogFromRow(Map<String, Object?> row) {
     return FoodLogEntry.fromJson({
       'food': jsonDecode(row['foodJson'] as String? ?? '{}'),
@@ -84,6 +88,7 @@ class AppDataStoreRows {
   }
 
   // 财务记录在 SQLite 中按行保存；复杂字段转 JSON，读取时再还原成模型。
+  // 财务记录 -> SQLite row。
   static Map<String, Object?> financeRecordToRow(
     FinanceRecord record,
     int position,
@@ -101,6 +106,7 @@ class AppDataStoreRows {
     };
   }
 
+  // SQLite row -> 财务记录。
   static FinanceRecord financeRecordFromRow(Map<String, Object?> row) {
     final title = row['title'] as String? ?? '手动记录';
     return FinanceRecord(
@@ -123,6 +129,7 @@ class AppDataStoreRows {
   }
 }
 
+/// 待办/锻炼等复杂模型的 row 映射扩展。
 extension _AppDataStoreRowMapping on AppDataStore {
   TodoItem _todoFromRow(Map<String, Object?> row) {
     // 数据库里只存可序列化字段，颜色和枚举在恢复模型时重新推导。

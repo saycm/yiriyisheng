@@ -2,6 +2,7 @@
 
 part of '../../plan.dart';
 
+/// 周计划指挥中心：展示本周任务数、完成数、待安排和风险数，并提供一键排周操作。
 class _WeekCommandCenter extends StatelessWidget {
   const _WeekCommandCenter({
     required this.weekTodos,
@@ -174,6 +175,7 @@ class _WeekCommandCenter extends StatelessWidget {
   }
 }
 
+/// 指挥中心里的操作按钮（自动排周、均衡、顺延、清理逾期）。
 class _WeekCommandButton extends StatelessWidget {
   const _WeekCommandButton({
     super.key,
@@ -226,6 +228,7 @@ class _WeekCommandButton extends StatelessWidget {
   }
 }
 
+/// 指挥中心里的单个统计指标。
 class _WeekMetricTile extends StatelessWidget {
   const _WeekMetricTile({
     required this.label,

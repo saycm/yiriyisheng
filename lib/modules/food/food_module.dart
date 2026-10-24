@@ -2,6 +2,7 @@
 
 part of 'food.dart';
 
+/// 饮食模板：一组常吃食物及其份数。
 class _FoodMealTemplate {
   const _FoodMealTemplate({
     required this.title,
@@ -21,6 +22,7 @@ class _FoodMealTemplate {
 const _foodCategories = ['常用', '主食', '蛋白', '蔬果', '饮品', '零食', '外卖', '自定义'];
 const _customFoodCategoryLabels = ['主食', '蛋白', '蔬果', '饮品', '零食', '外卖', '自定义'];
 
+// 根据当前时间推断默认餐次，保证打开页面时落在最可能记录的一餐。
 String foodMealForTime(DateTime time) {
   final hour = time.hour;
   if (hour >= 5 && hour < 11) {
@@ -35,6 +37,7 @@ String foodMealForTime(DateTime time) {
   return '夜宵';
 }
 
+// 把食物原始分组归一到页面顶部的七个分类，未知分组回退到“常用”。
 String _foodCategoryForGroup(String group) {
   return switch (normalizeFoodGroup(group)) {
     '常用' => '常用',
@@ -49,6 +52,7 @@ String _foodCategoryForGroup(String group) {
   };
 }
 
+/// 饮食模块页面：搜索食物、按分类浏览、记录三餐和查看今日汇总。
 class FoodModulePage extends StatefulWidget {
   const FoodModulePage({
     super.key,
@@ -79,6 +83,7 @@ class FoodModulePage extends StatefulWidget {
   State<FoodModulePage> createState() => _FoodModulePageState();
 }
 
+/// 饮食页状态：搜索词、选中分类、份数和记录动作。
 class _FoodModulePageState extends State<FoodModulePage> {
   final List<FoodItem> _foods = [
     const FoodItem(
@@ -272,14 +277,17 @@ class _FoodModulePageState extends State<FoodModulePage> {
     ),
   ];
 
+  // 当前勾选但尚未提交的食物总热量。
   int get _totalCalories =>
       _selectedFoods.fold(0, (total, food) => total + food.calorie);
 
+  // 已写入今日日志的总热量。
   int get _loggedCalories =>
       _todayLogs.fold(0, (total, entry) => total + entry.calories);
 
   int get _todayCalories => _loggedCalories;
 
+  // 汇总今日蛋白质、碳水和脂肪，供顶部营养卡片展示。
   double get _todayProtein =>
       _todayLogs.fold(0, (total, entry) => total + entry.protein);
 
@@ -289,6 +297,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
   double get _todayFat =>
       _todayLogs.fold(0, (total, entry) => total + entry.fat);
 
+  // 只保留今天的饮食记录，作为餐次统计和提醒的数据源。
   List<FoodLogEntry> get _todayLogs {
     return todayFoodLogs(widget.foodLogs, DateTime.now());
   }
@@ -441,19 +450,23 @@ class _FoodModulePageState extends State<FoodModulePage> {
     );
   }
 
+  /// 清空搜索框和过滤关键词，恢复完整分类列表。
   void _clearFoodSearch() {
     _foodSearchController.clear();
     setState(() => _foodQuery = '');
   }
 
+  /// 统计同名食物当前被勾选的份数，用于卡片上的加减按钮。
   int _selectedCountFor(FoodItem food) {
     return _selectedFoods.where((item) => item.name == food.name).length;
   }
 
+  /// 把一份食物加入待记录列表。
   void _addSelectedFood(FoodItem food) {
     setState(() => _selectedFoods.add(food));
   }
 
+  /// 从待记录列表移除一份同名食物。
   void _removeSelectedFood(FoodItem food) {
     final index = _selectedFoods.indexWhere((item) => item.name == food.name);
     if (index == -1) {
@@ -462,6 +475,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     setState(() => _selectedFoods.removeAt(index));
   }
 
+  /// 按早餐、午餐、晚餐、夜宵汇总今日已记录的热量。
   Map<String, int> _caloriesByMeal() {
     return {
       for (final meal in _meals)
@@ -471,6 +485,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     };
   }
 
+  /// 根据当前时间、训练量和记录完整度生成饮食提醒。
   List<String> _foodReminders() {
     final reminders = <String>[];
     final mealsRecorded = _todayLogs.map((entry) => entry.meal).toSet();
@@ -486,6 +501,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     return reminders;
   }
 
+  /// 生成最近七天的热量趋势，最后一项固定代表今天。
   List<_FoodTrendDay> _foodTrendDays() {
     final today = DateUtils.dateOnly(DateTime.now());
     return List.generate(7, (index) {
@@ -504,6 +520,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     });
   }
 
+  /// 把星期几转换成趋势图上的单字缩写。
   String _foodWeekdayLabel(DateTime date) {
     return switch (date.weekday) {
       DateTime.monday => '一',
@@ -517,6 +534,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     };
   }
 
+  /// 重复当前餐次最近一次记录；没有历史时使用内置的默认搭配。
   void _repeatLastMeal() {
     final recent = _todayLogs.reversed
         .where((entry) => entry.meal == _activeMeal)
@@ -529,10 +547,12 @@ class _FoodModulePageState extends State<FoodModulePage> {
     _selectFoodsByNames(names, _activeMeal);
   }
 
+  /// 应用预设餐单，把模板中的食物一次性记录到对应餐次。
   void _useMealTemplate(_FoodMealTemplate template) {
     _selectFoodsByNames(template.items, template.meal);
   }
 
+  /// 按名称查找食物并批量记录，找不到的名称会被忽略。
   void _selectFoodsByNames(List<String> names, String meal) {
     final foods = names.map(_findFoodByName).whereType<FoodItem>().toList();
     if (foods.isEmpty) {
@@ -541,6 +561,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     _recordFoodItems(foods, meal);
   }
 
+  /// 在本地食物库中按名称精确查找。
   FoodItem? _findFoodByName(String name) {
     for (final food in _foods) {
       if (food.name == name) {
@@ -550,6 +571,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     return null;
   }
 
+  /// 提交当前勾选的所有食物，成功后清空待记录列表。
   void _recordFoods() {
     if (_selectedFoods.isEmpty) {
       return;
@@ -558,6 +580,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     setState(_selectedFoods.clear);
   }
 
+  /// 把一组食物转换成日志条目并交给父级持久化，同时提示记录结果。
   void _recordFoodItems(List<FoodItem> foods, String meal) {
     final calories = foods.fold(0, (total, food) => total + food.calorie);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -582,6 +605,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     setState(() => _activeMeal = meal);
   }
 
+  /// 打开饮食工具菜单，提供自定义食物、重复上一餐和查看今日记录。
   void _openFoodToolsSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -617,6 +641,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     );
   }
 
+  /// 先关闭当前底部菜单，等下一帧再执行跳转或打开新菜单。
   void _closeSheetAndRun(BuildContext sheetContext, VoidCallback action) {
     Navigator.of(sheetContext).pop();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -626,6 +651,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     });
   }
 
+  /// 打开今日饮食日志列表。
   void _openTodayFoodLogsSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -635,6 +661,7 @@ class _FoodModulePageState extends State<FoodModulePage> {
     );
   }
 
+  /// 打开自定义食物表单，并把新增食物立即加入本地食物库。
   void _openCustomFoodSheet() {
     showModalBottomSheet<void>(
       context: context,

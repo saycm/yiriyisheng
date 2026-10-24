@@ -2,6 +2,7 @@
 
 part of '../plan.dart';
 
+/// 计划统计页：展示本周复盘、饮食/锻炼进度、生活事件流和下周建议。
 class _PlanStatsView extends StatelessWidget {
   const _PlanStatsView({
     required this.todos,
@@ -17,6 +18,7 @@ class _PlanStatsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 以周一为起点统计本周到期或完成的任务，再计算完成率、逾期和推迟情况。
     final today = DateUtils.dateOnly(DateTime.now());
     final weekStart =
         today.subtract(Duration(days: today.weekday - DateTime.monday));
@@ -193,6 +195,7 @@ class _PlanStatsView extends StatelessWidget {
   }
 }
 
+/// 关联模块复盘卡：提示用户为已完成的关联待办补充饮食/锻炼等记录。
 class _PlanLinkedReviewCard extends StatelessWidget {
   const _PlanLinkedReviewCard({
     required this.foodCalories,
@@ -216,6 +219,7 @@ class _PlanLinkedReviewCard extends StatelessWidget {
   }
 }
 
+/// 复盘指标卡：完成数、完成率、逾期数等核心数字。
 class _PlanReviewMetricsCard extends StatelessWidget {
   const _PlanReviewMetricsCard({
     required this.completedRate,
@@ -321,6 +325,7 @@ class _PlanReviewMetricsCard extends StatelessWidget {
   }
 }
 
+/// 根据本周完成情况给出下周安排建议。
 class _NextWeekAdviceCard extends StatelessWidget {
   const _NextWeekAdviceCard({required this.advices});
 
@@ -386,6 +391,7 @@ class _NextWeekAdviceCard extends StatelessWidget {
   }
 }
 
+/// 统计页里的小指标胶囊（图标 + 数字 + 文案）。
 class _PlanMetricPill extends StatelessWidget {
   const _PlanMetricPill({
     required this.label,
@@ -440,6 +446,7 @@ class _PlanMetricPill extends StatelessWidget {
   }
 }
 
+/// 生活事件流卡片：按时间倒序展示最近的模块动态。
 class _LifeEventFeedCard extends StatelessWidget {
   const _LifeEventFeedCard({required this.events});
 
@@ -493,6 +500,7 @@ class _LifeEventFeedCard extends StatelessWidget {
   }
 }
 
+/// 事件流中的单行事件（图标、标题、详情、时间）。
 class _LifeEventRow extends StatelessWidget {
   const _LifeEventRow({
     required this.event,
@@ -557,6 +565,7 @@ class _LifeEventRow extends StatelessWidget {
   }
 }
 
+/// 本周进度卡：饮食热量和锻炼组数的周累计与目标对比。
 class _WeeklyProgressCard extends StatelessWidget {
   const _WeeklyProgressCard({
     required this.percent,
@@ -631,6 +640,7 @@ class _WeeklyProgressCard extends StatelessWidget {
   }
 }
 
+/// 复盘区块的统一标题样式。
 class _ReviewSectionTitle extends StatelessWidget {
   const _ReviewSectionTitle({
     required this.icon,
@@ -659,6 +669,7 @@ class _ReviewSectionTitle extends StatelessWidget {
   }
 }
 
+/// 关键时刻列表卡：展示本周值得回顾的记录。
 class _MomentListCard extends StatelessWidget {
   const _MomentListCard({required this.moments});
 
@@ -704,6 +715,7 @@ class _MomentListCard extends StatelessWidget {
   }
 }
 
+/// 洞察卡：用一句话总结本周状态并给出提示。
 class _InsightCard extends StatelessWidget {
   const _InsightCard({
     required this.title,
@@ -761,6 +773,7 @@ class _InsightCard extends StatelessWidget {
   }
 }
 
+/// 数字卡片：大号数字 + 单位 + 说明，用于强调单个指标。
 class _NumberCard extends StatelessWidget {
   const _NumberCard({
     required this.icon,

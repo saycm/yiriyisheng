@@ -9,8 +9,10 @@ const String defaultGlmChatEndpoint =
 const String defaultGlmTextModel = 'glm-4-flash';
 const String defaultGlmVisionModel = 'glm-4.6v';
 
+/// AI 记账识别出的账单类型：收入、支出、转账。
 enum AiFinanceBillType { income, expense, transfer }
 
+/// AI 生成备注时的长度档位（字数上限 + 显示文案）。
 enum AiFinanceNoteLength {
   short(10, '简短 ≤10字'),
   standard(15, '标准 ≤15字'),
@@ -22,6 +24,7 @@ enum AiFinanceNoteLength {
   final String label;
 }
 
+/// AI 解析策略：控制是否拆分多笔、合并同商户、识别转账、提取账户/标签等。
 class AiFinanceParseStrategy {
   // 解析策略是用户可调的“提示词开关”，最终会参与构建 AI 请求提示。
   const AiFinanceParseStrategy({
@@ -46,6 +49,7 @@ class AiFinanceParseStrategy {
   final bool requireLowConfidenceReview;
   final AiFinanceNoteLength noteLength;
 
+  // 复制策略并替换部分开关。
   AiFinanceParseStrategy copyWith({
     bool? splitMultipleBills,
     bool? mergeSameMerchant,
@@ -69,6 +73,7 @@ class AiFinanceParseStrategy {
     );
   }
 
+  // 序列化解析策略，供 SQLite/设置页保存。
   Map<String, Object?> toJson() {
     return {
       'splitMultipleBills': splitMultipleBills,
@@ -82,6 +87,7 @@ class AiFinanceParseStrategy {
     };
   }
 
+  // 反序列化解析策略，字段缺失时使用默认值。
   static AiFinanceParseStrategy fromJson(Object? value) {
     if (value is! Map) {
       return defaults;
@@ -109,6 +115,7 @@ class AiFinanceParseStrategy {
     );
   }
 
+  // 安全读取布尔字段。
   static bool _readBool(Map<dynamic, dynamic> json, String key, bool fallback) {
     final value = json[key];
     return value is bool ? value : fallback;
@@ -140,6 +147,7 @@ class AiFinanceParseStrategy {
       );
 }
 
+/// AI 解析出的一笔账单：金额、时间、备注、分类、类型、账户、标签和置信度。
 class AiFinanceBillInfo {
   const AiFinanceBillInfo({
     this.amount,
@@ -165,6 +173,7 @@ class AiFinanceBillInfo {
   final List<String>? tags;
   final double confidence;
 
+  // 复制账单并替换部分字段。
   AiFinanceBillInfo copyWith({
     double? amount,
     DateTime? time,
@@ -207,6 +216,7 @@ class AiFinanceBillInfo {
     );
   }
 
+  // 序列化账单，用于调试或缓存。
   Map<String, Object?> toJson() {
     return {
       'amount': amount,
@@ -222,6 +232,7 @@ class AiFinanceBillInfo {
     };
   }
 
+  // 解析 AI 返回的时间字段，兼容 ISO8601 和常见日期格式。
   static DateTime? _parseAiFinanceTime(dynamic value) {
     if (value is! String) {
       return null;
@@ -234,6 +245,7 @@ class AiFinanceBillInfo {
         DateTime.tryParse(raw.replaceAll(RegExp(r'\s+'), ''));
   }
 
+  // 解析账单类型字符串（income/expense/transfer 及中文别名）。
   static AiFinanceBillType? _parseAiFinanceBillType(dynamic value) {
     if (value == null) {
       return null;
@@ -251,6 +263,7 @@ class AiFinanceBillInfo {
     return null;
   }
 
+  // 解析标签字段，兼容单个字符串和字符串数组。
   static List<String>? _parseAiFinanceTags(dynamic value) {
     if (value == null) {
       return null;
@@ -274,10 +287,12 @@ class AiFinanceBillInfo {
   }
 }
 
+/// AI 返回 JSON 的解析器：容错处理代码块、数组/单对象等格式。
 class AiFinanceJsonParser {
   // AI 返回可能包含 markdown 代码块或说明文字，这里负责提取可靠 JSON 片段。
   const AiFinanceJsonParser();
 
+  // 从模型返回文本中提取账单 JSON，优先数组、其次单对象。
   List<AiFinanceBillInfo> parse(String response) {
     // 这部分沿用晚安记账的核心策略：优先找 JSON 数组，失败再找单个对象。
     final arrayBlock = _extractBalancedBlock(response, '[', ']');
@@ -321,6 +336,7 @@ class AiFinanceJsonParser {
     }
   }
 
+  // 过滤无效账单（金额为空/为 0），并给缺失时间的账单补当前时间。
   AiFinanceBillInfo? _sanitize(AiFinanceBillInfo bill) {
     final amount = bill.amount;
     if (amount == null || amount.abs() <= 0) {
@@ -329,6 +345,7 @@ class AiFinanceJsonParser {
     return bill.time == null ? bill.copyWith(time: DateTime.now()) : bill;
   }
 
+  // 把任意 Map 统一转换成 Map<String, dynamic>。
   Map<String, dynamic>? _asStringMap(Object? value) {
     if (value is Map<String, dynamic>) {
       return value;
@@ -339,6 +356,7 @@ class AiFinanceJsonParser {
     return null;
   }
 
+  // 去掉 JSON 尾随逗号等常见模型输出瑕疵，同时保留字符串内部内容。
   String _cleanupJson(String input) {
     final out = StringBuffer();
     var inString = false;
@@ -375,6 +393,7 @@ class AiFinanceJsonParser {
     return out.toString();
   }
 
+  // 从文本中提取配对完整的 JSON 块（考虑字符串和转义）。
   String? _extractBalancedBlock(String text, String open, String close) {
     final start = text.indexOf(open);
     if (start < 0) {
@@ -413,6 +432,7 @@ class AiFinanceJsonParser {
   }
 }
 
+/// 构建发送给大模型的提示词，把用户文本、当前时间和解析策略拼进去。
 class AiFinancePromptBuilder {
   const AiFinancePromptBuilder();
 
@@ -468,6 +488,7 @@ class AiFinancePromptBuilder {
     '兼职',
   ];
 
+  // 根据解析策略和当前时间构建完整的记账提示词。
   String build({
     required String text,
     DateTime? now,
@@ -565,6 +586,7 @@ $transferExample
 
   static String _pad(int value) => value.toString().padLeft(2, '0');
 
+  // 把用户自定义提示词模板里的占位符替换成实际内容。
   String _renderCustomTemplate(
     String template, {
     required String inputSource,
@@ -588,6 +610,7 @@ $transferExample
   }
 }
 
+/// AI 记账调用失败时抛出的异常。
 class AiFinanceException implements Exception {
   const AiFinanceException(this.message);
 
@@ -597,6 +620,7 @@ class AiFinanceException implements Exception {
   String toString() => message;
 }
 
+/// 传给视觉模型的图片输入（字节 + MIME 类型）。
 class AiFinanceImageInput {
   const AiFinanceImageInput({
     required this.bytes,
@@ -607,12 +631,14 @@ class AiFinanceImageInput {
   final String mimeType;
 }
 
+/// 模型请求的传输函数签名，便于测试时替换成假实现。
 typedef AiFinanceTransport = Future<String> Function({
   required Uri uri,
   required String apiKey,
   required Map<String, Object?> payload,
 });
 
+/// AI 记账客户端：发送文本/图片到 OpenAI 兼容接口，并解析成账单列表。
 class AiFinanceClient {
   AiFinanceClient({
     this.parser = const AiFinanceJsonParser(),
@@ -624,6 +650,7 @@ class AiFinanceClient {
   final AiFinancePromptBuilder promptBuilder;
   final AiFinanceTransport _transport;
 
+  // 解析自然语言文本并返回账单列表。
   Future<List<AiFinanceBillInfo>> parseText({
     required String text,
     required String apiKey,
@@ -677,6 +704,7 @@ class AiFinanceClient {
     }
   }
 
+  // 解析单张图片（票据/截图）并返回账单列表。
   Future<List<AiFinanceBillInfo>> parseImage({
     required Uint8List imageBytes,
     required String mimeType,
@@ -698,6 +726,7 @@ class AiFinanceClient {
     );
   }
 
+  // 解析多张图片。
   Future<List<AiFinanceBillInfo>> parseImages({
     required List<AiFinanceImageInput> images,
     required String apiKey,
@@ -767,6 +796,7 @@ class AiFinanceClient {
     }
   }
 
+  // 默认 HTTP 传输实现：向 OpenAI 兼容的 chat/completions 接口发请求。
   static Future<String> _defaultTransport({
     required Uri uri,
     required String apiKey,
@@ -790,6 +820,7 @@ class AiFinanceClient {
     }
   }
 
+  // 解析并校验接口地址。
   Uri _resolveEndpoint(String endpoint) {
     final raw =
         endpoint.trim().isEmpty ? defaultGlmChatEndpoint : endpoint.trim();
@@ -806,6 +837,7 @@ class AiFinanceClient {
     return uri;
   }
 
+  // 从 chat/completions 响应中取出模型输出的文本内容。
   String _extractChatContent(String body) {
     final decoded = jsonDecode(body);
     if (decoded is! Map<String, dynamic>) {
@@ -827,6 +859,7 @@ class AiFinanceClient {
     throw const AiFinanceException('AI 接口返回中没有 message.content');
   }
 
+  // 把图片接口的底层异常翻译成更友好的提示。
   AiFinanceException _mapImageApiException(AiFinanceException error) {
     if (error.message.startsWith('AI 接口请求失败：')) {
       return const AiFinanceException(
@@ -836,6 +869,7 @@ class AiFinanceClient {
     return error;
   }
 
+  // 把图片处理中的未知异常翻译成提示。
   AiFinanceException _mapImageUnexpectedException(Object error) {
     if (_isNetworkTransportError(error)) {
       return const AiFinanceException(
@@ -845,6 +879,7 @@ class AiFinanceClient {
     return const AiFinanceException('图片理解失败。请稍后重试，或换一张更清晰的账单图片。');
   }
 
+  // 判断异常是否属于网络传输错误。
   bool _isNetworkTransportError(Object error) {
     final text = error.toString().toLowerCase();
     return error is SocketException ||

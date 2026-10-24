@@ -2,6 +2,7 @@
 
 part of 'workout.dart';
 
+/// 训练历史详情弹层。
 class _WorkoutHistoryDetailSheet extends StatelessWidget {
   const _WorkoutHistoryDetailSheet({
     required this.entry,
@@ -102,6 +103,7 @@ class _WorkoutHistoryDetailSheet extends StatelessWidget {
   }
 }
 
+/// 训练历史视图：日历、动作趋势和记录列表。
 class _WorkoutHistoryView extends StatelessWidget {
   const _WorkoutHistoryView({
     required this.history,
@@ -156,6 +158,7 @@ class _WorkoutHistoryView extends StatelessWidget {
   }
 }
 
+/// 没有训练历史时的空状态卡片。
 class _WorkoutEmptyHistoryCard extends StatelessWidget {
   const _WorkoutEmptyHistoryCard();
 
@@ -176,6 +179,7 @@ class _WorkoutEmptyHistoryCard extends StatelessWidget {
   }
 }
 
+/// 训练日历卡片。
 class _WorkoutCalendarCard extends StatelessWidget {
   const _WorkoutCalendarCard({required this.history});
 
@@ -256,6 +260,7 @@ class _WorkoutCalendarCard extends StatelessWidget {
   }
 }
 
+/// 日历中某一天的数据（是否训练、组数）。
 class _WorkoutCalendarDayData {
   const _WorkoutCalendarDayData({
     required this.date,
@@ -272,6 +277,7 @@ class _WorkoutCalendarDayData {
   bool get hasTraining => sessions > 0;
 }
 
+/// 日历中的单天格子。
 class _WorkoutCalendarDay extends StatelessWidget {
   const _WorkoutCalendarDay({required this.data});
 
@@ -371,6 +377,7 @@ class _WorkoutCalendarDay extends StatelessWidget {
   }
 }
 
+/// 日历图例项。
 class _WorkoutCalendarLegendItem extends StatelessWidget {
   const _WorkoutCalendarLegendItem({
     required this.color,
@@ -410,6 +417,7 @@ class _WorkoutCalendarLegendItem extends StatelessWidget {
   }
 }
 
+/// 动作趋势卡片。
 class _WorkoutActionTrendCard extends StatelessWidget {
   const _WorkoutActionTrendCard({required this.history});
 
@@ -461,6 +469,7 @@ class _WorkoutActionTrendCard extends StatelessWidget {
   }
 }
 
+/// 趋势为空时的占位。
 class _WorkoutTrendEmptyState extends StatelessWidget {
   const _WorkoutTrendEmptyState();
 
@@ -497,6 +506,7 @@ class _WorkoutTrendEmptyState extends StatelessWidget {
   }
 }
 
+/// 动作趋势中的单行。
 class _WorkoutTrendRow extends StatelessWidget {
   const _WorkoutTrendRow({
     required this.title,
@@ -572,6 +582,7 @@ class _WorkoutTrendRow extends StatelessWidget {
   }
 }
 
+/// 训练进度趋势卡片。
 class _WorkoutProgressTrendCard extends StatelessWidget {
   const _WorkoutProgressTrendCard({required this.history});
 
@@ -628,6 +639,7 @@ class _WorkoutProgressTrendCard extends StatelessWidget {
   }
 }
 
+/// 单个动作的趋势数据。
 class _WorkoutActionTrendData {
   const _WorkoutActionTrendData({
     required this.actionName,
@@ -638,6 +650,7 @@ class _WorkoutActionTrendData {
   final List<double> values;
 }
 
+/// 单个数值指标的趋势数据。
 class _WorkoutValueTrendData {
   const _WorkoutValueTrendData({
     required this.actionName,
@@ -733,6 +746,7 @@ String _formatWorkoutTrendValue(double value) {
   return value.toStringAsFixed(1);
 }
 
+/// 进度趋势中的单个小块。
 class _WorkoutProgressTrendTile extends StatelessWidget {
   const _WorkoutProgressTrendTile({
     required this.title,
@@ -802,6 +816,7 @@ class _WorkoutProgressTrendTile extends StatelessWidget {
   }
 }
 
+/// 一条训练历史记录卡片。
 class _WorkoutHistoryTile extends StatelessWidget {
   const _WorkoutHistoryTile({
     required this.title,

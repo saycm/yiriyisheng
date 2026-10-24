@@ -2,6 +2,7 @@
 
 part of 'plan.dart';
 
+/// 计划模块页面：把待办数据、日期选择和页面切换组合起来。
 class PlanModulePage extends StatefulWidget {
   // 计划页不持久化自己的数据，所有待办变更都通过回调交回首页状态层。
   const PlanModulePage({
@@ -59,6 +60,7 @@ class PlanModulePage extends StatefulWidget {
   State<PlanModulePage> createState() => _PlanModulePageState();
 }
 
+/// 计划页状态：选中日期、页签、分类筛选和快捷动作处理。
 class _PlanModulePageState extends State<PlanModulePage>
     with _PlanModuleState, _PlanModuleActions {
   @override

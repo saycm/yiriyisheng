@@ -10,6 +10,7 @@ import '../core/app_core.dart';
 import '../home/life_home.dart';
 import '../ui_preview/liquid_glass_preview.dart';
 
+/// App 根组件：初始化全局设置、主题和本地化，并选择登录/首页入口。
 class PingShengApp extends StatefulWidget {
   const PingShengApp({
     super.key,
@@ -26,6 +27,7 @@ class PingShengApp extends StatefulWidget {
   State<PingShengApp> createState() => _PingShengAppState();
 }
 
+/// 根组件状态：加载主题偏好并构建 MaterialApp。
 class _PingShengAppState extends State<PingShengApp> {
   late final AppSettingsController _settingsController;
 
@@ -94,6 +96,7 @@ class _PingShengAppState extends State<PingShengApp> {
   }
 
   ThemeData _buildLightTheme() {
+    // 浅色主题：以主色为种子生成 Material 3 配色，并统一背景/按钮/芯片样式。
     return ThemeData(
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
@@ -124,6 +127,7 @@ class _PingShengAppState extends State<PingShengApp> {
   }
 
   ThemeData _buildDarkTheme() {
+    // 深色主题：深蓝黑背景 + 更亮的图标色，保证夜间可读性。
     final colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: Brightness.dark,
@@ -169,6 +173,7 @@ class _PingShengAppState extends State<PingShengApp> {
   }
 
   ChipThemeData _buildReadableChipTheme() {
+    // 统一芯片样式，确保选中/未选中状态下文字都有足够对比度。
     return ChipThemeData.fromDefaults(
       brightness: Brightness.light,
       secondaryColor: AppColors.primary,

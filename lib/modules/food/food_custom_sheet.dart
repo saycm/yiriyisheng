@@ -2,6 +2,7 @@
 
 part of 'food.dart';
 
+/// 自定义食物弹层：填写名称、热量、单位和分类。
 class _CustomFoodSheet extends StatefulWidget {
   const _CustomFoodSheet({
     required this.initialName,
@@ -18,6 +19,7 @@ class _CustomFoodSheet extends StatefulWidget {
   State<_CustomFoodSheet> createState() => _CustomFoodSheetState();
 }
 
+/// 自定义食物表单状态。
 class _CustomFoodSheetState extends State<_CustomFoodSheet> {
   late final TextEditingController _nameController;
   late final TextEditingController _calorieController;

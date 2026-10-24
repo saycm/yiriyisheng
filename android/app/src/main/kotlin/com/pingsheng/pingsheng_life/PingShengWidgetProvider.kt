@@ -13,9 +13,11 @@ import org.json.JSONArray
 
 private const val ACTION_REFRESH = "com.pingsheng.pingsheng_life.widget.REFRESH"
 
+/** 深色/浅色小组件共用的基类，统一处理系统刷新和广播事件。 */
 abstract class PingShengBaseWidgetProvider(
     private val layoutResId: Int
 ) : AppWidgetProvider() {
+    /** 应用升级或内部刷新广播时重绘全部小组件。 */
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             Intent.ACTION_MY_PACKAGE_REPLACED,
@@ -27,6 +29,7 @@ abstract class PingShengBaseWidgetProvider(
         super.onReceive(context, intent)
     }
 
+    /** 系统要求更新小组件时交给统一渲染器绘制。 */
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -41,6 +44,7 @@ abstract class PingShengBaseWidgetProvider(
         )
     }
 
+    /** 找到当前 Provider 的所有实例并逐个刷新。 */
     private fun refreshAllWidgets(context: Context) {
         val manager = AppWidgetManager.getInstance(context)
         val ids = manager.getAppWidgetIds(ComponentName(context, javaClass))
@@ -48,7 +52,9 @@ abstract class PingShengBaseWidgetProvider(
     }
 }
 
+/** 深色主题小组件 Provider，同时提供共享偏好键和主动刷新入口。 */
 class PingShengWidgetProvider : PingShengBaseWidgetProvider(R.layout.pingsheng_widget_dark) {
+    /** 小组件共享存储键与静态刷新方法。 */
     companion object {
         const val PREFS_NAME = "pingsheng_life_widget_summary"
         const val KEY_FOOD_CALORIES = "food_calories"
@@ -63,6 +69,7 @@ class PingShengWidgetProvider : PingShengBaseWidgetProvider(R.layout.pingsheng_w
         const val KEY_HEALTH_TEXT = "health_text"
         const val KEY_HEALTH_SUMMARY_DATE = "health_summary_date"
 
+        /** 主动刷新所有深色小组件实例。 */
         fun updateWidgets(
             context: Context,
             appWidgetManager: AppWidgetManager,
@@ -79,7 +86,9 @@ class PingShengWidgetProvider : PingShengBaseWidgetProvider(R.layout.pingsheng_w
     }
 }
 
+/** 浅色主题小组件 Provider。 */
 class PingShengLightWidgetProvider : PingShengBaseWidgetProvider(R.layout.pingsheng_widget_light) {
+    /** 主动刷新所有浅色小组件实例。 */
     companion object {
         fun updateWidgets(
             context: Context,
@@ -97,7 +106,9 @@ class PingShengLightWidgetProvider : PingShengBaseWidgetProvider(R.layout.pingsh
     }
 }
 
+/** 小组件渲染器：把 SharedPreferences 摘要写入 RemoteViews 并绑定点击动作。 */
 private object PingShengWidgetRenderer {
+    /** 批量刷新系统给出的所有小组件 id。 */
     fun updateWidgets(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -111,6 +122,7 @@ private object PingShengWidgetRenderer {
         }
     }
 
+    /** 读取今日数据并渲染单个小组件，包括摘要、进度和快捷入口。 */
     private fun updateWidget(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -208,6 +220,7 @@ private object PingShengWidgetRenderer {
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 
+    /** 创建打开指定 Flutter 模块的点击意图，可附带快捷动作。 */
     private fun moduleIntent(
         context: Context,
         route: String,
@@ -230,6 +243,7 @@ private object PingShengWidgetRenderer {
         )
     }
 
+    /** 创建留在小组件内部执行的刷新广播意图。 */
     private fun quickIntent(
         context: Context,
         providerClass: Class<out AppWidgetProvider>,
@@ -247,16 +261,19 @@ private object PingShengWidgetRenderer {
         )
     }
 
+    /** 汇总今日支出金额。 */
     private fun todayExpense(records: JSONArray): Double {
         // 小组件只展示今日支出概览，收入记录不会计入支出金额。
         return todayFinanceTotal(records, "支出")
     }
 
+    /** 汇总今日收入金额。 */
     private fun todayIncome(records: JSONArray): Double {
         // 收入只作为桌面摘要展示，不在小组件内触发任何记账动作。
         return todayFinanceTotal(records, "收入")
     }
 
+    /** 找到第一条未完成待办的标题，用作小组件摘要。 */
     private fun nextTodoTitle(todos: JSONArray): String {
         for (index in 0 until todos.length()) {
             val todo = todos.optJSONObject(index) ?: continue
@@ -272,6 +289,7 @@ private object PingShengWidgetRenderer {
         return "暂无待办"
     }
 
+    /** 按收支类型筛选今天的记录并求和。 */
     private fun todayFinanceTotal(records: JSONArray, type: String): Double {
         var total = 0.0
         for (index in 0 until records.length()) {
@@ -283,6 +301,7 @@ private object PingShengWidgetRenderer {
         return total
     }
 
+    /** 兼容 ISO 时间字符串和纯日期字符串，判断记录是否属于今天。 */
     private fun isToday(rawDate: String): Boolean {
         return try {
             val date = java.time.Instant.parse(rawDate)
@@ -299,6 +318,7 @@ private object PingShengWidgetRenderer {
         }
     }
 
+    /** 把金额压缩成最多两位小数，超过一万时显示为“万”。 */
     private fun formatMoney(amount: Double): String {
         if (amount >= 10000.0) {
             val compact = amount / 10000.0
@@ -315,6 +335,7 @@ private object PingShengWidgetRenderer {
         }
     }
 
+    /** 安全解析 SharedPreferences 中的 JSON 数组，失败时使用空数组。 */
     private fun safeJsonArray(raw: String?, fallback: String): JSONArray {
         // SharedPreferences 可能被旧版本写入空值，解析失败时回到真实空状态。
         return try {

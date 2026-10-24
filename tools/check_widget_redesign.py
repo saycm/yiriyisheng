@@ -19,6 +19,7 @@ TODAY_MARK = ROOT / "android/app/src/main/res/drawable/pingsheng_widget_today_ma
 
 
 def main() -> int:
+    """静态检查双主题小组件的布局、尺寸、Manifest 注册和原生快捷动作。"""
     # 这个检查不跑 Android 构建，只用静态 token 防止关键控件或动作被误删。
     missing_files = [str(path.relative_to(ROOT)) for path in [*LAYOUTS, *WIDGET_INFOS, TODAY_MARK] if not path.exists()]
     if missing_files:
@@ -212,6 +213,7 @@ def main() -> int:
 
 
 def _dp_value(raw: str | None) -> int:
+    """把 Android 的 dp 尺寸转换成整数；缺失或格式异常时按 0 处理。"""
     if not raw or not raw.endswith("dp"):
         return 0
     return int(float(raw[:-2]))

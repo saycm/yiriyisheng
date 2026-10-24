@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// 把 AI 识别出的账单转换成 App 内部的财务记录；信息不完整时返回 null。
 FinanceRecord? financeRecordFromAiBill(AiFinanceBillInfo bill) {
   final type = _financeTypeFromAiBill(bill);
   final title = _financeTitleFromAiBill(bill, type);
@@ -38,6 +39,7 @@ FinanceRecord? financeRecordFromAiBill(AiFinanceBillInfo bill) {
   );
 }
 
+/// 根据 AI 账单类型和金额正负推断“收入/支出/转账”。
 String _financeTypeFromAiBill(AiFinanceBillInfo bill) {
   if (bill.type == AiFinanceBillType.transfer) {
     return '转账';

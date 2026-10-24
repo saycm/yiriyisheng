@@ -2,6 +2,7 @@
 
 part of '../plan.dart';
 
+/// 计划页“更多”弹层：切换分类筛选、清理已完成待办。
 class _PlanMoreSheet extends StatelessWidget {
   const _PlanMoreSheet({
     required this.activeFilter,
@@ -17,6 +18,7 @@ class _PlanMoreSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // “全部”加上预置分类，组成筛选选项。
     final categories = [
       '全部',
       ..._todoCategoryOptions().map((category) => category.$1),

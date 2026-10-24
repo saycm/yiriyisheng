@@ -2,6 +2,9 @@
 
 part of '../plan.dart';
 
+/// 打开“新增待办”底部弹层。
+/// 表单内维护标题、备注、分类、优先级、状态、日期、重复规则和关联模块，
+/// 点击保存后通过 onSave 把新待办交回首页状态层。
 void _showPlanTodoEditorSheet({
   required BuildContext context,
   required DateTime today,
@@ -566,9 +569,12 @@ void _showPlanTodoEditorSheet({
   );
 }
 
+// 待办编辑器里次要文字的颜色。
 const Color _todoEditorChipInk = Color(0xFF46536B);
+// 待办编辑器里提示文字的颜色。
 const Color _todoEditorHintInk = Color(0xFF657188);
 
+// 待办编辑器输入框样式（比列表页更紧凑）。
 InputDecoration _todoEditorInputDecoration(String hint) {
   final enabledBorder = OutlineInputBorder(
     borderRadius: BorderRadius.circular(8),
@@ -595,6 +601,7 @@ InputDecoration _todoEditorInputDecoration(String hint) {
   );
 }
 
+// 分类/优先级选择芯片的背景色：选中用主色浅底，未选中用白色。
 Color _todoEditorChipFill({
   required bool selected,
   required Color color,
@@ -604,6 +611,7 @@ Color _todoEditorChipFill({
       : AppColors.surface.withValues(alpha: 0.62);
 }
 
+// 选择芯片的描边：选中时用主色，未选中时用浅灰。
 BorderSide _todoEditorChipSide({
   required bool selected,
   required Color color,
@@ -615,6 +623,7 @@ BorderSide _todoEditorChipSide({
   );
 }
 
+// 选择芯片内图标的颜色，跟随选中状态变化。
 Color _todoEditorChipIconColor({
   required bool selected,
   Color selectedColor = AppColors.primary,
@@ -622,6 +631,7 @@ Color _todoEditorChipIconColor({
   return selected ? selectedColor : _todoEditorChipInk.withValues(alpha: 0.86);
 }
 
+// 选择芯片文字样式，选中时加粗并使用主色。
 TextStyle _todoEditorChipLabelStyle({
   required bool selected,
   Color selectedColor = AppColors.primary,
@@ -633,6 +643,7 @@ TextStyle _todoEditorChipLabelStyle({
   );
 }
 
+/// 表单里的字段标题（如“分类”“优先级”）。
 class _PlanFieldLabel extends StatelessWidget {
   const _PlanFieldLabel(this.text);
 

@@ -2,6 +2,7 @@
 
 part of 'finance.dart';
 
+/// 财务概览视图：组合净资产、趋势、预算和健康分等卡片。
 class _FinanceOverviewView extends StatelessWidget {
   const _FinanceOverviewView({
     required this.showExpense,

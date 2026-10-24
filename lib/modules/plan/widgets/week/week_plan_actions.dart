@@ -2,7 +2,9 @@
 
 part of '../../plan.dart';
 
+/// 周计划的操作扩展：自动排周、均衡负载、顺延低优先级、清理逾期和安排单条任务。
 extension _WeekPlanActions on _WeekPlanView {
+  // 把所有待安排任务依次放到当前负载最轻的日期。
   void _autoScheduleWeek(
     BuildContext context,
     DateTime today,
@@ -34,6 +36,7 @@ extension _WeekPlanActions on _WeekPlanView {
     );
   }
 
+  // 先尝试自动排入待安排任务；没有待安排任务时，把最多 3 条低优先级任务挪到更空的日子。
   void _balanceWeek(BuildContext context, DateTime today, List<DateTime> days) {
     final unscheduledTodos = _unscheduledTodos(today, days);
     if (unscheduledTodos.isNotEmpty) {
@@ -76,6 +79,7 @@ extension _WeekPlanActions on _WeekPlanView {
     );
   }
 
+  // 把本周所有低优先级任务整体顺延 7 天，并标记为已延期。
   void _moveLowPriorityToNextWeek(BuildContext context, List<DateTime> days) {
     final movableTodos = _weekTodos(days)
         .where((todo) => todo.priority == TodoPriority.canDelay)
@@ -111,6 +115,7 @@ extension _WeekPlanActions on _WeekPlanView {
     );
   }
 
+  // 把逾期任务重新安排到本周负载最轻的日期。
   void _cleanOverdueTodos(
     BuildContext context,
     DateTime today,
@@ -144,6 +149,7 @@ extension _WeekPlanActions on _WeekPlanView {
     );
   }
 
+  // 安排单条任务到指定日期，并弹出可撤销提示。
   void _scheduleTodo(BuildContext context, TodoItem todo, DateTime targetDay) {
     onUpdate(_scheduledCopy(todo, targetDay));
     _showUndoableScheduleSnackBar(
@@ -153,6 +159,7 @@ extension _WeekPlanActions on _WeekPlanView {
     );
   }
 
+  // 把待安排列表的第一条任务放到选中日期。
   void _scheduleBacklogToSelectedDay(
     BuildContext context,
     List<TodoItem> backlogTodos,
@@ -170,6 +177,7 @@ extension _WeekPlanActions on _WeekPlanView {
     );
   }
 
+  // 批量把待安排任务放到选中日期，单次最多 _maxScheduleToSelectedDay 条。
   void _scheduleAllBacklogToSelectedDay(
     BuildContext context,
     List<TodoItem> backlogTodos,
@@ -195,6 +203,7 @@ extension _WeekPlanActions on _WeekPlanView {
   }
 }
 
+// 生成一条“已排期”的任务副本：写入日期，延期状态恢复为未开始。
 TodoItem _scheduledCopy(TodoItem todo, DateTime targetDay) {
   return todo.copyWith(
     dueDate: DateUtils.dateOnly(targetDay),
@@ -204,6 +213,7 @@ TodoItem _scheduledCopy(TodoItem todo, DateTime targetDay) {
   );
 }
 
+// 在“今天及以后”的日期中选出当前任务数最少的一天。
 DateTime _bestScheduleDay(
   List<DateTime> days,
   List<TodoItem> plannedTodos,
